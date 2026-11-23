@@ -3,8 +3,10 @@
     "id": "test-liver",
     "published": true,
     "name": "テスト 太郎",
-    "cohort": "1期生",
-    "generation": "",
+    "cohort": [
+      "1期生"
+    ],
+    "generation": "正式所属ライバー",
     "iconImage": "",
     "avatarImage": "",
     "emoji": "🐺",
