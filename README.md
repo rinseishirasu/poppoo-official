@@ -32,10 +32,10 @@
     "id": "sample-talent",
     "published": true,
     "name": "活動名",
-    "cohort": "1期生",
+    "cohort": ["1期生"],
     "generation": "正式所属ライバー",
-    "iconImage": "https://example.com/profile-icon.png",
-    "avatarImage": "https://example.com/avatar.png",
+    "iconImage": "assets/images/talents/sample-talent-icon.png",
+    "avatarImage": "assets/images/talents/sample-talent-avatar.png",
     "emoji": "🐦",
     "catchphrase": "キャッチコピー",
     "bio": "公開用プロフィール文",
@@ -46,7 +46,7 @@
   }
 ]
 ```
-`cohort` は「1期生」などの期生表示、`iconImage` は一覧用プロフィールアイコン、`avatarImage` は個別ページ用アバター画像のHTTPS URLです。画像URLは任意項目で、未設定時は絵文字を表示します。プロフィールURLは `talent.html?id=sample-talent` です。`id` は英数字とハイフンを推奨します。
+`cohort` は「1期生」などの期生表示（配列で複数指定可）、`generation` は所属形態です。運営ページから画像を選ぶと、`assets/images/talents/` に直接アップロードされ、`iconImage` は一覧用プロフィールアイコン、`avatarImage` は個別ページ用アバター画像のリポジトリ内パスが保存されます。画像は任意項目で、未設定時は絵文字を表示します。プロフィールURLは `talent.html?id=sample-talent` です。`id` は英数字とハイフンを推奨します。
 
 ### お知らせ (`data/news.json`)
 ```json
