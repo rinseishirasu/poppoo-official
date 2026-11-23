@@ -1,14 +1,1 @@
-[
-  {
-    "id": "test-Event",
-    "published": true,
-    "status": "開催中",
-    "date": "2026-11-23",
-    "period": "2026-11-24",
-    "title": "TestEvent",
-    "description": "テストイベント",
-    "target": "テストイベント",
-    "howto": "テストイベント",
-    "body": "テストイベント"
-  }
-]
+[]
