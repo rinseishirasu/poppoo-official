@@ -6,7 +6,7 @@ const API="https://api.github.com";
 const AUTH_API=(document.querySelector('meta[name="poppoo-auth-api"]')?.content||"").replace(/\/$/,"");
 const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",events:"events.json"};
 const LABELS={talents:"所属ライバー",schedule:"配信予定",news:"お知らせ",events:"イベント"};
-const STORAGE_KEY="poppoo-admin-draft-v2";
+const STORAGE_KEY="poppoo-admin-draft-v1";
 const SCHEMAS={
  talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["generation","所属形態・区分","text"],["emoji","アイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["tags","活動タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
  schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["talent","ライバー名","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
