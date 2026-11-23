@@ -75,7 +75,8 @@ function formObject(){
   const el=$("content-form").elements.namedItem(key);if(!el)continue;
   if(type==="checkbox")obj[key]=el.checked;
   else if(type==="cohort")obj[key]=Array.from($("content-form").querySelectorAll('input[name="cohort"]:checked')).map(input=>input.value);
-  else if(type==="image")obj[key]=el.value;\n  else if(type==="gallery"){try{obj[key]=JSON.parse(el.value||"[]")}catch{obj[key]=[]}}
+  else if(type==="image")obj[key]=el.value;
+  else if(type==="gallery"){try{obj[key]=JSON.parse(el.value||"[]")}catch{obj[key]=[]}}
   else if(type==="tags")obj[key]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
   else if(type==="links")obj[key]=el.value.split("\n").map(line=>{const i=line.indexOf("|");return i<0?null:{label:line.slice(0,i).trim(),url:line.slice(i+1).trim()}}).filter(x=>x&&x.label&&/^https?:\/\//i.test(x.url));
   else obj[key]=el.value.trim();
