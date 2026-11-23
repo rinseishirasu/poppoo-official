@@ -225,3 +225,10 @@ body{background:#fff;color:#182b45}
  .schedule-list .schedule-item{grid-template-columns:1fr;gap:5px}
  .schedule-list .schedule-item .pill,.schedule-link-pending{justify-self:start;margin-top:5px}
 }
+
+
+/* NEWS page refinements */
+.news-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.news-card .card-body{display:flex;flex-direction:column;height:100%}
+.news-card .card-action{margin-top:auto;padding-top:18px}
+@media(max-width:640px){.news-meta{align-items:flex-start;flex-wrap:wrap}}
