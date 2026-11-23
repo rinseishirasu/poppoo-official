@@ -34,3 +34,29 @@
   .container{width:calc(100% - 28px)}
   .hero h1{font-size:2rem}
 }
+
+/* POPPO whistle identity system */
+:root{--cream:#f7ead8;--paper:#fffdf8;--orange:#e99548;--orange-dark:#a85f2c;--brown:#49392e;--navy:#263d59;--coral:#e87968}
+.brand-logo{width:224px;max-height:62px;background:transparent!important;padding:0!important}
+.header-inner{position:relative}
+.header-motif{position:absolute;left:250px;top:50%;transform:translateY(-50%);font:700 .62rem/1 Arial,sans-serif;letter-spacing:.2em;color:#b98a62;white-space:nowrap}
+.header-motif b{color:var(--orange);padding-left:7px}
+.hero{background:linear-gradient(115deg,#fff9ef 0%,#fff2df 58%,#f4dfc6 100%)}
+.hero-art{background:radial-gradient(circle at 50% 42%,#fffdf8 0 40%,#f6d8b5 41% 100%);border:1px solid #edcfaa}
+.hero-art:after{background-image:url("../logo.svg");background-size:80% auto}
+.hero-route{margin-top:24px;color:#a47753;font:700 .65rem Arial,sans-serif;letter-spacing:.18em}
+.hero-route b{color:var(--navy);padding-left:8px}
+.departure-section{background:var(--navy);color:#fff9ef;text-align:center;position:relative;overflow:hidden}
+.departure-section:before,.departure-section:after{content:"";position:absolute;width:250px;height:2px;background:#e99548;opacity:.6;top:50%}
+.departure-section:before{left:-50px}.departure-section:after{right:-50px}
+.departure-inner{position:relative;z-index:1}
+.departure-inner h2{font-family:"Kiwi Maru",serif;font-size:clamp(1.8rem,4vw,2.7rem);margin:12px 0}
+.departure-inner p{color:#e9d9c8;margin:0 0 24px}
+.departure-inner .eyebrow{color:#f4bd83}
+.footer-departure{display:flex;align-items:center;justify-content:center;gap:12px;padding:0 0 28px;margin-bottom:30px;border-bottom:1px solid #ffffff2b;color:#f7dfc5;font-family:"Kiwi Maru",serif}
+.whistle-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#e99548;color:white;font-size:1.1rem}
+.brand-manifesto{font-family:"Kiwi Maru",serif;font-size:1.5rem!important;line-height:1.8;color:var(--orange-dark)!important;background:#fff4e5;border-left:5px solid var(--orange);padding:22px 26px;border-radius:0 16px 16px 0}
+.site-footer{background:#263d59}
+.site-footer .brand-logo{filter:brightness(0) invert(1);opacity:.95}
+@media(max-width:900px){.header-motif{display:none}}
+@media(max-width:760px){.brand-logo{width:180px}.departure-section:before,.departure-section:after{display:none}.footer-departure{font-size:.9rem}}
