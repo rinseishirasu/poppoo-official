@@ -99,8 +99,7 @@ export default {
             client_secret: env.GITHUB_CLIENT_SECRET,
             code,
             redirect_uri: callback,
-            code_verifier: verifier,
-            repository_id: String(env.REPOSITORY_ID)
+            code_verifier: verifier
           })
         });
         const tokenData = await tokenResponse.json().catch(() => ({}));
