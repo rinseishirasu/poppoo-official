@@ -150,3 +150,10 @@ body{background:#fff;color:#182b45}
  .hero-art{max-width:460px}
  .schedule-intro{background:#f3f7fc}
 }
+
+
+/* Heading cleanup: keep page hierarchy clear and lightweight */
+.schedule-intro-note{margin:0 0 20px;padding:0 2px;color:var(--muted)}
+.detail-breadcrumb{padding:24px 0 8px;background:transparent}
+.detail-breadcrumb:after{display:none}
+.detail-breadcrumb .breadcrumbs{margin:0}
