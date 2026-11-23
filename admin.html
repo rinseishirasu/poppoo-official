@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4f7fc">
 <title>ADMIN | 架空事務所 ぽっぽー</title>
 <meta name="description" content="架空事務所 ぽっぽーの運営者向けコンテンツ編集ページです。">
+<meta name="referrer" content="no-referrer">
+<meta name="poppoo-auth-api" content="https://YOUR-WORKER.workers.dev">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="admin-page">
@@ -14,8 +16,9 @@
 <main>
 <section class="page-hero admin-hero"><div class="container page-heading"><div class="breadcrumbs"><a href="index.html">TOP</a> / ADMIN</div><span class="eyebrow">POPPŌ MANAGEMENT</span><h1>運営ページ</h1><p>公式サイトに掲載する情報の作成・編集・データ管理を行います。</p></div></section>
 <section class="content"><div class="container admin-content">
-<div class="admin-warning"><strong>編集用ページについて</strong><p>このページは編集補助ツールです。変更内容はこのブラウザー内に一時保存され、公式サイトへ自動公開されません。公開時は書き出したJSONをリポジトリの該当データファイルへ反映してください。</p><p>このページ自体にログイン認証はありません。公開リポジトリ上のページであるため、個人情報・非公開情報・パスワード・アクセストークンは入力しないでください。</p></div>
-<div class="admin-toolbar"><div><span class="eyebrow">CONTENT MANAGER</span><h2>コンテンツ管理</h2></div><div class="admin-toolbar-actions"><button class="btn secondary" id="import-button" type="button">JSONを読み込む</button><input id="import-file" type="file" accept="application/json,.json" hidden><button class="btn secondary" id="reset-button" type="button">公開データに戻す</button></div></div>
+<div class="admin-warning"><strong>運営ページについて</strong><p>GitHubアカウントでログインすると、編集中のデータをこの画面から公式サイトへ直接公開できます。公開前に内容と掲載許諾を確認してください。</p><p>公開リポジトリに掲載してよい情報だけを登録してください。個人情報・非公開情報・パスワード・アクセストークンは入力しないでください。</p></div>
+<div class="admin-auth-panel"><div><span class="eyebrow">GITHUB AUTHENTICATION</span><strong id="auth-status">ログインしていません</strong><p id="auth-detail">公開するには運営者のGitHubアカウントでログインしてください。</p></div><div class="admin-auth-actions"><button class="btn" id="login-button" type="button">GitHubでログイン</button><button class="btn secondary" id="logout-button" type="button" disabled>ログアウト</button></div></div>
+<div class="admin-toolbar"><div><span class="eyebrow">CONTENT MANAGER</span><h2>コンテンツ管理</h2></div><div class="admin-toolbar-actions"><button class="btn secondary" id="reset-button" type="button">公開データに戻す</button></div></div>
 <div class="admin-status" id="admin-status" role="status" aria-live="polite">データを読み込んでいます...</div>
 <div class="admin-tabs" role="tablist" aria-label="編集するコンテンツ">
 <button type="button" class="admin-tab active" data-kind="talents" role="tab" aria-selected="true">所属ライバー</button>
@@ -34,10 +37,10 @@
 <aside class="admin-list-panel">
 <div class="admin-panel-heading"><div><span class="eyebrow">REGISTERED CONTENT</span><h2>登録済みデータ</h2></div></div>
 <div id="content-list" class="admin-list"><p class="admin-empty">データはありません。</p></div>
-<div class="admin-export"><p>編集中のデータをJSONファイルとして保存します。</p><button class="btn secondary" id="export-button" type="button">このデータを書き出す</button></div>
+<div class="admin-publish-box"><p id="publish-description">編集中のデータを確認してから公開してください。</p><button class="btn" id="publish-button" type="button" disabled>このデータを公開する</button></div>
 </aside>
 </div>
-<div class="admin-bottom-note"><strong>公開手順</strong><p>JSONを書き出したあと、GitHubリポジトリ内の <code>data/</code> フォルダーにある同名ファイルを置き換えてコミットすると、公式サイトに反映されます。公開前に内容と掲載許諾を必ず確認してください。</p><a href="https://github.com/rinseishirasu/poppoo-official/tree/main/data" target="_blank" rel="noopener noreferrer">GitHubの公開データを開く ↗</a></div>
+<div class="admin-bottom-note"><strong>公開について</strong><p>公開ボタンを押すと、現在選択中のカテゴリのJSONだけをGitHubへコミットします。公式サイトへの反映には数分かかる場合があります。</p><a href="https://github.com/rinseishirasu/poppoo-official/tree/main/data" target="_blank" rel="noopener noreferrer">GitHubの公開データを確認 ↗</a> · <a href="worker/README.md">認証設定ガイド</a></div>
 </div></section>
 </main>
 <footer id="site-footer" class="site-footer"></footer>
