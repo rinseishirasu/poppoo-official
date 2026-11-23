@@ -638,3 +638,7 @@ button{cursor:pointer}
  .audition-facts>div{padding:19px}
  .audition-status{padding:18px}
 }
+
+/* AUDITION layout correction: keep the page content in a single vertical flow. */
+.audition-content{display:block;}
+.audition-lead{position:relative;top:auto;}
