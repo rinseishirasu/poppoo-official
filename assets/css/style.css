@@ -791,3 +791,16 @@ button{cursor:pointer}
 
 /* Expanded talent profile */
 .talent-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;margin:18px 0 0;border-top:1px solid var(--line)}.talent-fact{display:grid;grid-template-columns:minmax(110px,.7fr) 1.3fr;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line)}.talent-fact dt{font-size:.84rem;font-weight:800;color:var(--muted)}.talent-fact dd{margin:0;font-weight:600;overflow-wrap:anywhere}.talent-greeting{margin-top:18px;padding:14px 18px;border-left:3px solid var(--orange);background:var(--beige);border-radius:0 12px 12px 0;font-weight:700}.talent-message{padding:24px;background:var(--beige);border-radius:18px}.talent-message p{line-height:2}.profile-section{margin:30px 0}.profile-section h2{font-size:1.35rem;margin:5px 0 14px}.talent-avatar-image{width:100%;height:100%;max-height:520px;object-fit:contain;border-radius:inherit}.profile-avatar{overflow:hidden;min-height:300px}@media(max-width:640px){.talent-facts{grid-template-columns:1fr}.talent-fact{grid-template-columns:115px 1fr;gap:10px}.profile-avatar{min-height:220px}}
+
+/* Talent avatar lookbook gallery */
+.admin-gallery-path{display:grid;gap:4px;color:#315b91;font-size:.76rem;line-height:1.6;overflow-wrap:anywhere}
+.admin-gallery-path span{padding:4px 8px;border-radius:6px;background:#f1f6fc}
+.avatar-lookbook{margin:38px 0;padding:30px;border:1px solid #dce5f0;border-radius:20px;background:#f7faff}
+.avatar-lookbook h2{margin:5px 0 20px;color:#203a5e;font-size:1.4rem}
+.avatar-lookbook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.avatar-lookbook-item{position:relative;display:block;overflow:hidden;aspect-ratio:3/4;border-radius:14px;background:#eaf0f7;box-shadow:0 8px 24px rgba(24,43,69,.08);transition:transform .2s,box-shadow .2s}
+.avatar-lookbook-item:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(24,43,69,.14)}
+.avatar-lookbook-item img{display:block;width:100%;height:100%;object-fit:contain;transition:transform .3s}
+.avatar-lookbook-item:hover img{transform:scale(1.025)}
+.avatar-lookbook-item span{position:absolute;left:10px;bottom:10px;padding:5px 9px;border-radius:999px;background:rgba(24,43,69,.78);color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.12em}
+@media(max-width:720px){.avatar-lookbook{padding:20px}.avatar-lookbook-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
