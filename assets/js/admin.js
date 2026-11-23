@@ -46,8 +46,8 @@ function renderForm(item={}){
   if(type==="checkbox")el.checked=item[key]===true;
   else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
   else if(type==="generation")el.value=item[key]||"";
-  else if(type==="image"){el.value=item[key]||"";const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.textContent=item[key]?"登録済み: "+item[key]:"画像未登録"}
-  else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.length?values.map((v,i)=>`<span>${i+1}. ${esc(v)}</span>`).join(""):"画像未登録"}
+  else if(type==="image"){el.value=item[key]||"";const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=item[key]?`登録済み: ${esc(item[key])} <button type="button" class="admin-small-button danger" data-image-delete="${key}" data-image-path-value="${esc(item[key])}">GitHubから削除</button>`:"画像未登録"}
+  else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.length?values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">GitHubから削除</button></span>`).join(""):"画像未登録"}
   else if(type==="tags")el.value=Array.isArray(item[key])?item[key].join(", "):"";
   else if(type==="links")el.value=Array.isArray(item[key])?item[key].map(x=>(x.label||"")+" | "+(x.url||"")).join("\n"):"";
   else el.value=item[key]??"";
@@ -137,15 +137,45 @@ async function uploadTalentImage(input){
   }
   if(gallery){
    const values=[...existing,...uploaded];hidden.value=JSON.stringify(values);
-   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.map((v,i)=>`<span>${i+1}. ${esc(v)}</span>`).join("");
+   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">GitHubから削除</button></span>`).join("");
   }else{
    hidden.value=uploaded[0];
-   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.textContent="GitHubに保存済み: "+uploaded[0];
+   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=`GitHubに保存済み: ${esc(uploaded[0])} <button type="button" class="admin-small-button danger" data-image-delete="${key}" data-image-path-value="${esc(uploaded[0])}">GitHubから削除</button>`;
   }
   saveDraft();status(files.length+"枚の画像をGitHubに保存しました。プロフィールデータを登録後、「このデータを公開する」を押してください。");
  }catch(error){status(error.message||"画像のアップロードに失敗しました。")}
  finally{input.disabled=false;input.value=""}
 }
+async function deleteTalentImage(key,path,index=null){
+ if(!authReady()){status("画像を削除するにはGitHubへログインしてください。");return}
+ const form=$("content-form"),id=(form.elements.namedItem("id")?.value||"").trim();
+ const patterns={iconImage:new RegExp("^assets/images/talents/"+id+"-icon\\.(png|jpg|webp|gif)$"),avatarImage:new RegExp("^assets/images/talents/"+id+"-avatar\\.(png|jpg|webp|gif)$"),avatarImages:new RegExp("^assets/images/talents/"+id+"-look-[0-9]{3}\\.(png|jpg|webp|gif)$")};
+ if(!patterns[key]||!patterns[key].test(path)){status("安全確認のため、この画像は管理画面から削除できません。");return}
+ if(!confirm("GitHubから画像ファイルを完全に削除します。元に戻すには再アップロードが必要です。続行しますか？"))return;
+ try{
+  status("GitHubから画像を削除しています...");
+  const encodedPath=path.split("/").map(encodeURIComponent).join("/");
+  const get=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath+"?ref="+encodeURIComponent(BRANCH));
+  if(get.status===404)throw new Error("GitHub上に画像ファイルが見つかりません。");
+  if(!get.ok)throw new Error("画像情報を取得できませんでした ("+get.status+")");
+  const file=await get.json();
+  const del=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath,{method:"DELETE",body:JSON.stringify({message:"Delete talent image "+path,sha:file.sha,branch:BRANCH})});
+  if(!del.ok){const detail=await del.text();throw new Error("画像の削除に失敗しました ("+del.status+"): "+detail.slice(0,180))}
+  if(key==="avatarImages"){
+   const hidden=form.elements.namedItem(key),values=JSON.parse(hidden.value||"[]");values.splice(index,1);hidden.value=JSON.stringify(values);
+   const note=form.querySelector('[data-image-path="avatarImages"]');if(note)note.innerHTML=values.length?values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">GitHubから削除</button></span>`).join(""):"画像未登録";
+  }else{
+   form.elements.namedItem(key).value="";
+   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.textContent="画像未登録";
+  }
+  saveDraft();status("GitHubから画像を削除しました。プロフィールデータの変更を反映するには「このデータを公開する」を押してください。");
+ }catch(error){status(error.message||"画像の削除に失敗しました。")}
+}
+$("form-fields").addEventListener("click",e=>{
+ const galleryButton=e.target.closest("[data-gallery-delete]"),singleButton=e.target.closest("[data-image-delete]");
+ if(galleryButton){const form=$("content-form"),values=JSON.parse(form.elements.namedItem("avatarImages").value||"[]");deleteTalentImage("avatarImages",values[Number(galleryButton.dataset.galleryDelete)],Number(galleryButton.dataset.galleryDelete))}
+ if(singleButton)deleteTalentImage(singleButton.dataset.imageDelete,singleButton.dataset.imagePathValue);
+});
 $("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
  e.preventDefault();const obj=formObject();
