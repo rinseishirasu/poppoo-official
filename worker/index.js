@@ -122,14 +122,14 @@ export default {
         if (String(repository.id) !== String(env.REPOSITORY_ID) || !repository.permissions || repository.permissions.push !== true) {
           throw new Error("対象リポジトリへの書き込み権限がありません。GitHub Appの設定を確認してください。");
         }
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location: "/auth/complete",
-            "Set-Cookie": clearCookie(),
-            "Cache-Control": "no-store"
-          }
-        });
+        const page = htmlPage("GitHub認証が完了しました", {
+          token: tokenData.access_token,
+          login: user.login,
+          expiresIn: Number(tokenData.expires_in || 28800)
+        }, frontend);
+        const responseHeaders = new Headers(page.headers);
+        responseHeaders.set("Set-Cookie", clearCookie());
+        return new Response(page.body, { status: 200, headers: responseHeaders });
       } catch (error) {
         return new Response(errorPage(error.message || "認証に失敗しました。", frontend), {
           status: 200,
