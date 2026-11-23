@@ -804,3 +804,31 @@ button{cursor:pointer}
 .avatar-lookbook-item:hover img{transform:scale(1.025)}
 .avatar-lookbook-item span{position:absolute;left:10px;bottom:10px;padding:5px 9px;border-radius:999px;background:rgba(24,43,69,.78);color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.12em}
 @media(max-width:720px){.avatar-lookbook{padding:20px}.avatar-lookbook-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+
+/* Talent profile refinements */
+.talent-profile-card .profile-top{min-height:290px}
+.talent-profile-card .profile-intro{text-align:left}
+.profile-section{scroll-margin-top:100px}
+.profile-section .talent-facts{margin-top:12px}
+.profile-section .talent-fact{border-color:#e8eef5}
+.profile-section .talent-fact dt{color:#71839b}
+.profile-section .talent-fact dd{color:#354b68}
+.fan-information .talent-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fan-information .talent-fact dd{font-size:1.02rem;font-weight:800;color:#294d78}
+.activity-information>p{white-space:pre-line}
+.lookbook-intro{margin:0 0 18px;color:#64758c;font-size:.9rem}
+.profile-schedule-list{display:grid;gap:10px;margin:16px 0}
+.profile-schedule-item{display:grid;grid-template-columns:112px 76px minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 15px;border:1px solid #e2eaf3;border-radius:12px;background:#f8faff;font-size:.88rem}
+.profile-schedule-item time,.profile-schedule-item strong{color:#46658d}
+.profile-schedule-item span{font-weight:700;color:#354b68}
+.profile-schedule-item a{color:#547ca9;font-weight:800;white-space:nowrap}
+.profile-schedule>.text-link{display:inline-flex;margin-top:8px}
+.profile-section.talent-message{padding:24px;margin:24px 0;background:#f1f6fc;border:1px solid #e0eaf5;border-radius:16px}
+.profile-section.talent-message p{color:#405875}
+@media(max-width:640px){
+ .talent-profile-card .profile-intro{text-align:center}
+ .fan-information .talent-facts{grid-template-columns:1fr}
+ .profile-schedule-item{grid-template-columns:1fr auto;gap:4px 10px}
+ .profile-schedule-item span{grid-column:1/-1}
+ .profile-schedule-item a{grid-column:1/-1}
+}
