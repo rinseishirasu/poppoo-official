@@ -246,3 +246,20 @@ body{background:#fff;color:#182b45}
 .event-facts p{margin:0;color:#43556e;line-height:1.8}
 .event-body{margin:28px 0 34px}
 @media(max-width:600px){.event-facts{grid-template-columns:1fr}.event-meta{align-items:flex-start;flex-direction:column;gap:4px}}
+
+/* AUDITION page refinements */
+.audition-content{display:grid;grid-template-columns:minmax(230px,.78fr) minmax(0,1.5fr);gap:clamp(32px,6vw,76px);align-items:start}
+.audition-lead{position:sticky;top:112px;padding:28px;background:linear-gradient(145deg,#f0f5fb,#e8f0fa);border:1px solid #dce5f0;border-radius:20px}
+.audition-lead h2{font-family:"Kiwi Maru",serif;font-size:clamp(1.5rem,2.8vw,2.1rem);line-height:1.55;margin:12px 0}
+.audition-lead p{margin:0;color:#52647d;font-size:.9rem;line-height:1.9}
+.audition-types{margin:18px 0 30px}
+.audition-types .info-box p{margin:6px 0 0;color:#52647d;line-height:1.8}
+.audition-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 30px}
+.audition-facts>div{padding:20px;background:#f4f7fc;border:1px solid #dce5f0;border-radius:16px}
+.audition-facts strong,.audition-facts span{display:block}
+.audition-facts strong{font-size:.78rem;color:#65758b}
+.audition-facts span{margin:6px 0;font-size:1.18rem;font-weight:800;color:#315b91}
+.audition-facts p{margin:0;color:#65758b;font-size:.85rem;line-height:1.8}
+.audition-status{margin:18px 0;padding:20px 22px}
+.audition-status strong{color:#203a5e}
+@media(max-width:760px){.audition-content{grid-template-columns:1fr}.audition-lead{position:static}.audition-facts{grid-template-columns:1fr}}
