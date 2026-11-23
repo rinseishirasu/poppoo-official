@@ -8,7 +8,7 @@ const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",ev
 const LABELS={talents:"所属ライバー",schedule:"配信予定",news:"お知らせ",events:"イベント"};
 const STORAGE_KEY="poppoo-admin-draft-v1";
 const SCHEMAS={
- talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["generation","所属形態・区分","text"],["emoji","アイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["tags","活動タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
+ talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["cohort","期生（例：1期生）","text"],["generation","所属形態・区分","text"],["iconImage","プロフィールアイコン画像URL（HTTPS）","url"],["avatarImage","アバター画像URL（HTTPS）","url"],["emoji","画像未設定時のアイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["tags","活動タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
  schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["talent","ライバー名","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
  news:[["id","ID","text",true],["published","公開する","checkbox"],["date","投稿日","date",true],["title","タイトル","text",true],["category","カテゴリ","text"],["summary","概要","textarea"],["body","本文","textarea",true]],
  events:[["id","ID","text",true],["published","公開する","checkbox"],["status","開催状況","text"],["date","開始日・掲載日","date",true],["period","終了日（任意）","date"],["title","イベント名","text",true],["description","紹介文","textarea"],["target","参加対象","textarea"],["howto","参加方法","textarea"],["body","詳細本文","textarea"]]
@@ -87,6 +87,7 @@ function validateDataset(kind,items){
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(["news","events"].includes(kind)&&!/^\d{4}-\d{2}-\d{2}$/.test(item.date))return (i+1)+"件目: 日付はYYYY-MM-DD形式で入力してください。";
   if(item.url&&!/^https?:\/\//i.test(item.url))return (i+1)+"件目: URLはhttp://またはhttps://で始めてください。";
+  if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^https:\/\//i.test(item[key]))return (i+1)+"件目: "+(key==="iconImage"?"プロフィールアイコン":"アバター")+"画像URLはhttps://で始めてください。";
   if(Array.isArray(item.links)&&item.links.some(x=>!x||!x.label||!/^https?:\/\//i.test(x.url||"")))return (i+1)+"件目: 公式リンクの表示名またはURLを確認してください。";
  }
  return "";
