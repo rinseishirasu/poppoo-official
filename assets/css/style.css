@@ -642,3 +642,28 @@ button{cursor:pointer}
 /* AUDITION layout correction: keep the page content in a single vertical flow. */
 .audition-content{display:block;}
 .audition-lead{position:relative;top:auto;}
+
+/* CONTACT page */
+.contact-content{max-width:1040px}
+.contact-intro{max-width:780px;margin:0 auto 42px;padding:clamp(26px,4vw,42px);border:1px solid #dce5f0;border-radius:20px;background:linear-gradient(125deg,#f0f5fb 0%,#fff 78%);text-align:center}
+.contact-intro .eyebrow{display:block;margin-bottom:10px}
+.contact-intro h2{margin:0;color:#203a5e;font-size:clamp(1.45rem,3vw,1.9rem)}
+.contact-intro p{max-width:650px;margin:14px auto 0;color:#5e718a;line-height:2}
+.contact-section{padding:32px 0;border-bottom:1px solid #e4ebf3}
+.contact-section-heading{margin-bottom:14px}
+.contact-section-heading .eyebrow{display:block;margin-bottom:5px;color:#8198b6;font-size:.7rem;font-weight:800;letter-spacing:.14em}
+.contact-section-heading h2{margin:0;color:#203a5e;font-size:1.4rem}
+.contact-description{margin:0;color:#5e718a}
+.contact-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.contact-type{padding:22px;border:1px solid #dce5f0;border-radius:15px;background:#fff}
+.contact-type>span{display:block;margin-bottom:9px;color:#9ab0cc;font-size:.72rem;font-weight:900;letter-spacing:.12em}
+.contact-type h3{margin:0;color:#203a5e;font-size:1rem}
+.contact-type p{margin:7px 0 0;color:#64758c;font-size:.88rem;line-height:1.8}
+.contact-status{margin-top:18px;padding:24px;border:1px solid #d5e2f1;border-radius:16px;background:#f1f6fc}
+.contact-status-label{display:inline-block;color:#7892b2;font-size:.68rem;font-weight:900;letter-spacing:.14em}
+.contact-status h3{margin:8px 0;color:#203a5e;font-size:1.12rem}
+.contact-status p{margin:0;color:#526b8a;line-height:1.9}
+.contact-caution{margin-top:30px;padding:22px 24px;border-left:4px solid #8ba5c6;border-radius:10px;background:#f6f8fc}
+.contact-caution h2{margin:0 0 6px;color:#315b91;font-size:1rem}
+.contact-caution p{margin:0;color:#64758c;font-size:.88rem;line-height:1.9}
+@media(max-width:700px){.contact-intro{margin-bottom:28px;padding:24px 20px}.contact-section{padding:26px 0}.contact-types{grid-template-columns:1fr;gap:10px}.contact-type{padding:19px}.contact-status{padding:20px}.contact-caution{padding:19px}}
