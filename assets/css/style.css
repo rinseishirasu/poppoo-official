@@ -366,3 +366,49 @@ button{cursor:pointer}
  .join-section{padding-top:54px;padding-bottom:54px}
  .join-inner h2{line-height:1.45}
 }
+
+
+/* ABOUT page: editorial hierarchy and brand story */
+.about-content{max-width:920px;margin:0 auto}
+.about-content>h2,.about-section-title{
+  display:flex;align-items:center;gap:14px;
+  margin-top:54px;padding-bottom:13px;
+  border-bottom:1px solid #e3eaf3;
+  color:#203a5e;font-size:1.38rem;line-height:1.5
+}
+.about-content>h2:first-child{margin-top:0}
+.about-content>h2:before,.about-section-title:before{
+  content:"";display:block;flex:0 0 4px;height:1.35em;
+  border-radius:4px;background:#4f78b8
+}
+.about-lead{font-size:1.12rem;font-weight:700;line-height:2;color:#263d59}
+.about-manifesto{
+  margin:22px 0 30px;padding:30px clamp(22px,4vw,42px);
+  border:1px solid #dce7f5;border-left:5px solid #4f78b8;
+  border-radius:0 20px 20px 0;
+  background:linear-gradient(110deg,#f1f6fc,#fff);
+  font-size:clamp(1.35rem,3vw,1.8rem)!important;
+  letter-spacing:.04em;text-align:center
+}
+.about-values{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0 12px}
+.about-values .info-box{
+  min-height:190px;padding:24px 22px;
+  border-radius:18px;background:linear-gradient(160deg,#fff,#f7faff);
+  box-shadow:0 8px 24px rgba(24,43,69,.045)
+}
+.about-values .info-box strong{
+  margin-bottom:15px;font-size:.72rem;letter-spacing:.12em;color:#6684ad
+}
+.about-values .info-box span{display:block;margin-top:10px;color:#61728a;font-size:.86rem;line-height:1.85}
+.about-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+.about-overview .info-box{padding:17px 20px;border-radius:14px;line-height:1.8}
+.about-overview .info-box strong{margin-bottom:5px;font-size:.72rem;letter-spacing:.04em}
+.about-content>p{line-height:2}
+@media(max-width:760px){
+ .about-content>h2,.about-section-title{margin-top:42px;font-size:1.22rem}
+ .about-values{grid-template-columns:1fr;gap:12px}
+ .about-values .info-box{min-height:0;padding:20px}
+ .about-overview{grid-template-columns:1fr}
+ .about-lead{font-size:1.02rem}
+ .about-manifesto{padding:24px 18px}
+}
