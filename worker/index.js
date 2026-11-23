@@ -103,8 +103,11 @@ export default {
             repository_id: String(env.REPOSITORY_ID)
           })
         });
-        const tokenData = await tokenResponse.json();
-        if (!tokenResponse.ok || !tokenData.access_token) throw new Error("GitHubからアクセストークンを取得できませんでした。");
+        const tokenData = await tokenResponse.json().catch(() => ({}));
+        if (!tokenResponse.ok || !tokenData.access_token) {
+          const detail = tokenData.error_description || tokenData.error || `HTTP ${tokenResponse.status}`;
+          throw new Error(`GitHubのトークン交換に失敗しました: ${detail}`);
+        }
         const ghHeaders = {
           "Accept": "application/vnd.github+json",
           "Authorization": `Bearer ${tokenData.access_token}`,
