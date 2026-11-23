@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "test-liver",
+    "published": true,
+    "name": "テスト 太郎",
+    "generation": "",
+    "emoji": "",
+    "catchphrase": "",
+    "bio": "テストテスト\nテストテスト",
+    "tags": [
+      "テスト",
+      "テスト"
+    ],
+    "links": [
+      {
+        "label": "X",
+        "url": "https://x.com/ShirasuRinsei"
+      }
+    ]
+  }
+]
