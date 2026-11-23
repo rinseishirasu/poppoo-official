@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "test-news",
+    "published": true,
+    "date": "2026-11-23",
+    "title": "testニュース",
+    "category": "test",
+    "summary": "本ニュースはテストです。",
+    "body": "本ニュースはテストです。"
+  }
+]
