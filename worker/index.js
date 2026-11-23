@@ -131,10 +131,10 @@ export default {
         responseHeaders.set("Set-Cookie", clearCookie());
         return new Response(page.body, { status: 200, headers: responseHeaders });
       } catch (error) {
-        return new Response(errorPage(error.message || "認証に失敗しました。", frontend), {
-          status: 200,
-          headers: { "Set-Cookie": clearCookie(), "Cache-Control": "no-store" }
-        });
+        const page = errorPage(error.message || "認証に失敗しました。", frontend);
+        const responseHeaders = new Headers(page.headers);
+        responseHeaders.set("Set-Cookie", clearCookie());
+        return new Response(page.body, { status: 200, headers: responseHeaders });
       }
     }
     if (url.pathname === "/auth/complete" && request.method === "GET") {
