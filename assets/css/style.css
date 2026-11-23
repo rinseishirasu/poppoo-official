@@ -263,3 +263,14 @@ body{background:#fff;color:#182b45}
 .audition-status{margin:18px 0;padding:20px 22px}
 .audition-status strong{color:#203a5e}
 @media(max-width:760px){.audition-content{grid-template-columns:1fr}.audition-lead{position:static}.audition-facts{grid-template-columns:1fr}}
+
+
+/* 404 page */
+.error-page{padding-top:clamp(76px,11vw,132px);padding-bottom:clamp(76px,11vw,132px)}
+.error-page .container{max-width:760px}
+.error-page .error-code{font-size:clamp(5.5rem,17vw,10rem);line-height:.95;font-weight:800;letter-spacing:.06em;color:#dce8f7}
+.error-page .eyebrow{display:inline-block;margin-top:24px}
+.error-page h1{margin:14px 0 18px;font-size:clamp(1.7rem,4vw,2.35rem)}
+.error-page p{max-width:620px;margin:0 auto 12px;color:var(--muted,#66758a);line-height:1.9}
+.error-page .actions{margin-top:30px;flex-wrap:wrap}
+@media(max-width:600px){.error-page .actions{align-items:stretch}.error-page .actions .btn{width:100%}}
