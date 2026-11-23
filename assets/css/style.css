@@ -213,3 +213,15 @@ body{background:#fff;color:#182b45}
  .page-heading h1{font-size:1.8rem}
  .prose h2{font-size:1.2rem}
 }
+
+
+/* Schedule list: clear information hierarchy */
+.schedule-list .schedule-item{grid-template-columns:160px minmax(0,1fr) auto;gap:18px}
+.schedule-list .schedule-title{font-size:1rem;line-height:1.6;color:#203a5e}
+.schedule-list .schedule-meta{margin-top:4px;line-height:1.6}
+.schedule-list .schedule-item .pill{white-space:nowrap;margin:0}
+.schedule-link-pending{font-size:.75rem;color:#8998aa;white-space:nowrap}
+@media(max-width:760px){
+ .schedule-list .schedule-item{grid-template-columns:1fr;gap:5px}
+ .schedule-list .schedule-item .pill,.schedule-link-pending{justify-self:start;margin-top:5px}
+}
