@@ -445,3 +445,38 @@ button{cursor:pointer}
  .talent-list-heading{align-items:stretch;flex-direction:column;gap:18px}
  .talent-list-heading .filters{flex:1 1 auto}
 }
+
+
+/* TALENT individual profile */
+#talent-profile{max-width:980px;margin:0 auto}
+.talent-profile-card{overflow:hidden;border:1px solid #dce5f0;border-radius:22px;background:#fff;box-shadow:0 12px 36px rgba(24,43,69,.06)}
+.talent-profile-card .profile-top{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(24px,5vw,54px);align-items:center;padding:clamp(28px,5vw,54px);background:linear-gradient(125deg,#f0f5fb 0%,#fff 72%)}
+.talent-profile-card .profile-avatar{display:grid;place-items:center;width:100%;aspect-ratio:1;border:1px solid #dce7f5;border-radius:22px;background:linear-gradient(145deg,#fff,#e9f1fb);font-size:clamp(5rem,12vw,8rem);box-shadow:inset 0 0 0 8px rgba(255,255,255,.55)}
+.profile-intro .eyebrow{display:block;margin-bottom:12px}
+.profile-intro h1{margin:0;color:#203a5e;font-size:clamp(2rem,5vw,3.1rem);line-height:1.25}
+.profile-intro .lead{margin:16px 0 0;color:#526b8a;font-size:1.12rem;font-weight:700;line-height:1.8}
+.profile-details{max-width:800px;margin:0 auto;padding:10px clamp(22px,5vw,64px) 28px}
+.profile-section{padding:28px 0;border-bottom:1px solid #e6edf5}
+.profile-section:last-child{border-bottom:0}
+.profile-section>.eyebrow{display:block;margin-bottom:7px;color:#7892b4;font-size:.7rem;font-weight:800;letter-spacing:.14em}
+.profile-section h2{margin:0 0 14px;color:#203a5e;font-size:1.2rem}
+.profile-section>p{margin:0;color:#52647d;line-height:2;white-space:normal}
+.profile-section .tag-row{display:flex;flex-wrap:wrap;gap:9px}
+.profile-section .pill{padding:8px 13px}
+.profile-links .actions{margin-top:4px;flex-wrap:wrap}
+.profile-back{display:inline-flex;margin:0 clamp(22px,5vw,64px) 34px}
+.profile-empty{max-width:720px;margin:0 auto;padding:48px 24px;text-align:center;border:1px dashed #cbd8e8;border-radius:18px;background:#f7faff}
+.profile-empty h1{margin:12px 0;color:#203a5e;font-size:1.5rem}
+.profile-empty p{margin:0 0 22px;color:#64758c;line-height:1.9}
+@media(max-width:680px){
+ .talent-profile-card{border-radius:18px}
+ .talent-profile-card .profile-top{grid-template-columns:1fr;justify-items:center;text-align:center;gap:22px;padding:28px 22px}
+ .talent-profile-card .profile-avatar{width:min(62%,210px);font-size:6rem}
+ .profile-intro .eyebrow{margin-bottom:8px}
+ .profile-intro .lead{font-size:1rem}
+ .profile-details{padding:4px 22px 18px}
+ .profile-section{padding:23px 0}
+ .profile-links .actions{align-items:stretch}
+ .profile-links .actions .btn{width:100%}
+ .profile-back{margin:0 22px 26px}
+}
