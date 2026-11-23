@@ -60,3 +60,25 @@
 .site-footer .brand-logo{filter:brightness(0) invert(1);opacity:.95}
 @media(max-width:900px){.header-motif{display:none}}
 @media(max-width:760px){.brand-logo{width:180px}.departure-section:before,.departure-section:after{display:none}.footer-departure{font-size:.9rem}}
+
+/* Talent directory and departure board */
+.talent-types{padding-top:34px;background:linear-gradient(180deg,#fff4e5,transparent)}
+.membership-card{position:relative;overflow:hidden}
+.membership-number{position:absolute;right:18px;top:0;font:800 4.2rem/1 Arial,sans-serif;color:#f4e3cf}
+.membership-card .card-body{position:relative;padding-top:28px}
+.membership-card h3{font-family:"Kiwi Maru",serif;font-size:1.2rem}
+.talent-list-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.talent-list-heading h2,.schedule-intro h2{font-family:"Kiwi Maru",serif;margin:6px 0;font-size:clamp(1.6rem,3vw,2.2rem)}
+.talent-list-heading p,.schedule-intro p{margin:0;color:var(--muted)}
+.talent-list-heading .filters{margin:0}
+.schedule-intro{display:flex;align-items:center;gap:20px;padding:24px 28px;margin-bottom:24px;background:#fff4e5;border:1px solid #eed8bd;border-radius:20px}
+.schedule-stamp{flex:0 0 76px;height:76px;display:grid;align-content:center;text-align:center;border:2px solid var(--orange);border-radius:50%;color:var(--orange-dark);font:700 .66rem/1.35 Arial,sans-serif;letter-spacing:.12em;transform:rotate(-8deg)}
+.schedule-stamp b{font-size:1.05rem}
+.schedule-board{background:#fffdf8;border:1px solid #dfcbb2;border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.schedule-board-head{display:grid;grid-template-columns:170px 1fr 90px;gap:16px;padding:13px 22px;background:var(--navy);color:#fff;font:700 .68rem Arial,sans-serif;letter-spacing:.14em}
+.schedule-list{padding:10px 16px}
+.schedule-list .schedule-item{border:0;border-bottom:1px dashed #dfcbb2;border-radius:0;background:transparent;box-shadow:none;padding:18px 10px;grid-template-columns:160px 1fr auto}
+.schedule-list .schedule-item:last-child{border-bottom:0}
+.schedule-date{font-variant-numeric:tabular-nums}
+.schedule-footnote{margin-top:14px}
+@media(max-width:760px){.talent-list-heading{align-items:stretch;flex-direction:column}.talent-list-heading .filters input{max-width:none}.schedule-intro{align-items:flex-start;padding:18px}.schedule-stamp{flex-basis:62px;height:62px}.schedule-board-head{grid-template-columns:1fr 2fr;padding:12px 14px}.schedule-board-head span:last-child{display:none}.schedule-list{padding:8px 12px}.schedule-list .schedule-item{grid-template-columns:1fr;gap:5px;padding:16px 8px}.schedule-list .schedule-item .pill{grid-column:auto;justify-self:start;margin-top:5px}}
