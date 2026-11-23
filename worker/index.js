@@ -113,7 +113,10 @@ export default {
           "X-GitHub-Api-Version": API_VERSION
         };
         const userResponse = await fetch("https://api.github.com/user", { headers: ghHeaders });
-        if (!userResponse.ok) throw new Error("GitHubアカウントを確認できませんでした。");
+        if (!userResponse.ok) {
+          const detail = await userResponse.text();
+          throw new Error(`GitHubアカウント情報の取得に失敗しました: HTTP ${userResponse.status} ${detail.slice(0, 300)}`);
+        }
         const user = await userResponse.json();
         if (String(user.login).toLowerCase() !== String(env.ADMIN_GITHUB_LOGIN).toLowerCase()) {
           throw new Error("このGitHubアカウントには運営ページの利用権限がありません。");
