@@ -27,8 +27,8 @@ function htmlPage(message, payload, origin) {
   const nonce = randomString(18);
   const safePayload = JSON.stringify(payload).replace(/</g, "\\u003c");
   const safeOrigin = JSON.stringify(origin);
-  const safeMessage = JSON.stringify(message);
-  const html = `<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ぽっぽー 運営ログイン</title><body style="font-family:system-ui,sans-serif;background:#f4f7fc;color:#203a5e;display:grid;min-height:100vh;place-items:center;margin:0"><main style="max-width:34rem;margin:24px;padding:32px;background:white;border:1px solid #dce5f0;border-radius:18px;text-align:center"><h1 style="font-size:1.3rem">${message}</h1><p>このウィンドウは自動的に閉じます。</p></main><script nonce="${nonce}">(()=>{const payload=${safePayload};const target=${safeOrigin};const message=${safeMessage};if(window.opener){window.opener.postMessage({type:"POPPOO_GITHUB_AUTH",...payload},target);window.close();}else{document.querySelector("p").textContent=message+"。このウィンドウを閉じて運営ページに戻ってください。";}})();</script></body></html>`;
+  const safeMessage = JSON.stringify(message).replace(/</g, "\\u003c");
+  const html = `<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ぽっぽー 運営ログイン</title><body style="font-family:system-ui,sans-serif;background:#f4f7fc;color:#203a5e;display:grid;min-height:100vh;place-items:center;margin:0"><main style="max-width:34rem;margin:24px;padding:32px;background:white;border:1px solid #dce5f0;border-radius:18px;text-align:center"><h1 style="font-size:1.3rem">ぽっぽー 運営ログイン</h1><p>このウィンドウは自動的に閉じます。</p></main><script nonce="${nonce}">(()=>{const payload=${safePayload};const target=${safeOrigin};const message=${safeMessage};if(window.opener){window.opener.postMessage({type:"POPPOO_GITHUB_AUTH",...payload},target);window.close();}else{document.querySelector("p").textContent=message+"。このウィンドウを閉じて運営ページに戻ってください。";}})();</script></body></html>`;
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
