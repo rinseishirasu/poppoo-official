@@ -110,7 +110,8 @@ export default {
         const ghHeaders = {
           "Accept": "application/vnd.github+json",
           "Authorization": `Bearer ${tokenData.access_token}`,
-          "X-GitHub-Api-Version": API_VERSION
+          "X-GitHub-Api-Version": API_VERSION,
+          "User-Agent": "poppoo-official-admin"
         };
         const userResponse = await fetch("https://api.github.com/user", { headers: ghHeaders });
         if (!userResponse.ok) {
