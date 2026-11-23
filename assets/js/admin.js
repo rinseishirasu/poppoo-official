@@ -8,7 +8,7 @@ const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",ev
 const LABELS={talents:"所属ライバー",schedule:"配信予定",news:"お知らせ",events:"イベント"};
 const STORAGE_KEY="poppoo-admin-draft-v1";
 const SCHEMAS={
- talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["cohort","期生（例：1期生）","text"],["generation","所属形態・区分","text"],["iconImage","プロフィールアイコン画像URL（HTTPS）","url"],["avatarImage","アバター画像URL（HTTPS）","url"],["emoji","画像未設定時のアイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["tags","活動タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
+ talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["cohort","期生","cohort"],["generation","所属形態","generation"],["iconImage","プロフィールアイコン画像","image"],["avatarImage","アバター画像","image"],["emoji","画像未設定時のアイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["tags","活動タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
  schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["talent","ライバー名","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
  news:[["id","ID","text",true],["published","公開する","checkbox"],["date","投稿日","date",true],["title","タイトル","text",true],["category","カテゴリ","text"],["summary","概要","textarea"],["body","本文","textarea",true]],
  events:[["id","ID","text",true],["published","公開する","checkbox"],["status","開催状況","text"],["date","開始日・掲載日","date",true],["period","終了日（任意）","date"],["title","イベント名","text",true],["description","紹介文","textarea"],["target","参加対象","textarea"],["howto","参加方法","textarea"],["body","詳細本文","textarea"]]
@@ -31,6 +31,9 @@ function updateAuthUI(){
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"";
  if(type==="checkbox")return `<label class="admin-check"><input name="${key}" type="checkbox"><span>${label}</span></label>`;
+ if(type==="generation")return `<label class="admin-field"><span>${label}</span><select name="${key}"><option value="">選択してください</option><option>正式所属ライバー</option><option>業務提携ライバー</option><option>研修生・準所属ライバー</option></select></label>`;
+ if(type==="cohort")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><div class="admin-choice-grid">${["0期生",...Array.from({length:10},(_,i)=>(i+1)+"期生"),"その他"].map(v=>`<label><input type="checkbox" name="cohort" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
+ if(type==="image")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif"><small>画像を選ぶとGitHubの assets/images/talents/ にアップロードします。PNG・JPG・WebP・GIF、最大8MB。</small><input type="hidden" name="${key}"><span class="admin-image-path" data-image-path="${key}"></span></div>`;
  if(type==="textarea")return `<label class="admin-field admin-field-wide"><span>${label}${required?" *":""}</span><textarea name="${key}" rows="4"${req}></textarea></label>`;
  if(type==="tags"||type==="links")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="3" placeholder="${type==="tags"?"雑談, ゲーム":"X | https://x.com/..."}"></textarea></label>`;
  return `<label class="admin-field"><span>${label}${required?" *":""}</span><input name="${key}" type="${type}"${req} ${key==="url"?'placeholder="https://"':""}></label>`;
@@ -40,6 +43,9 @@ function renderForm(item={}){
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el)continue;
   if(type==="checkbox")el.checked=item[key]===true;
+  else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
+  else if(type==="generation")el.value=item[key]||"";
+  else if(type==="image"){el.value=item[key]||"";const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.textContent=item[key]?"登録済み: "+item[key]:"画像未登録"}
   else if(type==="tags")el.value=Array.isArray(item[key])?item[key].join(", "):"";
   else if(type==="links")el.value=Array.isArray(item[key])?item[key].map(x=>(x.label||"")+" | "+(x.url||"")).join("\n"):"";
   else el.value=item[key]??"";
@@ -66,6 +72,8 @@ function formObject(){
  for(const [key,,type] of SCHEMAS[current]){
   const el=$("content-form").elements.namedItem(key);if(!el)continue;
   if(type==="checkbox")obj[key]=el.checked;
+  else if(type==="cohort")obj[key]=Array.from($("content-form").querySelectorAll('input[name="cohort"]:checked')).map(input=>input.value);
+  else if(type==="image")obj[key]=el.value;
   else if(type==="tags")obj[key]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
   else if(type==="links")obj[key]=el.value.split("\n").map(line=>{const i=line.indexOf("|");return i<0?null:{label:line.slice(0,i).trim(),url:line.slice(i+1).trim()}}).filter(x=>x&&x.label&&/^https?:\/\//i.test(x.url));
   else obj[key]=el.value.trim();
@@ -87,11 +95,37 @@ function validateDataset(kind,items){
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(["news","events"].includes(kind)&&!/^\d{4}-\d{2}-\d{2}$/.test(item.date))return (i+1)+"件目: 日付はYYYY-MM-DD形式で入力してください。";
   if(item.url&&!/^https?:\/\//i.test(item.url))return (i+1)+"件目: URLはhttp://またはhttps://で始めてください。";
-  if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^https:\/\//i.test(item[key]))return (i+1)+"件目: "+(key==="iconImage"?"プロフィールアイコン":"アバター")+"画像URLはhttps://で始めてください。";
+  if(kind==="talents"&&item.cohort!==undefined&&!Array.isArray(item.cohort))item.cohort=item.cohort?[item.cohort]:[];
+  if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^(https:\/\/|assets\/images\/talents\/)/i.test(item[key]))return (i+1)+"件目: "+(key==="iconImage"?"プロフィールアイコン":"アバター")+"画像の保存先が正しくありません。";
   if(Array.isArray(item.links)&&item.links.some(x=>!x||!x.label||!/^https?:\/\//i.test(x.url||"")))return (i+1)+"件目: 公式リンクの表示名またはURLを確認してください。";
  }
  return "";
 }
+async function uploadTalentImage(input){
+ if(!authReady()){input.value="";status("画像をGitHubへ保存するには、先にGitHubへログインしてください。");return}
+ const form=$("content-form"),key=input.name.replace(/File$/,""),id=(form.elements.namedItem("id")?.value||"").trim();
+ if(!/^[A-Za-z0-9_-]+$/.test(id)){input.value="";status("先にライバーIDを半角英数字・ハイフン・アンダースコアで入力してください。");return}
+ const file=input.files?.[0];if(!file)return;
+ const allowed={"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif"};
+ if(!allowed[file.type]){input.value="";status("PNG・JPG・WebP・GIF形式の画像を選択してください。");return}
+ if(file.size>8*1024*1024){input.value="";status("画像は8MB以下にしてください。");return}
+ input.disabled=true;status("画像をGitHubへアップロードしています...");
+ try{
+  const path="assets/images/talents/"+id+"-"+(key==="iconImage"?"icon":"avatar")+"."+allowed[file.type];
+  const encodedPath=path.split("/").map(encodeURIComponent).join("/");
+  const get=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath+"?ref="+encodeURIComponent(BRANCH));
+  let sha=null;if(get.status===200)sha=(await get.json()).sha;else if(get.status!==404)throw new Error("画像の保存先を確認できませんでした ("+get.status+")");
+  const bytes=new Uint8Array(await file.arrayBuffer());let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);
+  const payload={message:"Upload talent "+key+" for "+id,content:btoa(binary),branch:BRANCH};if(sha)payload.sha=sha;
+  const put=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath,{method:"PUT",body:JSON.stringify(payload)});
+  if(!put.ok){const detail=await put.text();throw new Error("画像のアップロードに失敗しました ("+put.status+"): "+detail.slice(0,180))}
+  form.elements.namedItem(key).value=path;
+  const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.textContent="GitHubに保存済み: "+path;
+  saveDraft();status("画像をGitHubに保存しました。プロフィールデータを登録後、「このデータを公開する」を押してください。");
+ }catch(error){status(error.message||"画像のアップロードに失敗しました。")}
+ finally{input.disabled=false}
+}
+$("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
  e.preventDefault();const obj=formObject();
  if(current==="talents"&&obj.links.length===0)delete obj.links;
