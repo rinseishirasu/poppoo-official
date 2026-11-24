@@ -1759,3 +1759,40 @@ body{background:#f5f8fc;color:#263d59}
 
 /* Footer logo: cancel legacy white-out filter */
 .site-footer .brand-logo{filter:none!important;opacity:1!important;}
+
+/* MOBILE FINISHING PASS | comfortable navigation and resilient content widths */
+@media(max-width:820px){
+  .nav{
+    max-height:calc(100dvh - 72px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-bottom:max(20px,env(safe-area-inset-bottom));
+  }
+  .nav a{
+    display:flex;
+    align-items:center;
+    min-height:44px;
+    width:100%;
+  }
+  .menu-toggle{
+    min-width:44px;
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+}
+@media(max-width:560px){
+  .profile-schedule-item{
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    gap:7px;
+  }
+  .profile-schedule-item>*{min-width:0;overflow-wrap:anywhere}
+  .profile-links .actions{display:grid;grid-template-columns:minmax(0,1fr)}
+  .profile-links .actions .btn{width:100%;min-width:0;overflow-wrap:anywhere}
+  .news-detail-article h1,
+  .talent-profile-card h1,
+  .page-heading h1{overflow-wrap:anywhere}
+  .policy-index a{overflow-wrap:anywhere}
+}
