@@ -8,10 +8,10 @@
  const anniversaryCountdown=value=>{
   if(!value)return "";
   let month=0,day=0;
-  let match=value.match(/^\\d{4}[-/](\\d{1,2})[-/](\\d{1,2})$/);
+  let match=value.match(/^\d{4}[-/](\d{1,2})[-/](\d{1,2})$/);
   if(match){month=Number(match[1]);day=Number(match[2])}
-  else if((match=value.match(/^(\\d{1,2})月(\\d{1,2})日$/))){month=Number(match[1]);day=Number(match[2])}
-  else if((match=value.match(/^(\\d{1,2})[/-](\\d{1,2})$/))){month=Number(match[1]);day=Number(match[2])}
+  else if((match=value.match(/^(\d{1,2})月(\d{1,2})日$/))){month=Number(match[1]);day=Number(match[2])}
+  else if((match=value.match(/^(\d{1,2})[/-](\d{1,2})$/))){month=Number(match[1]);day=Number(match[2])}
   if(month<1||month>12||day<1||day>31)return "";
   const [yearNow,monthNow,dayNow]=todayJST.split("-").map(Number);
   const valid=(y)=>{const d=new Date(Date.UTC(y,month-1,day));return d.getUTCMonth()===month-1&&d.getUTCDate()===day};
