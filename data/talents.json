@@ -46,7 +46,7 @@
   },
   {
     "id": "dondoko",
-    "published": false,
+    "published": true,
     "name": "どんどこ",
     "cohort": [
       "1期生"
@@ -64,12 +64,12 @@
     "debutDate": "2025-03-14",
     "anniversary": "2025/03/14",
     "activityStatus": "活動中",
-    "regularSchedule": "",
+    "regularSchedule": "毎日22:00",
     "activityGoal": "",
     "favoriteWorks": "",
     "height": "",
     "bloodType": "",
-    "fanName": "",
+    "fanName": "ﾄﾞﾝﾄﾞﾝｶｯ",
     "oshiMark": "",
     "streamTag": "",
     "fanArtTag": "",
