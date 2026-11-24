@@ -239,7 +239,7 @@
   },
   {
     "id": "rinsei_shirasu",
-    "published": false,
+    "published": true,
     "name": "白栖 凜生",
     "cohort": [
       "1期生"
@@ -247,12 +247,15 @@
     "roles": [
       "広報担当"
     ],
+    "affiliationAgency": "321.inc",
     "iconImage": "",
     "avatarImage": "",
     "avatarImages": [],
     "emoji": "",
     "catchphrase": "",
     "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
     "birthday": "7月30日",
     "debutDate": "2026-01-02",
     "anniversary": "1月2日",
