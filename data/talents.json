@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "id": "itsumin",
+    "published": true,
+    "name": "いつみん",
+    "cohort": [
+      "1期生"
+    ],
+    "iconImage": "",
+    "avatarImage": "",
+    "avatarImages": [],
+    "emoji": "",
+    "catchphrase": "",
+    "bio": "",
+    "birthday": "1月26日",
+    "debutDate": "2023-06-20",
+    "anniversary": "1月26日",
+    "activityStatus": "活動中",
+    "regularSchedule": "毎日21:00",
+    "activityGoal": "",
+    "favoriteWorks": "",
+    "height": "",
+    "bloodType": "",
+    "fanName": "",
+    "oshiMark": "",
+    "streamTag": "",
+    "fanArtTag": "",
+    "greeting": "",
+    "hobbies": "",
+    "skills": "",
+    "likes": "",
+    "dislikes": "",
+    "favoriteFood": "",
+    "illustrator": "",
+    "modeler": "",
+    "message": "",
+    "links": [
+      {
+        "label": "X",
+        "url": "https://x.com/1Kkb2Qpvh5rJksg"
+      }
+    ]
+  }
+]
