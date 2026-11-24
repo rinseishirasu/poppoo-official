@@ -1836,3 +1836,17 @@ body.lightbox-open{overflow:hidden}
 .profile-achievement time{display:block;margin-bottom:6px;color:#64809d;font-size:.8rem}
 .profile-achievement h3{margin:0 0 6px;color:#263d59;font-size:1rem}
 .profile-achievement p{margin:0;color:#52677d;line-height:1.8}
+
+
+/* MEMBER PROFILE | anniversary countdown and adjacent member navigation */
+.profile-anniversary .anniversary-countdown{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:18px 22px;border:1px solid #dce6f1;border-radius:16px;background:linear-gradient(135deg,#f4f8fd,#fff)}
+.anniversary-countdown strong{font-size:clamp(2.2rem,6vw,3.4rem);line-height:1;color:#315f8d;font-weight:800;font-variant-numeric:tabular-nums}
+.anniversary-countdown>span{font-weight:700;color:#52708d}
+.anniversary-countdown p{flex-basis:100%;margin:2px 0 0;color:#71839a;font-size:.9rem}
+.profile-member-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:30px 0 18px}
+.profile-member-link{display:flex;flex-direction:column;gap:5px;min-width:0;padding:16px 18px;border:1px solid #dce6f1;border-radius:16px;background:#fff;color:#294f78;transition:transform .2s,box-shadow .2s}
+.profile-member-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(38,61,89,.08)}
+.profile-member-link span{font-size:.7rem;letter-spacing:.12em;font-weight:800;color:#71839a}
+.profile-member-link strong{font-size:1rem;overflow-wrap:anywhere}
+.profile-member-link.next{text-align:right;align-items:flex-end}
+@media(max-width:560px){.profile-member-nav{gap:8px}.profile-member-link{padding:13px 12px}.profile-member-link strong{font-size:.9rem}}
