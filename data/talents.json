@@ -49,13 +49,13 @@
   },
   {
     "id": "dondoko",
-    "published": false,
+    "published": true,
     "name": "どんどこ",
     "cohort": [
       "1期生"
     ],
     "roles": [
-      "営業"
+      "営業部長"
     ],
     "affiliationAgency": "",
     "iconImage": "",
