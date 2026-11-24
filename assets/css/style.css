@@ -1828,3 +1828,11 @@ body.lightbox-open{overflow:hidden}
  .profile-lightbox img{max-width:96vw;max-height:86dvh}
 }
 @media(hover:none){.profile-image-open span{opacity:1}}
+
+
+/* PROFILE ACHIEVEMENTS */
+.profile-achievements{display:grid;gap:12px}
+.profile-achievement{padding:16px 18px;border:1px solid #dce6f1;border-radius:14px;background:#f8fbff}
+.profile-achievement time{display:block;margin-bottom:6px;color:#64809d;font-size:.8rem}
+.profile-achievement h3{margin:0 0 6px;color:#263d59;font-size:1rem}
+.profile-achievement p{margin:0;color:#52677d;line-height:1.8}
