@@ -1,85 +1,86 @@
-# 架空事務所 ぽっぽー 公式HP
+# 架空事務所 ぽっぽー 公式サイト
 
-クリーム・オレンジを基調にした、個人運営の架空Vライバー事務所サイトです。GitHub Pagesで公開できる静的サイトとして構成しています。
+「架空事務所 ぽっぽー」の公式サイトです。ブランド名・世界観として「架空事務所」を使用し、活動形態はREALITYを中心とした配信者コミュニティとして案内しています。
 
-## ページ
-- `index.html` トップ
+## 公開サイト
+
+- https://rinseishirasu.github.io/poppoo-official/
+
+## ページ構成
+
+- `index.html` トップページ
 - `about.html` コミュニティについて
 - `talents.html` 参加メンバー一覧
-- `talent.html?id=ライバーID` 個別プロフィール
-- `schedule.html` 配信予定
-- `news.html` お知らせ
-- `audition.html` 所属募集
-- `contact.html` お問い合わせ
+- `talent.html?id=メンバーID` 個別プロフィール
+- `schedule.html` 配信スケジュール
+- `news.html` お知らせ一覧
+- `news-detail.html?id=記事ID` お知らせ詳細
+- `audition.html` コミュニティ参加案内
+- `contact.html` お問い合わせ案内
 - `policy.html` プライバシー・サイトポリシー
 - `404.html` エラーページ
+- `admin.html` 運営者向け管理画面（noindex）
 
-## GitHub Pagesで公開する手順
-1. GitHubで `poppoo-official` という **Public** リポジトリを新規作成します。
-2. このZIPの中身をリポジトリ直下へアップロードし、`main` ブランチへコミットします。
-3. GitHubの **Settings → Pages** を開き、Build and deployment の Source を **GitHub Actions** にします。
-4. Actionsタブで `Deploy static site to GitHub Pages` が完了するのを待ちます。
-5. `https://rinseishirasu.github.io/poppoo-official/` を開いて確認します（ユーザー名やリポジトリ名が異なる場合はURLを読み替えてください）。
+## コンテンツの更新
 
-## 公開データの追加
-公開許諾を得た情報だけをJSONへ登録します。
+管理画面から参加メンバー、配信予定、お知らせを作成・編集できます。
 
-### 参加メンバー (`data/talents.json`)
-```json
-[
-  {
-    "id": "sample-talent",
-    "published": true,
-    "name": "活動名",
-    "cohort": ["1期生"],
-    "generation": "正式所属ライバー",
-    "iconImage": "assets/images/talents/sample-talent-icon.png",
-    "avatarImage": "assets/images/talents/sample-talent-avatar.png",
-    "emoji": "🐦",
-    "catchphrase": "キャッチコピー",
-    "bio": "公開用プロフィール文",
-    "tags": ["雑談", "ゲーム"],
-    "links": [
-      {"label": "X", "url": "https://x.com/example"}
-    ]
-  }
-]
-```
-`cohort` は「1期生」などの期生表示（配列で複数指定可）、`generation` は参加区分です。運営ページから画像を選ぶと、`assets/images/talents/` に直接アップロードされ、`iconImage` は一覧用プロフィールアイコン、`avatarImage` は個別ページ用アバター画像のリポジトリ内パスが保存されます。画像は任意項目で、未設定時は絵文字を表示します。プロフィールURLは `talent.html?id=sample-talent` です。`id` は英数字とハイフンを推奨します。
+1. [管理画面](https://rinseishirasu.github.io/poppoo-official/admin.html)を開き、運営者のGitHubアカウントでログインします。
+2. 編集するカテゴリを選び、情報を登録・編集します。
+3. 内容と掲載許諾を確認してから、カテゴリごとに公開します。
+4. GitHub Pagesへの反映には数分かかる場合があります。
 
-### お知らせ (`data/news.json`)
-```json
-[
-  {
-    "id": "news-20261122",
-    "published": true,
-    "date": "2026-11-22",
-    "title": "お知らせタイトル",
-    "summary": "お知らせ本文の概要",
-    "body": "記事本文を記載します。改行も利用できます。",
-    "category": "INFORMATION"
-  }
-]
-```
+認証サーバーの構成・設定手順は [Worker設定ガイド](worker/README.md) を参照してください。Cloudflare WorkerのソースをGitHub上で変更した場合、Cloudflare側にも反映して再デプロイする必要があります。
 
-### 配信予定 (`data/schedule.json`)
-```json
-[
-  {
-    "published": true,
-    "date": "2026-12-01",
-    "time": "21:00",
-    "talent": "活動名",
-    "title": "夜の雑談",
-    "platform": "REALITY",
-    "url": "https://example.com"
-  }
-]
-```
+## データファイル
 
-## 注意事項
-- 初期データは空です。架空の参加メンバー・予定・実績を実在情報のように掲載していません。
-- 問い合わせ・応募フォームは未接続です。公開前に安全な外部フォーム等を用意し、プライバシー説明を整えてください。
-- このリポジトリがPublicの場合、登録したJSON・画像・ソースコードは誰でも閲覧できます。応募者情報、住所、個人連絡先、非公開情報、認証情報を絶対に置かないでください。
-- Google Fontsの読み込みにはインターネット接続が必要です。接続できない場合は端末の代替フォントで表示します。
-- 実際の公開前に、掲載するロゴ・アバター・イラストの利用許諾を確認してください。
+- `data/talents.json` 参加メンバー
+- `data/schedule.json` 配信予定
+- `data/news.json` お知らせ
+
+各データはJSON配列です。初期状態では空配列にしてあり、公開許諾を得た情報だけを登録します。
+
+### 参加メンバーの主な項目
+
+- `id`: プロフィールURLに使う一意のID
+- `published`: 公開する場合は `true`
+- `name`: 活動名
+- `cohort`: 期生表示（複数指定可）
+- `generation`: 参加区分（正式所属ライバー、業務提携ライバー、研修生・準所属ライバー）
+- `iconImage`: 一覧用プロフィールアイコン
+- `avatarImage` / `avatarImages`: プロフィール用アバター画像・ギャラリー
+- `bio`, `catchphrase`, `tags`, `links` など: プロフィール情報
+
+プロフィールURLは `talent.html?id=メンバーID` です。画像は管理画面から `assets/images/talents/` にアップロードできます。
+
+### 配信予定の主な項目
+
+- `published`: 公開する場合は `true`
+- `date`: 日付（YYYY-MM-DD）
+- `time`: 開始時刻（HH:MM）
+- `talent`: 参加メンバーの活動名
+- `title`: 配信タイトル
+- `platform`: 配信プラットフォーム
+- `url`: 配信先URL（任意）
+
+### お知らせの主な項目
+
+- `id`: 記事ID
+- `published`: 公開する場合は `true`
+- `date`: 投稿日（YYYY-MM-DD）
+- `title`: 記事タイトル
+- `category`: カテゴリ
+- `summary`: 一覧用概要
+- `body`: 記事本文
+
+## GitHub Pages
+
+GitHub PagesはGitHub Actionsでデプロイします。デプロイワークフローは `.github/workflows/pages.yml` です。サイトは静的ファイルとして公開されます。
+
+## 運用上の注意
+
+- 公開リポジトリのため、登録したJSON・画像・ソースコードは誰でも閲覧できます。住所、個人連絡先、応募者情報、非公開情報、パスワード、アクセストークンなどは絶対に登録しないでください。
+- 管理画面自体は静的ページです。GitHub OAuthとCloudflare Workerで公開操作を制御していますが、管理画面のURLを非公開にする仕組みではありません。
+- 画像・文章・ロゴ等は、権利者から公開・掲載の許諾を得たものだけを使用してください。
+- お問い合わせ・参加申込みフォームは現時点で未接続です。窓口を設置する際は、取得情報や利用目的を明示し、プライバシーポリシーも更新してください。
+- 初期データに架空の参加メンバー、配信予定、活動実績は登録していません。
