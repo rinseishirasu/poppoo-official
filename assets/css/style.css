@@ -1741,3 +1741,17 @@ body{background:#f5f8fc;color:#263d59}
   .note-one{left:8px;top:8px}
   .note-two{right:8px;bottom:8px}
 }
+
+
+/* Official square icon sizing and footer contrast */
+.brand{display:inline-flex;align-items:center;gap:0}
+.brand-logo{display:block;width:64px;height:64px;max-height:none;object-fit:contain}
+.site-footer .brand{padding:9px;background:#fff;border:1px solid rgba(255,255,255,.22);border-radius:16px;box-shadow:0 5px 18px rgba(0,0,0,.12)}
+.site-footer .brand-logo{width:76px;height:76px;max-height:none}
+@media(max-width:900px){
+  .header-inner .brand-logo{width:58px;height:58px;max-height:none}
+}
+@media(max-width:560px){
+  .header-inner .brand-logo{width:54px;height:54px;max-height:none}
+  .site-footer .brand-logo{width:68px;height:68px}
+}
