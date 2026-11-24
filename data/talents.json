@@ -46,7 +46,7 @@
   },
   {
     "id": "dondoko",
-    "published": true,
+    "published": false,
     "name": "どんどこ",
     "cohort": [
       "1期生"
@@ -54,12 +54,15 @@
     "roles": [
       "営業"
     ],
+    "affiliationAgency": "",
     "iconImage": "",
     "avatarImage": "",
     "avatarImages": [],
     "emoji": "",
     "catchphrase": "",
     "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
     "birthday": "11月16日",
     "debutDate": "2025-03-14",
     "anniversary": "2025/03/14",
@@ -239,7 +242,7 @@
   },
   {
     "id": "rinsei_shirasu",
-    "published": true,
+    "published": false,
     "name": "白栖 凜生",
     "cohort": [
       "1期生"
