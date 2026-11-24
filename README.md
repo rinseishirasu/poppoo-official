@@ -46,7 +46,6 @@
 - `published`: 公開する場合は `true`
 - `name`: 活動名
 - `cohort`: 期生表示（複数指定可）
-- `generation`: 参加区分（正式所属ライバー、業務提携ライバー、研修生・準所属ライバー）
 - `iconImage`: 一覧用プロフィールアイコン
 - `avatarImage` / `avatarImages`: プロフィール用アバター画像・ギャラリー
 - `bio`, `catchphrase`, `tags`, `links` など: プロフィール情報
