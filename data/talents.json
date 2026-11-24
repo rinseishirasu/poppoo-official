@@ -4,17 +4,21 @@
     "published": true,
     "name": "いつみん",
     "cohort": [
+      "0期生",
       "1期生"
     ],
     "roles": [
       "代表"
     ],
+    "affiliationAgency": "",
     "iconImage": "",
     "avatarImage": "",
     "avatarImages": [],
     "emoji": "",
     "catchphrase": "",
     "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
     "birthday": "1月26日",
     "debutDate": "2023-06-20",
     "anniversary": "6月20日",
