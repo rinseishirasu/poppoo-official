@@ -986,3 +986,102 @@ body{background:#f5f8fc;color:#203650}
  .membership-card{min-height:0}
  .membership-card .card-body{padding:24px 21px}
 }
+
+
+/* INNER PAGE visual consistency */
+.page-hero{
+ padding:clamp(48px,6vw,76px) 0 42px;
+ background:linear-gradient(115deg,#f7faff 0%,#edf4fb 66%,#e5eef8 100%);
+ border-bottom:1px solid #e1eaf4;
+}
+.page-hero:after{width:270px;height:270px;right:-90px;top:-120px;background:#cbdcf0;opacity:.28}
+.page-heading{max-width:1280px}
+.page-heading .breadcrumbs{color:#8a9bb0;font-weight:650;letter-spacing:.04em}
+.page-heading .breadcrumbs a{color:#547ba8}
+.page-heading>.eyebrow{display:inline-block;margin-top:4px;color:#547ba8;letter-spacing:.2em}
+.page-heading h1{margin:8px 0 10px;color:#203a5e;font-size:clamp(2rem,4.4vw,3rem);letter-spacing:.01em}
+.page-heading>p{max-width:760px;color:#60758e;font-size:.96rem;line-height:1.9}
+.content{padding:clamp(34px,5vw,58px) 0 84px}
+.content>.container{max-width:1120px}
+.section-head h2,.talent-list-heading h2,.schedule-intro h2,.news-intro h2{color:#203a5e}
+.section-head p,.talent-list-heading p,.schedule-intro p,.news-intro p{color:#687b91}
+.prose{max-width:900px;margin:0 auto;padding:clamp(24px,4.5vw,52px);border:1px solid #dce6f1;border-radius:22px;background:#fff;box-shadow:0 12px 34px rgba(25,54,88,.045)}
+.prose h2{margin:38px 0 14px;padding-bottom:11px;border-bottom:1px solid #e5edf5;color:#203a5e;font-size:1.35rem}
+.prose h2:first-child{margin-top:0}
+.prose p,.prose li{color:#5e718a;line-height:2}
+.about-lead{color:#315f98!important;font-size:1.12rem;font-weight:750;line-height:2}
+.brand-manifesto{margin:18px 0;padding:28px;border-radius:16px;background:linear-gradient(120deg,#edf4fb,#f8fbff);color:#315f98;text-align:center;font-size:clamp(1.25rem,3vw,1.8rem);font-weight:850;line-height:1.9}
+.about-values .info-box,.about-overview .info-box{border-color:#dce6f1;background:#fbfdff;color:#304a68;line-height:1.85}
+.about-values .info-box strong,.about-overview .info-box strong{color:#547ba8}
+.about-values .info-box span{display:block;margin-top:8px;color:#687b91;font-size:.86rem}
+.talent-types{padding-top:52px;padding-bottom:38px;background:#f7faff}
+.talent-types .section-head{margin-bottom:24px}
+.membership-card{border-color:#dce6f1;background:#fff;box-shadow:0 10px 28px rgba(25,54,88,.045)}
+.membership-card .membership-number{color:#dce8f5}
+.membership-note,.directory-note{margin-top:18px;color:#8292a6}
+.talent-directory{padding-top:54px}
+.talent-list-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.talent-list-heading h2{margin:4px 0;font-size:1.7rem}
+.talent-list-heading p{margin:0}
+.talent-list-heading .filters{width:min(100%,340px);margin:0}
+.filters input{max-width:none;border-color:#d5e1ee;background:#fff;color:#304a68;box-shadow:0 4px 14px rgba(25,54,88,.035)}
+.filters input:focus{outline:2px solid #9bb7dc;outline-offset:2px}
+.talent-card{border-color:#dce6f1;background:#fff}
+.talent-card .talent-art{background:linear-gradient(145deg,#f1f6fc,#dce8f5)}
+.talent-card .card-body{padding:22px}
+.talent-card h3{color:#203a5e;font-size:1.15rem}
+.talent-card p{color:#687b91;line-height:1.85}
+.schedule-intro,.news-intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:26px;padding:26px 30px;border:1px solid #dce6f1;border-radius:18px;background:linear-gradient(120deg,#edf4fb,#fff)}
+.schedule-intro h2,.news-intro h2{margin:5px 0;font-size:1.45rem}
+.schedule-intro p,.news-intro p{margin:0;line-height:1.85}
+.schedule-intro-note{max-width:360px;text-align:right}
+.schedule-board{overflow:hidden;border:1px solid #dce6f1;border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(25,54,88,.04)}
+.schedule-board-head{display:grid;grid-template-columns:150px minmax(0,1fr) 170px;gap:15px;padding:13px 20px;background:#203a5e;color:#fff;font-size:.72rem;font-weight:850;letter-spacing:.12em}
+.schedule-list{padding:12px}
+.schedule-list .schedule-item{border:0;border-bottom:1px solid #e8eef5;border-radius:0;background:#fff;box-shadow:none}
+.schedule-list .schedule-item:last-child{border-bottom:0}
+.schedule-list .schedule-date{color:#315f98}
+.schedule-list .schedule-link{color:#315f98;font-weight:800}
+.schedule-footnote{margin-top:15px;color:#8292a6}
+.news-intro-mark{display:grid;place-items:center;flex:0 0 100px;width:100px;height:100px;border:1px solid #dce6f1;border-radius:50%;background:#fff;color:#547ba8;font-size:.88rem;font-weight:900;letter-spacing:.16em}
+.news-grid{align-items:stretch}
+.news-card{height:100%}
+.news-card .card-body{height:100%;display:flex;flex-direction:column}
+.news-card .card-action{margin-top:auto!important;padding-top:16px}
+.detail-article{border-color:#dce6f1;background:#fff;box-shadow:0 14px 40px rgba(25,54,88,.06)}
+.detail-article h1{color:#203a5e}
+.detail-summary{color:#687b91;border-color:#e1eaf3}
+.news-detail-heading time{color:#8292a6}
+.audition-lead{padding:clamp(26px,4vw,42px);border:1px solid #dce6f1;border-radius:22px;background:linear-gradient(120deg,#edf4fb,#fff);box-shadow:0 10px 28px rgba(25,54,88,.04)}
+.audition-lead h2{color:#203a5e;font-size:clamp(1.55rem,3.4vw,2.25rem);line-height:1.55}
+.audition-lead p{max-width:780px;color:#5e718a;line-height:2}
+.audition-section{padding:30px 0;border-bottom:1px solid #e3ebf4}
+.audition-section-heading h2{color:#203a5e}
+.audition-section>p,.audition-checklist{color:#5e718a;line-height:2}
+.audition-checklist li::marker{color:#547ba8}
+.audition-facts>div{border-color:#dce6f1;background:#f8fbff}
+.audition-facts strong{color:#547ba8}
+.audition-facts span{color:#203a5e}
+.audition-status{border-color:#d5e2f1;background:#edf4fb;color:#526b8a}
+.audition-status strong{color:#315b91}
+.profile-back{display:inline-flex;margin-top:26px}
+.profile-top{padding:clamp(20px,4vw,36px);border:1px solid #dce6f1;border-radius:22px;background:linear-gradient(120deg,#f5f9fe,#fff)}
+.profile-details{max-width:980px;margin:0 auto}
+.profile-section{padding-bottom:26px;border-bottom:1px solid #e5edf5}
+.profile-section:last-child{border-bottom:0}
+.profile-section h2{color:#203a5e}
+.profile-section .eyebrow{color:#547ba8}
+@media(max-width:760px){
+ .page-hero{padding:42px 0 30px}
+ .content{padding:30px 0 60px}
+ .prose{padding:24px 20px;border-radius:17px}
+ .talent-list-heading{align-items:stretch;flex-direction:column}
+ .talent-list-heading .filters{width:100%}
+ .schedule-intro,.news-intro{align-items:flex-start;flex-direction:column;padding:22px}
+ .schedule-intro-note{text-align:left}
+ .news-intro-mark{width:72px;height:72px;flex-basis:72px;font-size:.72rem}
+ .schedule-board-head{grid-template-columns:1fr 1fr;padding:12px 14px}
+ .schedule-board-head span:last-child{display:none}
+ .schedule-list{padding:7px}
+ .schedule-list .schedule-item{padding:15px 10px}
+}
