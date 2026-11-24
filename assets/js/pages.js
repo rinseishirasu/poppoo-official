@@ -6,7 +6,7 @@
  const dateLabel=d=>d?escapeHtml(d.replaceAll("-","/")):"";
  const todayJST=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const safeExternalLink=value=>{try{const u=new URL(value,location.href);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return ""}};
- const talentCard=t=>{const icon=safeExternalLink(t.iconImage||"");const cohorts=Array.isArray(t.cohort)?t.cohort:t.cohort?[t.cohort]:[];return `<article class="card talent-card"><div class="talent-art">${icon?`<img class="talent-icon-image" src="${escapeHtml(icon)}" alt="${escapeHtml(t.name)}のプロフィールアイコン" loading="lazy">`:escapeHtml(t.emoji||"🐦")}</div><div class="card-body"><div class="talent-badges">${cohorts.map(c=>`<span class="pill cohort-pill">${escapeHtml(c)}</span>`).join("")}</div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||t.bio||"プロフィール")}</p><p class="card-action"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">PROFILE　→</a></p></div></article>`};
+ const talentCard=t=>{const icon=safeExternalLink(t.iconImage||"");return `<article class="card talent-card"><div class="talent-art">${icon?`<img class="talent-icon-image" src="${escapeHtml(icon)}" alt="${escapeHtml(t.name)}のプロフィールアイコン" loading="lazy">`:escapeHtml(t.emoji||"🐦")}</div><div class="card-body"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||t.bio||"プロフィール")}</p><p class="card-action"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">PROFILE　→</a></p></div></article>`};
  const newsCard=n=>`<article class="card article-card news-card"><div class="card-body"><div class="news-meta"><time class="small" datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time><span class="pill">${escapeHtml(n.category||"INFORMATION")}</span></div><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.summary||"")}</p><p class="card-action"><a class="text-link" href="news-detail.html?id=${encodeURIComponent(n.id)}">記事を読む →</a></p></div></article>`;
  const tg=document.querySelector("#talent-grid");
  if(tg){const q=document.querySelector("#talent-search");const render=()=>{const v=(q?.value||"").toLowerCase();const list=published(talents).filter(t=>[t.name,t.bio,...(Array.isArray(t.cohort)?t.cohort:[t.cohort||""]),...(t.tags||[])].join(" ").toLowerCase().includes(v));tg.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">参加メンバーの紹介は準備中です。公開準備が整い次第、こちらでご紹介します。</div>'};q?.addEventListener("input",render);render()}
@@ -23,7 +23,7 @@
    const avatarList=(Array.isArray(t.avatarImages)?t.avatarImages:t.avatarImages?[t.avatarImages]:[]).map(safeExternalLink).filter(Boolean);
    if(!avatarList.length&&t.avatarImage){const legacy=safeExternalLink(t.avatarImage);if(legacy)avatarList.push(legacy)}
    const avatar=avatarList[0]||"",icon=safeExternalLink(t.iconImage||"");
-   const cohorts=Array.isArray(t.cohort)?t.cohort:t.cohort?[t.cohort]:[];
+   
    const facts=[["誕生日",t.birthday],["デビュー日",t.debutDate?dateLabel(t.debutDate):""],["活動記念日",t.anniversary],["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
    const personality=[["趣味",t.hobbies],["特技",t.skills],["好きなもの",t.likes],["苦手なもの",t.dislikes],["好きな食べ物",t.favoriteFood],["好きな作品・ジャンル",t.favoriteWorks]].filter(x=>x[1]);
    const fan=[["ファンネーム",t.fanName],["推しマーク",t.oshiMark],["配信タグ",t.streamTag],["ファンアートタグ",t.fanArtTag]].filter(x=>x[1]);
