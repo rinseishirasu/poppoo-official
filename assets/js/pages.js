@@ -45,7 +45,7 @@
    if(!avatarList.length&&t.avatarImage){const legacy=safeExternalLink(t.avatarImage);if(legacy)avatarList.push(legacy)}
    const avatar=avatarList[0]||"",icon=safeExternalLink(t.iconImage||"");
    
-   const facts=[["誕生日",t.birthday],["デビュー日",t.debutDate?dateLabel(t.debutDate):""],["活動記念日",t.anniversary],["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
+   const facts=[["所属事務所・所属先",t.affiliationAgency],["誕生日",t.birthday],["デビュー日",t.debutDate?dateLabel(t.debutDate):""],["活動記念日",t.anniversary],["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
    const anniversarySection=anniversaryCountdown(t.anniversary);
    const personality=[["趣味",t.hobbies],["特技",t.skills],["好きなもの",t.likes],["苦手なもの",t.dislikes],["好きな食べ物",t.favoriteFood],["好きな作品・ジャンル",t.favoriteWorks]].filter(x=>x[1]);
    const fan=[["ファンネーム",t.fanName],["推しマーク",t.oshiMark],["配信タグ",t.streamTag],["ファンアートタグ",t.fanArtTag]].filter(x=>x[1]);
