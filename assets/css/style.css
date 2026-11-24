@@ -1487,3 +1487,81 @@ main>*{min-width:0}
   .card,.btn,.avatar-lookbook-item{transition:none!important}
 }
 
+
+
+/* TOP page visual polish: navigation state, hero artwork and wide-screen balance */
+:root{
+  --layout-width:1200px;
+}
+.nav a:last-child{
+  background:transparent;
+  color:var(--navy);
+  padding:0;
+  border-radius:0;
+}
+.nav a:last-child:hover{
+  background:transparent;
+  color:var(--orange-dark);
+}
+.nav a[aria-current="page"]{
+  color:var(--navy);
+  position:relative;
+  background:transparent;
+}
+.nav a[aria-current="page"]::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-8px;
+  height:2px;
+  border-radius:2px;
+  background:var(--orange);
+}
+.nav a:last-child[aria-current="page"]{
+  background:transparent;
+  color:var(--navy);
+}
+.nav a:last-child[aria-current="page"]::after{background:var(--orange)}
+.hero-art{
+  overflow:visible;
+  isolation:isolate;
+}
+.hero-art::after{
+  width:100%;
+  max-width:100%;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:82% auto;
+}
+.hero-art .floating-note{
+  z-index:2;
+  max-width:calc(100% - 32px);
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.hero-art .note-one{
+  left:16px;
+  top:16px;
+}
+.hero-art .note-two{
+  right:16px;
+  bottom:16px;
+  max-width:calc(100% - 32px);
+  font-size:.68rem;
+  letter-spacing:.015em;
+  padding:10px 13px;
+}
+@media(min-width:1200px){
+  .hero-grid{gap:clamp(54px,5.2vw,76px)}
+  .hero-art{max-width:560px}
+}
+@media(max-width:900px){
+  .nav a[aria-current="page"]::after{display:none}
+  .nav a:last-child{padding:10px 12px}
+  .nav a:last-child[aria-current="page"]{background:rgba(38,61,89,.08)}
+}
+@media(max-width:560px){
+  .hero-art .note-one{left:10px;top:10px}
+  .hero-art .note-two{right:10px;bottom:10px;font-size:.62rem;padding:8px 10px}
+}
