@@ -1,7 +1,7 @@
 const navItems = [
-  ["TOP","index.html"],["ABOUT","about.html"],["TALENTS","talents.html"],
+  ["TOP","index.html"],["ABOUT","about.html"],["MEMBERS","talents.html"],
   ["SCHEDULE","schedule.html"],["NEWS","news.html"],
-  ["AUDITION","audition.html"],["CONTACT","contact.html"]
+  ["JOIN","audition.html"],["CONTACT","contact.html"]
 ];
 const current = location.pathname.split("/").pop() || "index.html";
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
