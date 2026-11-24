@@ -9,7 +9,6 @@
 - `talent.html?id=ライバーID` 個別プロフィール
 - `schedule.html` 配信予定
 - `news.html` お知らせ
-- `events.html` イベント・企画
 - `audition.html` 所属募集
 - `contact.html` お問い合わせ
 - `policy.html` プライバシー・サイトポリシー
@@ -59,24 +58,6 @@
     "summary": "お知らせ本文の概要",
     "body": "記事本文を記載します。改行も利用できます。",
     "category": "INFORMATION"
-  }
-]
-```
-
-### イベント (`data/events.json`)
-```json
-[
-  {
-    "id": "event-20261201",
-    "published": true,
-    "status": "開催予定",
-    "date": "2026-12-01",
-    "title": "企画タイトル",
-    "description": "企画の紹介",
-    "period": "2026-12-03",
-    "target": "参加対象",
-    "howto": "参加方法",
-    "body": "詳細説明"
   }
 ]
 ```
