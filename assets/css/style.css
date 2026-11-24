@@ -1796,3 +1796,7 @@ body{background:#f5f8fc;color:#263d59}
   .page-heading h1{overflow-wrap:anywhere}
   .policy-index a{overflow-wrap:anywhere}
 }
+
+/* Community role badges */
+.role-pill{background:#fff2d8;color:#80551a;border:1px solid #f0d9a8}
+.admin-field small{color:#71839a;font-size:.76rem;line-height:1.6}
