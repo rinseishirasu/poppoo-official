@@ -1755,3 +1755,7 @@ body{background:#f5f8fc;color:#263d59}
   .header-inner .brand-logo{width:54px;height:54px;max-height:none}
   .site-footer .brand-logo{width:68px;height:68px}
 }
+
+
+/* Footer logo: cancel legacy white-out filter */
+.site-footer .brand-logo{filter:none!important;opacity:1!important;}
