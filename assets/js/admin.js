@@ -16,6 +16,8 @@ const SCHEMAS={
  news:[["id","ID","text",true],["published","公開する","checkbox"],["date","投稿日","date",true],["title","タイトル","text",true],["category","カテゴリ","text"],["thumbnailImage","サムネイル画像（任意）","image"],["summary","概要","textarea"],["body","本文","textarea",true]],
 };
 const data={talents:[],schedule:[],news:[],home:[],settings:[]};
+const baseline={};
+let publishing=false;
 let current="talents",editing=-1,accessToken="",githubLogin="",tokenExpiresAt=0,authPopup=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -94,7 +96,26 @@ function renderDashboard(){
  detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>誕生日・活動記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
 }
 
+function canonical(v){return JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x)}
+function changes(kind,after=data[kind]){
+ const before=baseline[kind]||[],key=x=>singleton(kind)?"settings":kind==="schedule"?canonical([x.date,x.time,x.talent,x.title]):String(x.id||"");
+ const groups=a=>{const m=new Map();for(const x of a){const k=key(x);if(!m.has(k))m.set(k,[]);m.get(k).push(x)}return m};
+ const old=groups(before),next=groups(after),out=[];
+ for(const k of new Set([...old.keys(),...next.keys()])){
+ const a=[...(old.get(k)||[])],b=[...(next.get(k)||[])];
+ for(let i=a.length-1;i>=0;i--){const j=b.findIndex(x=>canonical(x)===canonical(a[i]));if(j>=0){a.splice(i,1);b.splice(j,1)}}
+ while(a.length&&b.length)out.push({type:"変更",before:a.shift(),after:b.shift()});
+ for(const x of a)out.push({type:"削除",before:x});for(const x of b)out.push({type:"新規",after:x});
+ }return out;
+}
+function renderChanges(){
+ const panel=$("cms-changes");if(!panel)return;
+ const list=changes(current),name=x=>x.name||x.title||x.id||LABELS[current];
+ const counts=Object.keys(FILES).map(k=>LABELS[k]+" "+changes(k).length+"件").join(" / ");
+ panel.innerHTML='<p>'+esc(counts)+'</p><h3>'+esc(LABELS[current])+'：変更 '+list.length+'件</h3>'+ (list.length?list.map(d=>{const a=d.before||{},b=d.after||{},keys=[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>canonical(a[k])!==canonical(b[k]));return '<details class="cms-change-row"><summary>'+esc(d.type+"｜"+name(d.after||d.before))+'</summary>'+keys.map(k=>'<div class="cms-change-field"><strong>'+esc(SCHEMAS[current].find(f=>f[0]===k)?.[1]||k)+'</strong><div><small>変更前</small><pre>'+esc(a[k]===undefined?"（なし）":JSON.stringify(a[k],null,2))+'</pre></div><div><small>変更後</small><pre>'+esc(b[k]===undefined?"（なし）":JSON.stringify(b[k],null,2))+'</pre></div></div>').join("")+'</details>'}).join(""):'<p>保存済みの変更はありません。</p>');
+}
 function renderList(){
+ renderChanges();
  renderDashboard();
  const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
  $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
@@ -244,7 +265,7 @@ $("reset-button").addEventListener("click",async()=>{
  try{await loadRemote();localStorage.removeItem(STORAGE_KEY);editing=-1;renderTabs();status("公開データを読み込みました。")}catch(e){status(e.message+"。編集内容は維持しました。")}
 });
 async function loadRemote(){
- const next={};for(const key of Object.keys(FILES)){const r=await fetch("data/"+FILES[key],{cache:"no-store"});if(!r.ok)throw new Error("公開データを取得できません: "+LABELS[key]);const a=await r.json();if(!Array.isArray(a))throw new Error("データ形式が不正です: "+LABELS[key]);next[key]=a}Object.assign(data,next);
+ const next={};for(const key of Object.keys(FILES)){const r=await fetch("data/"+FILES[key],{cache:"no-store"});if(!r.ok)throw new Error("公開データを取得できません: "+LABELS[key]);const a=await r.json();if(!Array.isArray(a))throw new Error("データ形式が不正です: "+LABELS[key]);next[key]=a}Object.assign(data,next);Object.assign(baseline,JSON.parse(JSON.stringify(next)));
 }
 function base64Utf8(value){
  const bytes=new TextEncoder().encode(value);let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary);
@@ -255,26 +276,30 @@ async function githubRequest(path,options={}){
  return response;
 }
 async function publishCurrent(){
+ if(publishing)return;
  if(!authReady()){status("先にGitHubへログインしてください。");updateAuthUI();return}
  const validation=validateDataset(current,data[current]);if(validation){status("公開できません: "+validation);return}
  const kind=current, snapshot=JSON.stringify(data[current],null,2)+"\n",file="data/"+FILES[kind],button=$("publish-button");
- if(!confirm(LABELS[current]+"のデータ "+data[current].length+"件をGitHubへ公開します。よろしいですか？"))return;
+ const diff=changes(kind);if(canonical(baseline[kind])===canonical(data[kind])){status("公開する変更はありません。");return}
+ if(!confirm(LABELS[kind]+"を公開します。新規 "+diff.filter(x=>x.type==="新規").length+"件、変更 "+diff.filter(x=>x.type==="変更").length+"件、削除 "+diff.filter(x=>x.type==="削除").length+"件。よろしいですか？"))return;
+ publishing=true;
  button.disabled=true;button.textContent="公開中...";
  try{
   const encodedPath=file.split("/").map(encodeURIComponent).join("/");
   const get=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath+"?ref="+encodeURIComponent(BRANCH));
   let sha=null;
-  if(get.status===200){const existing=await get.json();sha=existing.sha}
+  if(get.status===200){const existing=await get.json();sha=existing.sha;const remote=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(existing.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))));if(canonical(remote)!==canonical(baseline[kind]))throw Error("GitHub上のデータが読み込み後に変更されました。上書きを中止しました。編集内容を控えてから公開データを読み直してください。")}
   else if(get.status!==404){const detail=await get.text();throw new Error("現在の公開データを確認できませんでした ("+get.status+"): "+detail.slice(0,180))}
   const payload={message:"Update "+file+" via Poppoo Admin",content:base64Utf8(snapshot),branch:BRANCH};
   if(sha)payload.sha=sha;
   const put=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath,{method:"PUT",body:JSON.stringify(payload)});
   if(!put.ok){const detail=await put.text();throw new Error("GitHubへの保存に失敗しました ("+put.status+"): "+detail.slice(0,240))}
   const result=await put.json();
+  baseline[kind]=JSON.parse(snapshot);renderList();
   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
   status("公開しました。GitHubのコミット: "+(result.commit?.sha||"完了")+". 公式サイトへの反映には数分かかる場合があります。");
  }catch(error){status(error.message||"公開に失敗しました。変更内容はブラウザー内に残っています。")}
- finally{button.textContent="このデータを公開する";updateAuthUI()}
+ finally{publishing=false;button.textContent="このデータを公開する";updateAuthUI()}
 }
 $("publish-button").addEventListener("click",publishCurrent);
 $("login-button").addEventListener("click",()=>{
