@@ -51,7 +51,13 @@ function fieldHtml(field){
  return `<label class="admin-field"><span>${label}${required?" *":""}</span><input name="${key}" type="${type}"${req} ${key==="url"?'placeholder="https://"':""}></label>`;
 }
 function renderForm(item={}){
- const form=$("content-form");form.reset();$("form-fields").innerHTML=SCHEMAS[current].map(fieldHtml).join("");
+ const form=$("content-form");form.reset();const groups=[["基本情報","id name cohort roles affiliationAgency catchphrase"],["ビジュアル","imageColor iconImage avatarImage avatarImages emoji"],["プロフィール","bio birthday height bloodType greeting hobbies skills likes dislikes favoriteFood favoriteWorks illustrator modeler message"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["活動情報","debutDate anniversary activityStatus regularSchedule activityGoal achievements tags"],["外部リンク","links"],["公開設定","published hiddenSections"]];
+ const fields=$("form-fields"),tabs=$("cms-profile-tabs");tabs.hidden=current!=="talents";tabs.replaceChildren();
+ if(current==="talents"){const used=new Set(groups.flatMap(g=>g[1].split(" ")));groups[0][1]+=" "+SCHEMAS[current].filter(f=>!used.has(f[0])).map(f=>f[0]).join(" ");fields.innerHTML=groups.map(([label,keys],i)=>'<section class="cms-profile-group admin-fields" data-profile-group="'+i+'" '+(i?'hidden':'')+'><h3 class="admin-field-wide">'+esc(label)+'</h3>'+SCHEMAS[current].filter(f=>keys.split(" ").includes(f[0])).map(fieldHtml).join("")+'</section>').join("");
+ const select=i=>{fields.querySelectorAll("[data-profile-group]").forEach((p,j)=>p.hidden=i!==j);Array.from(tabs.children).forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)))};
+ groups.forEach(([label],i)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=()=>select(i);tabs.append(b)});select(0);
+ }else fields.innerHTML=SCHEMAS[current].map(fieldHtml).join("");
+ form.oninvalid=null;form.addEventListener("invalid",e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()},{capture:true,once:true});
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el&&type!=="memberSelect")continue;
   if(type==="memberSelect")form.querySelectorAll('input[name="featuredIds"]').forEach(e=>e.checked=(item[key]||[]).includes(e.value));
