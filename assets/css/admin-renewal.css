@@ -75,3 +75,12 @@
 .admin-page .cms-shell .admin-workspace{grid-template-columns:minmax(0,1fr)}.admin-page .admin-toolbar-actions{display:flex;flex-wrap:wrap;gap:8px}.admin-page .admin-list-item{padding:16px;gap:12px}.admin-page .admin-list-panel,.admin-page .admin-editor{min-width:0}.admin-page .admin-form-actions{position:sticky;bottom:0;background:#fff;padding:12px;z-index:2;border-top:1px solid #dbe8f4}
 
 .cms-profile-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;padding-bottom:12px;border-bottom:1px solid #dbe8f4}.cms-profile-tabs button{border:1px solid #dbe8f4;background:#fff;color:#142f56;border-radius:8px;padding:10px 14px;font:inherit;cursor:pointer}.cms-profile-tabs button[aria-pressed="true"]{background:#142f56;color:white;border-color:#142f56}.cms-profile-group{grid-column:1/-1;min-width:0;width:100%}.cms-profile-group h3{margin:0 0 8px;color:#142f56}
+
+.cms-topbar{position:sticky;top:0;z-index:100;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px;background:#fff;border-bottom:1px solid #dbe8f4;color:#142f56}
+.cms-top-brand,.cms-top-actions{display:flex;align-items:center;gap:14px;color:#142f56;text-decoration:none;font-weight:700}
+.cms-top-brand img{width:40px;height:40px;object-fit:contain}.cms-top-brand small{display:block;font-size:10px;letter-spacing:.12em;color:#58718b}.cms-top-actions{font-size:.82rem}.cms-top-actions a{color:#1978c8}
+.admin-page .admin-toolbar{position:sticky;top:64px;z-index:30;background:#f4f7fc;padding:12px 0;border-bottom:1px solid #dbe8f4;gap:12px;flex-wrap:wrap}
+.admin-page .admin-toolbar .admin-form-actions{position:static;display:flex;flex-wrap:wrap;gap:8px;padding:0;border:0;background:transparent}
+.admin-page .admin-toolbar .admin-form-actions[hidden]{display:none!important}
+.admin-page .cms-sidebar{top:80px}
+@media(max-width:760px){.cms-topbar{padding:8px 12px;gap:8px}.cms-top-brand{gap:8px}.cms-top-actions{gap:8px;font-size:.72rem}.admin-page .admin-toolbar{top:64px}.admin-page .admin-toolbar h2{font-size:1rem}.admin-page .admin-toolbar .btn{font-size:.78rem;padding:8px 10px}}
