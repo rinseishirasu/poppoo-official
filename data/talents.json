@@ -245,7 +245,7 @@
   },
   {
     "id": "rinsei_shirasu",
-    "published": false,
+    "published": true,
     "name": "白栖 凜生",
     "cohort": [
       "1期生"
@@ -254,13 +254,19 @@
       "広報担当"
     ],
     "affiliationAgency": "321.inc",
-    "iconImage": "",
+    "iconImage": "assets/images/talents/rinsei_shirasu-icon.png",
     "avatarImage": "",
     "avatarImages": [],
     "emoji": "",
     "catchphrase": "",
     "bio": "",
-    "achievements": [],
+    "achievements": [
+      {
+        "date": "2026-01-02",
+        "title": "活動開始",
+        "description": "配信活動開始\n2026-03-29 | ルキグラ7位 | ルーキーグランプリ7位入賞\n2026-08-02 | リベグラ4位 | リベンジグランプリ4位入賞"
+      }
+    ],
     "hiddenSections": [],
     "birthday": "7月30日",
     "debutDate": "2026-01-02",
@@ -271,9 +277,9 @@
     "favoriteWorks": "",
     "height": "",
     "bloodType": "",
-    "fanName": "",
-    "oshiMark": "",
-    "streamTag": "",
+    "fanName": "ちりめんず",
+    "oshiMark": "🐺🥝",
+    "streamTag": "#りんせいのよりみち",
     "fanArtTag": "",
     "greeting": "",
     "hobbies": "",
