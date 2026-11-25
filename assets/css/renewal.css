@@ -277,3 +277,31 @@
 .pop-brand-join .audition-status p{margin:0}
 .pop-brand-join .audition-status .pop-link{margin-top:14px;min-height:44px}
 @media(max-width:760px){.pop-brand-join .audition-facts{gap:12px}.pop-brand-join .audition-facts>div,.pop-brand-join .audition-status{padding:16px}.pop-brand-join .audition-status .pop-link{display:flex;justify-content:center}.pop-brand-join .audition-checklist li{font-size:.9rem}}
+
+/* Contact and policy: consistent public information layout */
+.pop-contact .contact-content{max-width:1040px;gap:20px}
+.pop-contact .contact-intro,.pop-contact .contact-section,.pop-contact .contact-caution{padding:clamp(20px,3vw,32px);border-radius:16px}
+.pop-contact .contact-type{padding:18px;min-width:0}
+.pop-contact .contact-type h3{font-size:1.05rem;line-height:1.6;margin:8px 0}
+.pop-contact .contact-type p{font-size:.9rem;margin:0;color:#536b83}
+.pop-contact .contact-status{padding:clamp(16px,3vw,24px);overflow-wrap:anywhere}
+.pop-contact .contact-status h3{margin:10px 0;font-size:1.15rem}
+.pop-contact .contact-status p{margin:0}
+.pop-contact .contact-caution{background:#f5faff}
+.pop-contact .contact-caution h2{font-size:1.1rem}
+.pop-contact .contact-caution p{margin-bottom:0}
+.pop-info .policy-content>.container{max-width:920px}
+.pop-info .policy-lead{padding:clamp(18px,3vw,28px);background:#edf6ff;border:1px solid #dbe8f4;border-radius:14px;margin-bottom:20px}
+.pop-info .policy-lead p{line-height:1.9;margin:8px 0 0}
+.pop-info .policy-index{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:16px;background:white;border:1px solid #dbe8f4;border-radius:14px;margin-bottom:20px}
+.pop-info .policy-index a{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;background:#edf6ff;color:#145b98;border-radius:7px;text-decoration:none;font-size:.85rem;box-sizing:border-box}
+.pop-info .policy-index a:hover{background:#d9ecfc}
+.pop-info .policy-index a:focus-visible{outline:2px solid #1978c8;outline-offset:2px}
+.pop-info .policy-articles{display:grid;gap:14px}
+.pop-info .policy-article{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:start;gap:16px;background:white;border:1px solid #dbe8f4;border-radius:14px;padding:clamp(18px,3vw,30px);scroll-margin-top:100px;overflow-wrap:anywhere}
+.pop-info .policy-number{color:#1978c8;font-size:1.35rem;font-weight:800}
+.pop-info .policy-article h2{font-size:1.2rem;color:#142f56;margin:0 0 14px;line-height:1.5}
+.pop-info .policy-article p,.pop-info .policy-article li{line-height:1.95;color:#344c65;font-size:.95rem}
+.pop-info .policy-article p:last-child{margin-bottom:0}
+.pop-info .policy-footer-note{margin-top:20px;padding:18px;border-top:1px solid #dbe8f4;overflow-wrap:anywhere}
+@media(max-width:760px){.pop-contact .contact-types{gap:12px}.pop-contact .pop-brand-cta .pop-link{width:100%;justify-content:center}.pop-info .policy-article{grid-template-columns:30px minmax(0,1fr);gap:10px;padding:16px}.pop-info .policy-number{font-size:1.1rem}.pop-info .policy-article h2{font-size:1.05rem}.pop-info .policy-index{padding:12px}.pop-info .policy-index a{font-size:.78rem;padding:8px}}
