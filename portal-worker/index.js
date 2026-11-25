@@ -61,7 +61,19 @@ export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"auth-diagnostics-v3"});}
+ if(request.method==="GET"&&path==="/setup/kdf-check"){
+ if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
+ return new Response('<!doctype html><meta charset="utf-8"><title>KDF check</title><form method="post"><label>Bootstrap Secret <input type="password" name="secret" required></label><button>Test</button></form>',{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; form-action 'self'; frame-ancestors 'none'","Referrer-Policy":"same-origin"}});
+ }
+ if(request.method==="POST"&&path==="/setup/kdf-check"){
+ if(request.headers.get("Origin")!==url.origin||!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Forbidden"},403);
+ if(!await limit(db,"kdf:"+ (request.headers.get("CF-Connecting-IP")||"unknown"),3))return json({error:"Rate limited"},429);
+ if(Number(request.headers.get("Content-Length")||0)>4096)return json({error:"Too large"},413);
+ const reader=request.body?.getReader();let raw="",size=0;const decoder=new TextDecoder();if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4096){await reader.cancel();return json({error:"Too large"},413);}raw+=decoder.decode(value,{stream:true});}raw+=decoder.decode();}
+ if(!await equalSecret(new URLSearchParams(raw).get("secret"),env.BOOTSTRAP_SECRET))return json({error:"Forbidden"},403);
+ try{const key=await crypto.subtle.importKey("raw",encoder.encode("synthetic diagnostic input"),"PBKDF2",false,["deriveBits"]);await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:crypto.getRandomValues(new Uint8Array(32)),iterations:100000},key,256);return json({ok:true,iterations:100000});}catch(e){return json({ok:false,iterations:100000,errorType:e?.name||"Error"});}
+ }
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"kdf-check-v4"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
@@ -101,5 +113,5 @@ export default {async fetch(request,env){
  step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"auth-diagnostics-v3"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"kdf-check-v4"},503);}
 }};
