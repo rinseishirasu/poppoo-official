@@ -4,16 +4,18 @@ const REPO="rinseishirasu/poppoo-official";
 const BRANCH="main";
 const API="https://api.github.com";
 const AUTH_API=(document.querySelector('meta[name="poppoo-auth-api"]')?.content||"").replace(/\/$/,"");
-const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",home:"home.json"};
-const LABELS={talents:"参加メンバー",schedule:"配信予定",news:"お知らせ",home:"トップページ設定"};
+const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",home:"home.json",settings:"settings.json"};
+const LABELS={talents:"参加メンバー",schedule:"配信予定",news:"お知らせ",home:"トップページ設定",settings:"サイト基本設定"};
 const STORAGE_KEY="poppoo-admin-draft-v1";
+const singleton=k=>["home","settings"].includes(k);
 const SCHEMAS={
+ settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"]],
  home:[["published","設定を有効にする","checkbox"],["headline1","キャッチコピー1行目","text"],["headline2","キャッチコピー2行目","text"],["lead","紹介メッセージ","textarea"],["heroImage","メインビジュアル画像（任意）","image"],["featuredIds","ピックアップメンバー","memberSelect"],["notice","トップページのお知らせ（任意）","textarea"],["aboutText","コミュニティ紹介文","textarea"],["joinText","参加案内メッセージ","text"],...["News","Schedule","Members","About","Join"].map((v,i)=>["hide"+v,["最新情報","配信予定","メンバー","概要","参加案内"][i]+"を非表示","checkbox"])],
  talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["imageColor","イメージカラー（任意）","themeColor"],["cohort","期生","cohort"],["roles","コミュニティ内の役職（複数ある場合はカンマ区切り）","roles"],["affiliationAgency","所属事務所・所属先（任意）","agency"],["iconImage","プロフィールアイコン画像","image"],["avatarImage","従来のメインアバター画像（既存データ用）","image"],["avatarImages","アバターギャラリー（複数画像）","gallery"],["emoji","画像未設定時のアイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["achievements","活動実績（1行に「日付 | 内容 | 詳細」）","achievements"],["hiddenSections","プロフィールで非公開にする項目","visibility"],["birthday","誕生日（例：1月1日）","text"],["debutDate","デビュー日","date"],["anniversary","活動記念日（例：11月23日）","text"],["activityStatus","活動状況（例：活動中・休止中）","text"],["regularSchedule","定期配信（例：毎週金曜21:00）","text"],["activityGoal","活動目標","textarea"],["favoriteWorks","好きな作品・ジャンル","textarea"],["height","身長","text"],["bloodType","血液型","text"],["fanName","ファンネーム","text"],["oshiMark","推しマーク","text"],["streamTag","配信タグ","text"],["fanArtTag","ファンアートタグ","text"],["greeting","配信の挨拶・定番フレーズ","textarea"],["hobbies","趣味","text"],["skills","特技","text"],["likes","好きなもの","textarea"],["dislikes","苦手なもの","textarea"],["favoriteFood","好きな食べ物","text"],["illustrator","キャラクターデザイン","text"],["modeler","Live2Dモデラー","text"],["message","本人からのメッセージ","textarea"],["tags","活動ジャンル・タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
  schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["talent","参加メンバー名","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
  news:[["id","ID","text",true],["published","公開する","checkbox"],["date","投稿日","date",true],["title","タイトル","text",true],["category","カテゴリ","text"],["thumbnailImage","サムネイル画像（任意）","image"],["summary","概要","textarea"],["body","本文","textarea",true]],
 };
-const data={talents:[],schedule:[],news:[],home:[]};
+const data={talents:[],schedule:[],news:[],home:[],settings:[]};
 let current="talents",editing=-1,accessToken="",githubLogin="",tokenExpiresAt=0,authPopup=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -65,13 +67,13 @@ function renderForm(item={}){
  $("publish-description").textContent=LABELS[current]+"のデータ "+data[current].length+"件をGitHubへ公開します。";
 }
 function summary(item){
- if(current==="home")return "トップページ設定";
+ if(singleton(current))return LABELS[current];
  if(current==="talents")return [item.name].filter(Boolean).join(" / ");
  if(current==="schedule")return [item.date,item.time,item.title].filter(Boolean).join("　");
  return [item.date,item.title].filter(Boolean).join("　");
 }
 function renderList(){
- const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).filter(k=>k!=="home").map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
+ const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
  const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
  $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
 }
@@ -80,7 +82,7 @@ $("cms-visibility")?.addEventListener("change",renderList);
 function renderTabs(){
  if($("cms-search"))$("cms-search").value="";if($("cms-visibility"))$("cms-visibility").value="";
  document.querySelectorAll(".admin-tab").forEach(b=>{const active=b.dataset.kind===current;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});
- if(current==="home"){editing=data.home.length?0:-1;renderForm(data.home[0]||{})}else renderForm();renderList();updateAuthUI();
+ if(singleton(current)){editing=data[current].length?0:-1;renderForm(data[current][0]||{})}else renderForm();renderList();updateAuthUI();
 }
 function formObject(){
  const obj={};
@@ -100,7 +102,7 @@ function formObject(){
  return obj;
 }
 function validateDataset(kind,items){
- if(kind==="home"&&Array.isArray(items)&&items.length>1)return "トップページ設定は1件のみです。";
+ if(singleton(kind)&&Array.isArray(items)&&items.length>1)return "トップページ設定は1件のみです。";
  if(!Array.isArray(items))return "データ形式が配列ではありません。";
  const ids=new Set();
  for(let i=0;i<items.length;i++){
@@ -115,6 +117,7 @@ function validateDataset(kind,items){
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(kind==="news"&&item.thumbnailImage&&!/^assets\/images\/news\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(item.thumbnailImage))return "ニュース画像の保存先が正しくありません。";
   if(kind==="news"&&!/^\d{4}-\d{2}-\d{2}$/.test(item.date))return (i+1)+"件目: 日付はYYYY-MM-DD形式で入力してください。";
+  if(kind==="settings")for(const key of ["applicationUrl","contactUrl"])if(item[key]){try{if(new URL(item[key]).protocol!=="https:")throw Error()}catch{return "窓口URLは有効なHTTPS URLを指定してください。"}}
   if(item.url&&!/^https?:\/\//i.test(item.url))return (i+1)+"件目: URLはhttp://またはhttps://で始めてください。";
   if(kind==="talents"&&item.cohort!==undefined&&!Array.isArray(item.cohort))item.cohort=item.cohort?[item.cohort]:[];
   if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^(https:\/\/|assets\/images\/talents\/)/i.test(item[key]))return (i+1)+"件目: 画像の保存先が正しくありません。";
@@ -204,8 +207,8 @@ $("content-form").addEventListener("submit",e=>{
  
  if(obj.url&&!/^https?:\/\//i.test(obj.url)){status("URLは http:// または https:// で始まる形式にしてください。");return}
  if(obj.id&&data[current].some((x,i)=>x.id===obj.id&&i!==editing)){status("同じIDがすでに登録されています。別のIDを指定してください。");return}
- if(current==="home")data.home=[obj];else if(editing<0)data[current].push(obj);else data[current][editing]={...data[current][editing],...obj};
- editing=current==="home"?0:-1;renderForm(current==="home"?data.home[0]:{});renderList();saveDraft();status("変更を一時保存しました。公開するには「このデータを公開する」を押してください。");
+ if(singleton(current))data[current]=[obj];else if(editing<0)data[current].push(obj);else data[current][editing]={...data[current][editing],...obj};
+ editing=singleton(current)?0:-1;renderForm(singleton(current)?data[current][0]:{});renderList();saveDraft();status("変更を一時保存しました。公開するには「このデータを公開する」を押してください。");
 });
 $("clear-button").addEventListener("click",()=>{editing=-1;renderForm();status("入力欄をクリアしました。")});
 $("content-list").addEventListener("click",e=>{
