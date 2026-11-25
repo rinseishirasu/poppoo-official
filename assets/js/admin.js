@@ -24,7 +24,7 @@ let current="talents",editing=-1,accessToken="",githubLogin="",tokenExpiresAt=0,
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function status(message){$("admin-status").textContent=message}
-function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));localStorage.setItem(BASELINE_KEY,JSON.stringify(baseline))}catch{status("ブラウザー内に保存できませんでした。公開操作を行う前に内容を控えてください。")}}
+function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));if(!draftConflict)localStorage.setItem(BASELINE_KEY,JSON.stringify(baseline))}catch{status("ブラウザー内に保存できませんでした。公開操作を行う前に内容を控えてください。")}}
 function authReady(){return Boolean(accessToken&&Date.now()<tokenExpiresAt)}
 function updateAuthUI(){
  const ready=authReady();
@@ -264,7 +264,7 @@ $("content-list").addEventListener("click",e=>{
 document.querySelectorAll(".admin-tab").forEach(b=>b.addEventListener("click",()=>{current=b.dataset.kind;editing=-1;renderTabs()}));
 $("reset-button").addEventListener("click",async()=>{
  if(!confirm("このブラウザー内の編集内容を破棄し、GitHub上の公開データを読み直しますか？"))return;
- try{await loadRemote();localStorage.removeItem(STORAGE_KEY);editing=-1;renderTabs();status("公開データを読み込みました。")}catch(e){status(e.message+"。編集内容は維持しました。")}
+ try{await loadRemote();localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(BASELINE_KEY);draftConflict=false;editing=-1;renderTabs();status("公開データを読み込みました。")}catch(e){status(e.message+"。編集内容は維持しました。")}
 });
 async function loadRemote(){
  const next={};for(const key of Object.keys(FILES)){const r=await fetch("data/"+FILES[key],{cache:"no-store"});if(!r.ok)throw new Error("公開データを取得できません: "+LABELS[key]);const a=await r.json();if(!Array.isArray(a))throw new Error("データ形式が不正です: "+LABELS[key]);next[key]=a}Object.assign(data,next);Object.assign(baseline,JSON.parse(JSON.stringify(next)));
