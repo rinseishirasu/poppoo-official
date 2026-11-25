@@ -98,3 +98,30 @@
 .pop-news-detail .detail-article h1{font-size:clamp(1.65rem,4vw,2.6rem);line-height:1.5;overflow-wrap:anywhere}
 .pop-news-detail .news-prose{padding:0;border:0;box-shadow:none;max-width:none}
 @media(max-width:760px){.pop-info-filters{gap:10px;padding:14px}.pop-info-filters label{flex-basis:100%}.pop-day-group .schedule-item{padding:15px}.pop-day-group h3{padding:12px 15px}.pop-info .news-intro-mark{display:none}}
+
+/* Community brand and participation */
+.pop-brand .pop-brand-content{display:grid;gap:24px;max-width:1120px;margin:auto}
+.pop-brand-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,260px);align-items:center;gap:30px;padding:clamp(24px,5vw,56px);border-radius:24px;background:linear-gradient(125deg,#142f56,#235d93);color:#fff}
+.pop-brand-intro .pop-kicker{color:#a5dcff}
+.pop-brand-intro h2{color:#fff;font-size:clamp(1.7rem,4.2vw,3.1rem);line-height:1.5;margin:14px 0}
+.pop-brand-intro p{color:#e3f2ff}
+.pop-brand-intro img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:22px}
+.pop-brand-panel,.pop-brand .audition-section{min-width:0;background:white;border:1px solid #dbe8f4;border-radius:20px;padding:clamp(22px,4vw,40px);margin:0}
+.pop-brand-panel h2,.pop-brand .audition-section h2{color:#142f56;font-size:clamp(1.3rem,2.5vw,1.8rem);margin:8px 0 18px}
+.pop-brand-panel p,.pop-brand .audition-section p{line-height:1.95;color:#536b83}
+.pop-brand-panel .about-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pop-brand-panel .about-values .info-box{background:#f1f8ff;border:1px solid #dbe8f4;border-radius:14px;padding:20px;overflow-wrap:anywhere}
+.pop-brand-panel .about-values strong{color:#1978c8}
+.pop-brand-panel .about-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.pop-brand-panel .about-overview .info-box{background:white;border:0;border-bottom:1px solid #dbe8f4;border-radius:0;padding:18px 12px;overflow-wrap:anywhere}
+.pop-brand-cta{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;padding:16px 0}
+.pop-brand .audition-lead{background:linear-gradient(120deg,#e2f2ff,#fff);margin:0}
+.pop-brand .audition-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pop-brand .audition-facts>div{border:1px solid #dbe8f4;border-radius:14px;padding:20px;background:#f5faff}
+.pop-brand .audition-facts span{color:#1978c8;overflow-wrap:anywhere}
+.pop-faq details{border-top:1px solid #dbe8f4;padding:16px 0}
+.pop-faq details:last-child{border-bottom:1px solid #dbe8f4}
+.pop-faq summary{cursor:pointer;color:#142f56;font-weight:750;line-height:1.6}
+.pop-faq details p{margin:12px 0 0;padding-left:18px}
+.pop-brand .audition-status{background:#edf6ff;border-color:#cbddeb;border-radius:12px}
+@media(max-width:760px){.pop-brand-intro{grid-template-columns:1fr}.pop-brand-intro img{max-width:150px;justify-self:center}.pop-brand-panel .about-values,.pop-brand-panel .about-overview,.pop-brand .audition-facts{grid-template-columns:1fr}}
