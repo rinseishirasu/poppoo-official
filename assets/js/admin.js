@@ -65,10 +65,14 @@ function summary(item){
  return [item.date,item.title].filter(Boolean).join("　");
 }
 function renderList(){
- const list=data[current];$("item-count").textContent=list.length+"件";
- $("content-list").innerHTML=list.length?list.map((item,i)=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
+ const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
+ const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
+ $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
 }
+$("cms-search")?.addEventListener("input",renderList);
+$("cms-visibility")?.addEventListener("change",renderList);
 function renderTabs(){
+ if($("cms-search"))$("cms-search").value="";if($("cms-visibility"))$("cms-visibility").value="";
  document.querySelectorAll(".admin-tab").forEach(b=>{const active=b.dataset.kind===current;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});
  renderForm();renderList();updateAuthUI();
 }
@@ -188,14 +192,14 @@ $("content-form").addEventListener("submit",e=>{
  if(current==="talents"&&obj.tags.length===0)delete obj.tags;
  if(obj.url&&!/^https?:\/\//i.test(obj.url)){status("URLは http:// または https:// で始まる形式にしてください。");return}
  if(obj.id&&data[current].some((x,i)=>x.id===obj.id&&i!==editing)){status("同じIDがすでに登録されています。別のIDを指定してください。");return}
- if(editing<0)data[current].push(obj);else data[current][editing]=obj;
+ if(editing<0)data[current].push(obj);else data[current][editing]={...data[current][editing],...obj};
  editing=-1;renderForm();renderList();saveDraft();status("変更を一時保存しました。公開するには「このデータを公開する」を押してください。");
 });
 $("clear-button").addEventListener("click",()=>{editing=-1;renderForm();status("入力欄をクリアしました。")});
 $("content-list").addEventListener("click",e=>{
  const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");
  if(edit){editing=Number(edit.dataset.edit);renderForm(data[current][editing]);window.scrollTo({top:$("content-form").getBoundingClientRect().top+window.scrollY-110,behavior:"smooth"})}
- if(del){const i=Number(del.dataset.delete);if(!confirm("このデータを削除しますか？"))return;data[current].splice(i,1);if(editing===i)editing=-1;saveDraft();renderForm();renderList();status("データを削除しました。公開するには公開ボタンを押してください。")}
+ if(del){const i=Number(del.dataset.delete);if(!confirm("このデータを削除しますか？"))return;data[current].splice(i,1);editing=-1;saveDraft();renderForm();renderList();status("データを削除しました。公開するには公開ボタンを押してください。")}
 });
 document.querySelectorAll(".admin-tab").forEach(b=>b.addEventListener("click",()=>{current=b.dataset.kind;editing=-1;renderTabs()}));
 $("reset-button").addEventListener("click",async()=>{
