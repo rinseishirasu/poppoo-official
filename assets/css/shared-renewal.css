@@ -39,3 +39,23 @@
  main .pop-link,main .pop-member-card,main .news-card,main .pop-news-image img,main .pop-stage,main .pop-hero-copy,main .pop-reveal-active{animation:none!important;transition:none!important;transform:none!important}
  html{scroll-behavior:auto!important}
 }
+
+/* Public navigation and footer refinement */
+#site-header .pop-header{box-sizing:border-box;min-height:72px;gap:24px;padding-top:8px;padding-bottom:8px}
+#site-header.pop-header-scrolled{box-shadow:0 4px 18px #142f5612}
+#site-header .nav{gap:clamp(12px,1.5vw,24px)}
+#site-header .nav a{display:flex;align-items:center;min-height:44px;box-sizing:border-box;font-size:.8rem}
+#site-header .brand:focus-visible,#site-header .nav a:focus-visible,#site-header .menu-toggle:focus-visible,.pop-footer a:focus-visible,.pop-back-top:focus-visible{outline:2px solid #1978c8;outline-offset:4px}
+#site-footer{padding:clamp(32px,5vw,56px) 0 20px}
+.pop-footer .footer-grid{gap:clamp(20px,4vw,56px);align-items:start}
+.pop-footer .footer-grid>div{min-width:0}
+.pop-footer .footer-grid>div:first-child p{font-size:.85rem;overflow-wrap:anywhere;margin-top:16px}
+.pop-footer .footer-links{display:grid;gap:4px;margin-top:12px}
+.pop-footer .footer-links a{display:block;padding:5px 0;font-size:.85rem;overflow-wrap:anywhere}
+.pop-footer .footer-links a[aria-current=page]{color:#fff;text-decoration:underline;text-underline-offset:4px}
+.pop-footer-bottom .copyright{font-size:.75rem;overflow-wrap:anywhere}
+.pop-back-top{display:inline-flex;align-items:center;gap:12px;min-height:40px;padding:8px 14px;border:1px solid #ffffff50;border-radius:8px;background:transparent;color:white;font:inherit;font-size:.78rem;cursor:pointer}
+.pop-back-top:hover{background:#ffffff18}
+@media(max-width:1100px){#site-header .pop-header{min-height:64px;gap:12px}#site-header .nav{border-radius:0 0 14px 14px;padding:8px 16px}#site-header .nav a{min-height:48px;padding:12px 14px}#site-header .nav a[aria-current=page]{background:#edf6ff;border-radius:6px;color:#145b98}}
+@media(max-width:760px){#site-header .brand{gap:8px}#site-header .pop-brand-name{font-size:1.18rem}.pop-footer .footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.pop-footer .footer-grid>div:first-child{grid-column:1/-1}.pop-footer-bottom{flex-direction:row;align-items:center}.pop-footer .footer-links a{font-size:.8rem}}
+@media(max-width:350px){.pop-footer .footer-grid{grid-template-columns:1fr}}
