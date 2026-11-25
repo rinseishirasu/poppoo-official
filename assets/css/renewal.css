@@ -138,3 +138,11 @@
 .pop-contact .contact-status-label{color:#315f98;font-weight:800}
 .pop-contact p{line-height:1.9}
 @media(max-width:760px){.pop-contact .contact-types{grid-template-columns:1fr}}
+
+/* Member-specific accents: retain readable brand text */
+.pop-member-card{border-top:5px solid var(--member-color,#1978c8)}
+.pop-member-card .pop-member-art,.renewal-home #home-talents .pop-member-art{background:radial-gradient(circle at 50% 42%,white 0 25%,color-mix(in srgb,var(--member-color,#1978c8) 12%,white) 26% 52%,color-mix(in srgb,var(--member-color,#1978c8) 24%,white) 53%)}
+.pop-profile .profile-top{border-top:6px solid var(--member-color,#1978c8);background:linear-gradient(120deg,color-mix(in srgb,var(--member-color,#1978c8) 14%,white),white)}
+.pop-profile .profile-avatar{background:radial-gradient(circle,white 0 34%,color-mix(in srgb,var(--member-color,#1978c8) 23%,white) 35% 58%,color-mix(in srgb,var(--member-color,#1978c8) 10%,white) 59%)}
+.pop-profile .profile-section{border-left:4px solid var(--member-color,#1978c8)}
+.renewal-home .pop-spotlight-visual>a{border-top:6px solid var(--member-color,#1978c8);background:radial-gradient(circle,white,color-mix(in srgb,var(--member-color,#1978c8) 25%,white))}
