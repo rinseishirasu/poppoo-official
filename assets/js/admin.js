@@ -293,6 +293,26 @@ window.addEventListener("message",event=>{
  accessToken=event.data.token;githubLogin=event.data.login;tokenExpiresAt=Date.now()+Number(event.data.expiresIn||28800)*1000;
  updateAuthUI();status("@"+githubLogin+" としてログインしました。公開するカテゴリを選択してください。");
 });
+const previewPanel=$("cms-preview-panel"),previewFrame=$("cms-preview-frame"),previewTarget=$("cms-preview-target");
+function closePreview(){previewFrame.removeAttribute("src");previewPanel.hidden=true;try{sessionStorage.removeItem("poppoo-cms-preview")}catch{}}
+function refreshPreview(){
+ try{
+ const snapshot=JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(FILES).map(k=>["data/"+FILES[k],data[k]]))));
+ const selected=JSON.parse(previewTarget.value);const [page,kind,id]=selected;
+ if(kind){const item=snapshot["data/"+FILES[kind]].find(x=>x.id===id);if(!item)throw Error("対象が見つかりません");item.published=true}
+ const u=new URL(page,location.href);u.searchParams.set("cmsPreview","1");if(id)u.searchParams.set("id",id);
+ sessionStorage.setItem("poppoo-cms-preview",JSON.stringify(snapshot));previewFrame.style.width=$("cms-preview-width").value+"px";previewFrame.src=u.href;$("cms-preview-status").textContent="保存済み編集データを表示しています。GitHubへの公開は行っていません。";
+ }catch(e){previewFrame.removeAttribute("src");$("cms-preview-status").textContent="プレビューを開けません: "+e.message}
+}
+$("cms-preview-open").addEventListener("click",()=>{
+ const options=[["index.html",null,null,"トップページ"],["about.html",null,null,"コミュニティ概要"],["audition.html",null,null,"参加案内"],["contact.html",null,null,"お問い合わせ"],...data.talents.map(t=>["talent.html","talents",t.id,"メンバー: "+t.name]),...data.news.map(n=>["news-detail.html","news",n.id,"記事: "+n.title])];
+ previewTarget.replaceChildren(...options.map(([page,kind,id,label])=>{const o=document.createElement("option");o.value=JSON.stringify([page,kind,id]);o.textContent=label;return o}));previewPanel.hidden=false;refreshPreview();previewPanel.scrollIntoView({block:"start"});
+});
+$("cms-preview-refresh").addEventListener("click",refreshPreview);
+previewTarget.addEventListener("change",refreshPreview);
+$("cms-preview-width").addEventListener("change",()=>{previewFrame.style.width=$("cms-preview-width").value+"px"});
+$("cms-preview-close").addEventListener("click",closePreview);
+window.addEventListener("pagehide",closePreview);
 (async()=>{
  try{await loadRemote()}catch(e){status(e.message+"。再読み込みしてください。");return}
  try{const draft=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(draft&&typeof draft==="object")for(const key of Object.keys(FILES))if(Array.isArray(draft[key]))data[key]=draft[key]}catch{}
