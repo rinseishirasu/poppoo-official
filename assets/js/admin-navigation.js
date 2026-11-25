@@ -10,5 +10,13 @@ for(const b of buttons)b.addEventListener("click",()=>show(b.classList.contains(
 for(const n of ["preview","history","media","check"])$("cms-"+n+"-close").addEventListener("click",()=>show(previous));
 $("cms-media-apply").addEventListener("click",()=>{if($("cms-media-status").textContent.startsWith("編集フォームに設定しました"))show("editor")});
 $("cms-history-restore").addEventListener("click",()=>{if(views.history.hidden)show("editor")});
+const toggle=$("cms-sidebar-toggle"),sidebar=$("cms-sidebar"),shell=document.querySelector(".cms-shell"),mobile=matchMedia("(max-width:760px)"),key="poppoo-cms-sidebar-collapsed";
+let collapsed=mobile.matches;
+try{const saved=localStorage.getItem(key);if(saved!==null&&!mobile.matches)collapsed=saved==="true"}catch{}
+function syncSidebar(){shell.classList.toggle("cms-sidebar-collapsed",collapsed);sidebar.hidden=collapsed;toggle.setAttribute("aria-expanded",String(!collapsed));toggle.setAttribute("aria-label",collapsed?"管理メニューを開く":"管理メニューを折りたたむ")}
+toggle.addEventListener("click",()=>{collapsed=!collapsed;syncSidebar();if(!mobile.matches)try{localStorage.setItem(key,String(collapsed))}catch{}});
+for(const b of buttons)b.addEventListener("click",()=>{if(mobile.matches){collapsed=true;syncSidebar()}});
+mobile.addEventListener("change",e=>{collapsed=e.matches; if(!e.matches)try{collapsed=localStorage.getItem(key)==="true"}catch{}syncSidebar()});
+syncSidebar();
 show("dashboard");
 })();
