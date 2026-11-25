@@ -30,3 +30,28 @@
 
 .renewal-home .pop-featured>img.pop-custom-hero{width:100%;max-width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:18px}
 .pop-home-notice{box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;padding:18px 24px;margin:24px auto;background:#edf6ff;border:1px solid #cbddeb;border-radius:12px;color:#142f56}
+
+/* Public homepage refinement */
+.renewal-home .pop-hero-expanded{padding:clamp(24px,3vw,44px) 0}
+.renewal-home .pop-hero-grid{min-height:clamp(380px,54vh,540px);grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.renewal-home .pop-hero-copy{min-width:0}
+.renewal-home .pop-hero h1{font-size:clamp(1.85rem,3.65vw,3.55rem);line-height:1.48;overflow-wrap:anywhere}
+.renewal-home .pop-hero-copy p{line-height:1.85;margin-bottom:24px}
+.pop-hero-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.renewal-home .pop-stage{min-height:0;gap:12px}
+.renewal-home .pop-spotlight{width:100%;min-width:0}
+.renewal-home .pop-spotlight-visual>a{height:clamp(290px,42vh,440px)}
+.renewal-home .pop-spotlight-name{box-sizing:border-box;overflow-wrap:anywhere}
+.renewal-home .pop-spotlight-name strong{min-width:0}
+.renewal-home .pop-section{padding:clamp(36px,5vw,68px) 0}
+.renewal-home .pop-heading{margin-bottom:22px}
+.renewal-home .pop-heading>div{min-width:0}
+.renewal-home .pop-heading>div>span{font-size:clamp(1.9rem,4.5vw,3.2rem)}
+.renewal-home .pop-news .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+.renewal-home .pop-news .cards>*{min-width:0;overflow-wrap:anywhere}
+.renewal-home .pop-link{min-height:44px;box-sizing:border-box}
+.renewal-home #home-talents:focus-visible{outline:2px solid #1978c8;outline-offset:3px}
+.renewal-home .pop-rail-controls[hidden]{display:none}
+.renewal-home .pop-join .pop-link:focus-visible{outline-color:white}
+@media(max-width:900px){.renewal-home .pop-news .cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.renewal-home .pop-hero-grid{grid-template-columns:minmax(0,1fr);min-height:0;gap:22px}.renewal-home .pop-hero h1{font-size:clamp(1.7rem,6.8vw,2.65rem);margin:12px 0}.renewal-home .pop-hero-copy p{font-size:.95rem;margin-bottom:16px}.renewal-home .pop-hero-actions{gap:8px}.renewal-home .pop-spotlight-visual>a{height:clamp(240px,72vw,340px)}.renewal-home .pop-featured>img{width:min(52%,190px)}.renewal-home .pop-news .cards{grid-template-columns:minmax(0,1fr)}.renewal-home .pop-heading h2{font-size:.9rem}.renewal-home .pop-heading{gap:8px}.renewal-home .pop-heading .pop-link{flex-shrink:0}.renewal-home .pop-stage-label{font-size:.65rem}}
