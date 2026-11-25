@@ -53,8 +53,8 @@ async function equalSecret(a,b){
 function page(mode,message="",status=200,content=""){
  const nonce=randomToken(),csrf=randomToken();
  const setup=mode==="setup",home=mode==="home";
- const form=["activate","profile"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
- return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||mode==="profile"?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ const form=["activate","profile","avatars"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 async function publishedMembers(){
@@ -71,12 +71,12 @@ async function memberDashboard(db,session){
  const count=state=>requests===null?"取得できません":String(requests.find(x=>x.status===state)?.total||0)+"件";
  const tags=value=>(Array.isArray(value)?value:typeof value==="string"?[value]:[]).filter(v=>typeof v==="string"&&v.trim()).map(v=>'<span class="portal-tag">'+esc(v)+'</span>').join("");
  const profile=member?'<div>'+tags(member.cohort)+tags(member.roles)+'</div><p>'+esc(member.catchphrase||"")+'</p><a class="portal-link" href="'+base+'talent.html?id='+encodeURIComponent(member.id)+'" target="_blank" rel="noopener noreferrer">公式プロフィールを見る</a>':"<p>"+(registryError?"公開プロフィールを取得できません。":"公開プロフィールが見つかりません。")+"</p>";
- const cards=[["プロフィール・アバター","プロフィール変更申請（画像管理は準備中）"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a>':'<span class="portal-tag">準備中</span>')+'</section>').join("");
+ const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':'<span class="portal-tag">準備中</span>')+'</section>').join("");
  const html='<div class="portal-hero"><small>MEMBER DASHBOARD / TEST MODE</small><h2>おかえりなさい'+(member?'、'+esc(member.name)+'さん':'')+'</h2><p>あなたの配信活動を、ひとつの場所から。</p></div><p class="portal-notice">検証版です。プロフィール変更申請をお試しいただけます。</p><div class="portal-grid"><section class="portal-tile"><h2>マイプロフィール</h2>'+profile+'</section><section class="portal-tile"><h2>プロフィール申請状況</h2><p>審査待ち：'+esc(count("pending"))+'</p><p>差し戻し：'+esc(count("returned"))+'</p><p>下書き：'+esc(count("draft"))+'</p><small>申請は公式サイトにまだ反映されません。</small></section></div><section class="portal-section"><h2>メンバーメニュー</h2><div class="portal-grid">'+cards+'</div></section><p><a href="'+base+'" target="_blank" rel="noopener noreferrer">ぽっぽー公式サイト</a></p>';
  return page("home","",200,html);
 }
 // Only these text fields may be requested by members. Identity, roles, publication and images are administrator-controlled.
-const PROFILE_FIELDS=[["catchphrase","キャッチフレーズ",100],["bio","自己紹介",800],["hobbies","趣味",200],["skills","特技",200],["fanName","ファンネーム",60],["oshiMark","推しマーク",60],["streamTag","配信タグ",100],["fanArtTag","ファンアートタグ",100],["message","メッセージ",400]];
+const PROFILE_FIELDS=[["catchphrase","キャッチフレーズ",100],["bio","自己紹介",800],["hobbies","趣味",200],["skills","特技",200],["fanName","ファンネーム",60],["oshiMark","推しマーク",60],["streamTag","配信タグ",100],["fanArtTag","ファンアートタグ",100],["message","メッセージ",400],["greeting","挨拶",200],["likes","好きなもの",200],["dislikes","苦手なもの",200],["favoriteFood","好きな食べ物",200],["favoriteWorks","好きな作品",300],["activityGoal","活動目標",400],["regularSchedule","定期配信時間",150],["illustrator","イラストレーター",100],["modeler","モデラー",100],["height","身長",40],["bloodType","血液型",40],["affiliationAgency","所属事務所",150]];
 const profileValues=m=>Object.fromEntries(PROFILE_FIELDS.map(([k])=>[k,typeof m[k]==="string"?m[k]:""]));
 const profileRevision=async m=>digest(JSON.stringify(profileValues(m)));
 const profileStatus={draft:"下書き",pending:"審査待ち",approved:"承認済み",returned:"差し戻し",withdrawn:"取り下げ"};
@@ -96,7 +96,7 @@ async function profilePage(db,session,message="",status=200){
  const details=PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("");
  return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(row.updated_at)+' UTC</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
  }).join(""):"<p>申請履歴はまだありません。</p>";
- return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・画像・公開設定は現在編集対象外です。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
+ return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
 }
 async function saveProfile(db,session,form){
  const member=(await publishedMembers()).find(m=>m.id===session.member_id);
@@ -121,6 +121,55 @@ async function saveProfile(db,session,form){
  if(result.meta.changes!==1)return json({error:"Request changed; reopen editor"},409);
  return redirect("/profile");
 }
+// Private submissions: fixed per-account slots, never write to public GitHub.
+const AVATAR_SLOTS=[["icon","アイコン"],["avatar1","アバター1"],["avatar2","アバター2"],["avatar3","アバター3"]];
+const avatarSlot=s=>AVATAR_SLOTS.some(([k])=>k===s);
+function imageMime(b){
+ if(b.length<12)return "";
+ if([137,80,78,71,13,10,26,10].every((v,i)=>b[i]===v))return "image/png";
+ if(b[0]===255&&b[1]===216&&b[2]===255)return "image/jpeg";
+ if(String.fromCharCode(...b.slice(0,4))==="RIFF"&&String.fromCharCode(...b.slice(8,12))==="WEBP")return "image/webp";
+ return "";
+}
+function publicAvatar(path){
+ if(typeof path!=="string"||!/^assets\/images\/talents\/[A-Za-z0-9_-]+\.(png|jpe?g|webp|gif)$/i.test(path))return "";
+ return "https://rinseishirasu.github.io/poppoo-official/"+path;
+}
+async function avatarPage(db,session){
+ const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+ if(!member)return page("avatars","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
+ let rows;
+ try{rows=(await db.prepare("SELECT slot,id,created_at FROM avatar_requests WHERE account_id=?").bind(session.id).all()).results;}
+ catch{return page("avatars","画像管理の初期設定が未完了です。",503,'<a href="/">ダッシュボードに戻る</a>');}
+ const gallery=(Array.isArray(member.avatarImages)&&member.avatarImages.length?member.avatarImages:[member.avatarImage]).map(publicAvatar).filter(Boolean);
+ const current=[["アイコン",publicAvatar(member.iconImage)],...gallery.map((url,i)=>["アバター"+(i+1),url])].filter(([,url])=>url);
+ const published=current.length?current.map(([label,url])=>'<div class="portal-tile"><h3>'+esc(label)+'</h3><img class="avatar-preview" src="'+esc(url)+'" alt="'+esc(label)+'" referrerpolicy="no-referrer"></div>').join(""):"<p>公開画像はありません。</p>";
+ const cards=AVATAR_SLOTS.map(([slot,label])=>{
+ const row=rows.find(x=>x.slot===slot);
+ return '<section class="portal-tile"><h3>'+esc(label)+'</h3>'+(row?'<p>審査待ち・非公開</p><img class="avatar-preview" src="/avatars/image?slot='+slot+'&amp;v='+encodeURIComponent(row.id)+'" alt="提出画像"><form method="post" action="/avatars/withdraw"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>提出を取り下げる</button></form>':'<p>未提出</p>')+'<form method="post" enctype="multipart/form-data" action="/avatars/upload"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="previous" value="'+esc(row?.id||"")+'"><label>画像を選択（512KiB以下）<input type="file" name="image" accept="image/png,image/jpeg,image/webp" required></label><button>'+(row?"画像を差し替える":"画像を提出する")+'</button></form></section>';
+ }).join("");
+ return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。公式サイトへの反映は未実装です。本人が権利を持つ画像のみ提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div>');
+}
+async function uploadAvatar(db,session,form){
+ const slot=form.get("slot"),previous=form.get("previous")||"",file=form.get("image");
+ if(!avatarSlot(slot)||typeof previous!=="string"||previous.length>36||!file||typeof file.arrayBuffer!=="function"||file.size<12||file.size>524288)return json({error:"Invalid image or size; maximum 512KiB"},400);
+ const data=await file.arrayBuffer(),mime=imageMime(new Uint8Array(data));
+ if(!mime||file.type!==mime)return json({error:"Unsupported image format"},400);
+ const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+ if(!member)return json({error:"Profile unavailable"},404);
+ const id=crypto.randomUUID();
+ const result=previous?await db.prepare("UPDATE avatar_requests SET id=?,mime=?,image_data=?,created_at=CURRENT_TIMESTAMP WHERE account_id=? AND slot=? AND id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(id,mime,data,session.id,slot,previous,session.id).run():await db.prepare("INSERT INTO avatar_requests(account_id,slot,id,mime,image_data) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') ON CONFLICT(account_id,slot) DO NOTHING").bind(session.id,slot,id,mime,data,session.id).run();
+ if(result.meta.changes!==1)return json({error:"Submission changed; reopen page"},409);
+ return redirect("/avatars");
+}
+async function privateAvatar(db,session,slot){
+ if(!avatarSlot(slot))return json({error:"Not found"},404);
+ const row=await db.prepare("SELECT mime,image_data FROM avatar_requests WHERE account_id=? AND slot=?").bind(session.id,slot).first();
+ if(!row)return json({error:"Not found"},404);
+ const data=new Uint8Array(row.image_data);
+ if(imageMime(data)!==row.mime)return json({error:"Invalid image"},415);
+ return new Response(data,{headers:{"Content-Type":row.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Cross-Origin-Resource-Policy":"same-origin","Referrer-Policy":"no-referrer","X-Robots-Tag":"noindex, nofollow"}});
+}
 async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  const rows=(await db.prepare("SELECT id,email,member_id,role,status FROM accounts ORDER BY role,email").all()).results;
  let members=[],warning="";try{members=await publishedMembers();}catch{warning="<p>公開メンバー情報を取得できません。アカウント発行は停止中です。</p>";}
@@ -136,28 +185,42 @@ export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"profile-request-v9"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"profile-avatar-v10"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
  }
  if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&env.PORTAL_TEST_MODE==="true"?await memberDashboard(db,session):page("login");}
  if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(db,session);}
+ if(request.method==="GET"&&(path==="/avatars"||path==="/avatars/image")){
+ const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ return path==="/avatars"?await avatarPage(db,session):await privateAvatar(db,session,url.searchParams.get("slot"));
+ }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
 
  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
  if(!await limit(db,"ip:"+ip,20))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
- if(!request.headers.get("Content-Type")?.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
- const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(path==="/profile/save"?32768:8192)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
+ const upload=path==="/avatars/upload",contentType=request.headers.get("Content-Type")||"";
+ if(upload?!contentType.startsWith("multipart/form-data;"):!contentType.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
+ if(upload){const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);}
+ const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(upload?540672:path==="/profile/save"?65536:8192)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
- const form=new URLSearchParams(new TextDecoder().decode(bytes)),email=(form.get("email")||"").trim().toLowerCase(),password=form.get("password")||"";
+ const form=upload?await new Request(request.url,{method:"POST",headers:{"Content-Type":contentType},body:bytes}).formData():new URLSearchParams(new TextDecoder().decode(bytes)),email=typeof form.get("email")==="string"?form.get("email").trim().toLowerCase():"",password=typeof form.get("password")==="string"?form.get("password"):"";
  const csrfCookie=(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_csrf=([a-f0-9]{64})(?:;|$)/)?.[1];
  if(!csrfCookie||!await equalSecret(form.get("csrf"),csrfCookie))return json({error:"CSRF token invalid; reopen the form"},403);
  if(path==="/logout"){await revokeSession(db,cookie(request));return redirect("/",clearSessionCookie());}
+ if(path.startsWith("/avatars/")){
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(db,session,form);}
+ const slot=form.get("slot"),id=form.get("id");if(!avatarSlot(slot)||typeof id!=="string")return json({error:"Invalid submission"},400);
+ const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=?").bind(session.id,slot,id).run();
+ if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
+ return redirect("/avatars");
+ }
  if(path.startsWith("/profile/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
  if(path==="/profile/save")return await saveProfile(db,session,form);
@@ -217,5 +280,5 @@ export default {async fetch(request,env){
  step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"profile-request-v9"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"profile-avatar-v10"},503);}
 }};
