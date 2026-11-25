@@ -125,3 +125,16 @@
 .pop-faq details p{margin:12px 0 0;padding-left:18px}
 .pop-brand .audition-status{background:#edf6ff;border-color:#cbddeb;border-radius:12px}
 @media(max-width:760px){.pop-brand-intro{grid-template-columns:1fr}.pop-brand-intro img{max-width:150px;justify-self:center}.pop-brand-panel .about-values,.pop-brand-panel .about-overview,.pop-brand .audition-facts{grid-template-columns:1fr}}
+
+/* Contact */
+.pop-contact .contact-content{display:grid;gap:24px;max-width:1120px}
+.pop-contact .contact-intro,.pop-contact .contact-section,.pop-contact .contact-caution{margin:0;padding:clamp(22px,4vw,40px);border:1px solid #dbe8f4;border-radius:20px;background:#fff}
+.pop-contact .contact-intro{background:linear-gradient(120deg,#e2f2ff,#fff)}
+.pop-contact h2,.pop-contact h3{color:#142f56}
+.pop-contact .contact-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pop-contact .contact-type{padding:24px;border:1px solid #dbe8f4;border-radius:14px;background:#f5faff;overflow-wrap:anywhere}
+.pop-contact .contact-type>span{font-size:1.7rem;color:#1978c8;font-weight:900}
+.pop-contact .contact-status{padding:24px;border-radius:14px;background:#edf6ff;border:1px solid #cbddeb}
+.pop-contact .contact-status-label{color:#315f98;font-weight:800}
+.pop-contact p{line-height:1.9}
+@media(max-width:760px){.pop-contact .contact-types{grid-template-columns:1fr}}
