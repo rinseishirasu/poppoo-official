@@ -91,7 +91,7 @@
   },
   {
     "id": "kakao_choco",
-    "published": false,
+    "published": true,
     "name": "花果緒 ちょこ",
     "cohort": [
       "1期生"
@@ -124,7 +124,13 @@
     "favoriteFood": "",
     "illustrator": "",
     "modeler": "",
-    "message": ""
+    "message": "",
+    "imageColor": "",
+    "affiliationAgency": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "tags": [],
+    "links": []
   },
   {
     "id": "yu_zi_n_pecorino",
