@@ -71,3 +71,5 @@
 .admin-page .cms-shell .admin-workspace{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
 @media(max-width:1250px){.admin-page .cms-shell .admin-workspace{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.admin-page .admin-content{width:calc(100% - 24px)}.admin-page .cms-shell{grid-template-columns:minmax(0,1fr);gap:14px}.admin-page .cms-sidebar-links{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-page .cms-sidebar-links .cms-nav-label{grid-column:1/-1}}
+
+.admin-page .cms-shell .admin-workspace{grid-template-columns:minmax(0,1fr)}.admin-page .admin-toolbar-actions{display:flex;flex-wrap:wrap;gap:8px}.admin-page .admin-list-item{padding:16px;gap:12px}.admin-page .admin-list-panel,.admin-page .admin-editor{min-width:0}.admin-page .admin-form-actions{position:sticky;bottom:0;background:#fff;padding:12px;z-index:2;border-top:1px solid #dbe8f4}
