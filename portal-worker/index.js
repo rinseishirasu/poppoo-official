@@ -4,26 +4,35 @@ const ITERATIONS = 100000; // Compatibility test only; review before production.
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,"0")).join("");
 function randomToken(){return hex(crypto.getRandomValues(new Uint8Array(32)));}
 async function digest(value){return hex(await crypto.subtle.digest("SHA-256",encoder.encode(value)));}
+// Keep the measured 100k compatibility setting for this test build.
+// New credentials additionally use a separately stored high-entropy HMAC key.
+const pepperReady=env=>typeof env.PASSWORD_PEPPER==="string"&&/^[a-f0-9]{64}$/i.test(env.PASSWORD_PEPPER);
+async function prehash(password,env){
+ if(!pepperReady(env))throw Error("Password pepper missing");
+ const key=await crypto.subtle.importKey("raw",Uint8Array.from(env.PASSWORD_PEPPER.match(/../g),v=>parseInt(v,16)),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ return hex(await crypto.subtle.sign("HMAC",key,encoder.encode(password)));
+}
 async function derive(password,salt){
  const key=await crypto.subtle.importKey("raw",encoder.encode(password),"PBKDF2",false,["deriveBits"]);
  return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:encoder.encode(salt),iterations:ITERATIONS},key,256));
 }
-export async function hashPassword(password){
- if(typeof password!=="string" || password.length<16 || encoder.encode(password).length>1024) throw new Error("Invalid password length");
+const passwordValid=p=>typeof p==="string"&&p.length>=20&&encoder.encode(p).length<=1024;
+export async function hashPassword(password,env){
+ if(!passwordValid(password))throw Error("Invalid password length");
  const salt=randomToken();
- return "pbkdf2-sha256$"+ITERATIONS+"$"+salt+"$"+await derive(password,salt);
+ return "pbkdf2-sha256-hmac-v1$"+ITERATIONS+"$"+salt+"$"+await derive(await prehash(password,env),salt);
 }
-export async function verifyPassword(password,stored){
- if(typeof password!=="string" || encoder.encode(password).length>1024 || typeof stored!=="string")return false;
+export async function verifyPassword(password,stored,env){
+ if(typeof password!=="string"||encoder.encode(password).length>1024||typeof stored!=="string")return false;
  const [algorithm,iterations,salt,expected,...extra]=stored.split("$");
- if(extra.length || algorithm!=="pbkdf2-sha256" || iterations!==String(ITERATIONS) || !/^[a-f0-9]{64}$/.test(salt||"") || !/^[a-f0-9]{64}$/.test(expected||""))return false;
- const actual=await derive(password,salt);
+ if(extra.length||!["pbkdf2-sha256","pbkdf2-sha256-hmac-v1"].includes(algorithm)||iterations!==String(ITERATIONS)||!/^[a-f0-9]{64}$/.test(salt||"")||!/^[a-f0-9]{64}$/.test(expected||""))return false;
+ const actual=await derive(algorithm==="pbkdf2-sha256-hmac-v1"?await prehash(password,env):password,salt);
  const bytes=s=>Uint8Array.from(s.match(/../g),v=>parseInt(v,16));
  return crypto.subtle.timingSafeEqual(bytes(actual),bytes(expected));
 }
-export async function createSession(db,accountId){
+export async function createSession(db,accountId,expectedHash){
  const token=randomToken(),expires=Math.floor(Date.now()/1000)+28800;
- const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND status='active'").bind(await digest(token),expires,accountId).run();
+ const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND status='active' AND password_hash=?").bind(await digest(token),expires,accountId,expectedHash).run();
  if(result.meta.changes!==1)throw new Error("Account unavailable");
  return {token,expires};
 }
@@ -53,8 +62,8 @@ async function equalSecret(a,b){
 function page(mode,message="",status=200,content=""){
  const nonce=randomToken(),csrf=randomToken();
  const setup=mode==="setup",home=mode==="home";
- const form=["activate","profile","avatars","schedule","activity","notices","applications","operations","reviews"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
- return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars","schedule","activity","notices","applications","operations","reviews"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":mode==="schedule"?"配信スケジュール":mode==="activity"?"活動記録・記念日":mode==="notices"?"運営からのお知らせ":mode==="applications"?"各種申請":mode==="operations"?"運営連絡・申請管理":mode==="reviews"?"プロフィール・画像審査":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ const form=["activate","profile","avatars","schedule","activity","notices","applications","operations","reviews","account","audit"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="20" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars","schedule","activity","notices","applications","operations","reviews","account","audit"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":mode==="schedule"?"配信スケジュール":mode==="activity"?"活動記録・記念日":mode==="notices"?"運営からのお知らせ":mode==="applications"?"各種申請":mode==="operations"?"運営連絡・申請管理":mode==="reviews"?"プロフィール・画像審査":mode==="account"?"アカウント設定":mode==="audit"?"監査履歴":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 async function publishedMembers(){
@@ -71,7 +80,7 @@ async function memberDashboard(db,session){
  const count=state=>requests===null?"取得できません":String(requests.find(x=>x.status===state)?.total||0)+"件";
  const tags=value=>(Array.isArray(value)?value:typeof value==="string"?[value]:[]).filter(v=>typeof v==="string"&&v.trim()).map(v=>'<span class="portal-tag">'+esc(v)+'</span>').join("");
  const profile=member?'<div>'+tags(member.cohort)+tags(member.roles)+'</div><p>'+esc(member.catchphrase||"")+'</p><a class="portal-link" href="'+base+'talent.html?id='+encodeURIComponent(member.id)+'" target="_blank" rel="noopener noreferrer">公式プロフィールを見る</a>':"<p>"+(registryError?"公開プロフィールを取得できません。":"公開プロフィールが見つかりません。")+"</p>";
- const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':i===1?'<a class="portal-link" href="/schedule">配信予定を管理</a>':i===2?'<a class="portal-link" href="/activity">活動記録・記念日を管理</a>':i===3?'<a class="portal-link" href="/notices">お知らせを確認</a>':i===4?'<a class="portal-link" href="/applications">申請・履歴を確認</a>':'<span class="portal-tag">準備中</span>')+'</section>').join("");
+ const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':i===1?'<a class="portal-link" href="/schedule">配信予定を管理</a>':i===2?'<a class="portal-link" href="/activity">活動記録・記念日を管理</a>':i===3?'<a class="portal-link" href="/notices">お知らせを確認</a>':i===4?'<a class="portal-link" href="/applications">申請・履歴を確認</a>':'<a class="portal-link" href="/account">パスワードを変更</a>')+'</section>').join("");
  const html='<div class="portal-hero"><small>MEMBER DASHBOARD / TEST MODE</small><h2>おかえりなさい'+(member?'、'+esc(member.name)+'さん':'')+'</h2><p>あなたの配信活動を、ひとつの場所から。</p></div><p class="portal-notice">検証版です。プロフィール変更申請をお試しいただけます。</p><div class="portal-grid"><section class="portal-tile"><h2>マイプロフィール</h2>'+profile+'</section><section class="portal-tile"><h2>プロフィール申請状況</h2><p>審査待ち：'+esc(count("pending"))+'</p><p>差し戻し：'+esc(count("returned"))+'</p><p>下書き：'+esc(count("draft"))+'</p><small>承認されるまで公式サイトに反映されません。</small></section></div><section class="portal-section"><h2>メンバーメニュー</h2><div class="portal-grid">'+cards+'</div></section><p><a href="'+base+'" target="_blank" rel="noopener noreferrer">ぽっぽー公式サイト</a></p>';
  return page("home","",200,html);
 }
@@ -175,13 +184,13 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  let members=[],warning="";try{members=await publishedMembers();}catch{warning="<p>公開メンバー情報を取得できません。アカウント発行は停止中です。</p>";}
  const eligible=members.filter(m=>!rows.some(a=>a.member_id===m.id));
  const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
- const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
+ const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(testEnabled&&a.role==="member"&&a.status!=="invited"?'<form method="post" action="/admin/reset-account"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>本人確認済み・旧パスワードと全セッションを無効にする</label><button>'+(a.status==="suspended"?"利用再開・再招待":"パスワード再設定・再招待")+'</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
  const form=eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
- return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a></p>'+"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
+ return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a>　<a class="portal-link" href="/account">アカウント設定</a>　<a class="portal-link" href="/admin/audit">監査履歴</a></p>'+"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
-function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（16文字以上）<input name="password" type="password" required minlength="16" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="16" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
+function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
-const publicationReady=env=>env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
+const publicationReady=env=>pepperReady(env)&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
 async function githubDataset(env,kind,ref="main"){
@@ -459,12 +468,52 @@ async function reconcilePublication(env,form){
  if(comparison.behind_by!==0||!["ahead","identical"].includes(comparison.status)||comparison.merge_base_commit?.sha!==job.commit_sha)return json({error:"Commit not confirmed on main; keep locked for investigation"},409);
  await finishPublication(env.DB,job);return redirect("/admin/reviews");
 }
+async function accountPage(env,session,message="",status=200){
+ const a=await env.DB.prepare("SELECT email,password_hash FROM accounts WHERE id=? AND status='active'").bind(session.id).first();
+ if(!a)return redirect("/");
+ const legacy=String(a.password_hash).startsWith("pbkdf2-sha256$");
+ return page("account",message,status,(session.role==="admin"?adminBack:memberBack)+'<p>登録メールアドレス：'+esc(a.email)+'</p>'+(legacy?'<p class="portal-notice">旧方式のパスワードです。新方式へ変更してください。</p>':"")+(!pepperReady(env)?'<p>新方式の設定が完了していません。</p>':'<form method="post" action="/account/password"><label>現在のパスワード<input type="password" name="current" autocomplete="current-password" required maxlength="1024"></label><label>新しいパスワード（20文字以上、長いランダムな文字列を推奨）<input type="password" name="password" autocomplete="new-password" required minlength="20" maxlength="1024"></label><label>再入力<input type="password" name="confirm" autocomplete="new-password" required minlength="20" maxlength="1024"></label><button>変更して全端末からログアウト</button></form>'));
+}
+async function changePassword(env,session,form){
+ const db=env.DB,old=form.get("current"),password=form.get("password");
+ if(!pepperReady(env))return json({error:"Password setup unavailable"},503);
+ if(!passwordValid(password)||password!==form.get("confirm")||password===old||typeof old!=="string"||encoder.encode(old).length>1024)return accountPage(env,session,"入力内容を確認してください。",400);
+ if(!await limit(db,"password-change:"+session.id,5))return json({error:"Too many attempts"},429);
+ const a=await db.prepare("SELECT password_hash FROM accounts WHERE id=? AND status='active'").bind(session.id).first();
+ if(!a||!await verifyPassword(old,a.password_hash,env))return accountPage(env,session,"現在のパスワードを確認してください。",401);
+ const hash=await hashPassword(password,env);
+ const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active' AND password_hash=?").bind(hash,session.id,a.password_hash),db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND password_hash=?)").bind(session.id,session.id,hash)]);
+ if(results[0].meta.changes!==1)return json({error:"Account changed; sign in again"},409);
+ return redirect("/",clearSessionCookie());
+}
+async function resetMemberAccount(env,session,form){
+ if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
+ const db=env.DB,id=form.get("id"),token=randomToken(),hash=await digest(token);
+ const result=await db.batch([
+ db.prepare("UPDATE accounts SET status='invited',password_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status IN ('active','suspended') AND NOT EXISTS(SELECT 1 FROM publication_jobs WHERE account_id=accounts.id AND state='processing')").bind(id),
+ db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id,id),
+ db.prepare("DELETE FROM activation_tokens WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id,id),
+ db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited'").bind(hash,now()+86400,id)
+ ]);
+ if(result[3].meta.changes!==1)return json({error:"Reset unavailable"},409);
+ return adminPage(db,"再設定用コードを発行しました。本人にのみ安全に渡してください。",200,true,token);
+}
+async function auditPage(db){
+ const rows=(await db.prepare("SELECT actor_id,action,target_id,created_at FROM audit_log ORDER BY created_at DESC,id DESC LIMIT 200").all()).results;
+ const list=rows.map(a=>'<article><strong>'+esc(a.action)+'</strong><p>実行者：'+esc(a.actor_id||"システム・実行者未記録")+' / 対象：'+esc(a.target_id||"")+'</p><small>'+esc(a.created_at)+' UTC</small></article>').join("");
+ return page("audit","",200,adminBack+'<p>重要操作の記録（最新200件）。パスワードや招待コードは記録しません。</p>'+(list||"<p>記録はありません。</p>"));
+}
+async function audit(db,actor,action,target){
+ await db.prepare("INSERT INTO audit_log(id,actor_id,action,target_id) VALUES (?,?,?,?)").bind(crypto.randomUUID(),actor,action,target).run();
+}
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"release-dev-v13"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"release-validation",authenticationEnabled:true,revision:"release-dev-v14",passwordPepperConfigured:pepperReady(env)});}
+ if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
+ if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
@@ -487,12 +536,12 @@ export default {async fetch(request,env){
  }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
 
  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
- if(!await limit(db,"ip:"+ip,20))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
+ if(["/login","/activate","/setup","/account/password"].includes(path)&&!await limit(db,"auth-ip:"+ip,20))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
  const upload=path==="/avatars/upload",contentType=request.headers.get("Content-Type")||"";
  if(upload?!contentType.startsWith("multipart/form-data;"):!contentType.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
  if(upload){const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);}
@@ -502,6 +551,7 @@ export default {async fetch(request,env){
  const csrfCookie=(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_csrf=([a-f0-9]{64})(?:;|$)/)?.[1];
  if(!csrfCookie||!await equalSecret(form.get("csrf"),csrfCookie))return json({error:"CSRF token invalid; reopen the form"},403);
  if(path==="/logout"){await revokeSession(db,cookie(request));return redirect("/",clearSessionCookie());}
+ if(path==="/account/password"){const session=await readSession(db,cookie(request));if(!session||(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true"))return json({error:"Forbidden"},403);return await changePassword(env,session,form);}
  if(path.startsWith("/avatars/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
  if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(db,session,form);}
@@ -540,18 +590,19 @@ export default {async fetch(request,env){
  return redirect("/profile");
  }
  if(path==="/activate"){
-  if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);
-  const token=(form.get("token")||"").trim();if(!/^[a-f0-9]{64}$/.test(token)||password.length<16||encoder.encode(password).length>1024||password!==form.get("confirm"))return activationPage("入力内容を確認してください。",400);
+  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env))return json({error:"Activation disabled"},404);
+  const token=(form.get("token")||"").trim();if(!/^[a-f0-9]{64}$/.test(token)||!passwordValid(password)||encoder.encode(password).length>1024||password!==form.get("confirm"))return activationPage("入力内容を確認してください。",400);
   const tokenHash=await digest(token);
   const target=await db.prepare("SELECT a.id FROM activation_tokens t JOIN accounts a ON a.id=t.account_id WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>? AND a.role='member' AND a.status='invited'").bind(tokenHash,now()).first();
   if(!target)return activationPage("招待コードが無効または期限切れです。",400);
-  step="activation-password-hash";const hash=await hashPassword(password);
+  step="activation-password-hash";const hash=await hashPassword(password,env);
   const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status='invited' AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id AND used_at IS NULL AND expires_at>?)").bind(hash,target.id,tokenHash,now()),db.prepare("UPDATE activation_tokens SET used_at=CURRENT_TIMESTAMP WHERE token_hash=? AND account_id=? AND used_at IS NULL AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active')").bind(tokenHash,target.id,target.id)]);
   if(results[0].meta.changes!==1)return activationPage("招待コードが無効または期限切れです。",400);
   return redirect("/");
  }
  if(path.startsWith("/admin/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
+ if(path==="/admin/reset-account")return await resetMemberAccount(env,session,form);
  if(path==="/admin/review")return await reviewSubmission(env,session,form);
  if(path==="/admin/reconcile")return await reconcilePublication(env,form);
  if(["/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return await mutateOperations(db,session,form,path);
@@ -574,11 +625,12 @@ export default {async fetch(request,env){
  }
  if(!validEmail(email)||encoder.encode(password).length>1024)return page(path==="/setup"?"setup":"login","入力内容を確認してください。",400);
  if(path==="/setup"){
+  if(!pepperReady(env))return json({error:"Password setup unavailable"},503);
   if(await db.prepare("SELECT id FROM accounts WHERE role=\'admin\' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   if(!await equalSecret(form.get("secret"),env.BOOTSTRAP_SECRET))return page("setup","登録できませんでした。",403);
-  if(password.length<16)return page("setup","パスワードは16文字以上にしてください。",400);
+  if(!passwordValid(password))return page("setup","パスワードは20文字以上にしてください。",400);
   step="password-hash";
- const hash=await hashPassword(password);
+ const hash=await hashPassword(password,env);
  step="administrator-insert";
   const result=await db.prepare("INSERT INTO accounts(id,email,role,status,password_hash) SELECT ?,?,'admin','active',? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE role='admin')").bind(crypto.randomUUID(),email,hash).run();
   if(result.meta.changes!==1)return json({error:"Setup unavailable"},409);
@@ -586,13 +638,14 @@ export default {async fetch(request,env){
  }
  if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
  const account=await db.prepare("SELECT id,status,password_hash,role FROM accounts WHERE email=?").bind(email).first();
- const dummy="pbkdf2-sha256$"+ITERATIONS+"$"+"0".repeat(64)+"$"+"0".repeat(64);
+ const dummy=(pepperReady(env)?"pbkdf2-sha256-hmac-v1$":"pbkdf2-sha256$")+ITERATIONS+"$"+"0".repeat(64)+"$"+"0".repeat(64);
  step="password-verify";
- const valid=await verifyPassword(password,account?.password_hash||dummy);
+ const valid=await verifyPassword(password,account?.password_hash||dummy,env);
  if(!valid||account?.status!=="active"||(account.role==="member"&&env.PORTAL_TEST_MODE!=="true"))return page("login","メールアドレスまたはパスワードを確認してください。",401);
  await revokeSession(db,cookie(request));
  step="session-create";
- const session=await createSession(db,account.id);
+ const session=await createSession(db,account.id,account.password_hash);
+ try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-dev-v13"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-dev-v14"},503);}
 }};
