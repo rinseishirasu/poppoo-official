@@ -199,3 +199,19 @@
 .pop-profile .profile-member-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .pop-profile .profile-member-link{min-width:0;overflow-wrap:anywhere}
 @media(max-width:760px){.pop-profile .profile-top,.pop-profile .profile-details{grid-template-columns:minmax(0,1fr)}.pop-profile .profile-avatar{max-width:440px;margin-inline:auto}.pop-profile .profile-intro h1{font-size:2rem}.pop-profile .avatar-lookbook-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pop-profile .profile-index a{font-size:.75rem;padding:7px 9px}}
+
+/* Schedule directory */
+.pop-info #schedule-list{gap:18px}
+.pop-info .pop-day-group h3{display:flex;align-items:center;gap:12px;padding:12px 18px}
+.pop-info .pop-day-group h3 span{margin:0;padding:3px 9px;border-radius:5px;background:#fff;color:#142f56}
+.pop-info .pop-day-group .schedule-item{display:grid;grid-template-columns:minmax(90px,120px) minmax(0,1fr) auto;align-items:center;gap:16px;padding:16px 18px;border-bottom:1px solid #e5edf5}
+.pop-info .pop-day-group .schedule-item:last-child{border-bottom:0}
+.pop-info .schedule-date{min-width:0;width:auto}
+.pop-info .schedule-time{font-size:1.15rem;font-weight:800;color:#142f56;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pop-info .schedule-program{min-width:0;overflow-wrap:anywhere}
+.pop-info .schedule-title{font-size:1rem;font-weight:750;line-height:1.5}
+.pop-info .schedule-meta{font-size:.83rem;color:#536b83;margin-top:4px}
+.pop-info .schedule-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border:1px solid #c5dcef;border-radius:8px;color:#145b98;text-decoration:none;font-size:.82rem}
+.pop-info .schedule-link-pending{font-size:.75rem;color:#536b83}
+.pop-info .pop-info-filters select{min-height:44px;max-width:100%}
+@media(max-width:760px){.pop-info .pop-day-group .schedule-item{grid-template-columns:minmax(64px,85px) minmax(0,1fr);gap:8px 12px;padding:14px}.pop-info .schedule-link,.pop-info .schedule-link-pending{grid-column:2;justify-self:start}.pop-info .schedule-time{font-size:1rem}.pop-info .schedule-title{font-size:.95rem}}
