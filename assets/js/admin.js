@@ -72,8 +72,30 @@ function summary(item){
  if(current==="schedule")return [item.date,item.time,item.title].filter(Boolean).join("　");
  return [item.date,item.title].filter(Boolean).join("　");
 }
+
+function renderDashboard(){
+ const metrics=$("cms-metrics");if(!metrics)return;
+ const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+ const members=data.talents.filter(Boolean),cohorts=new Map();
+ for(const t of members){const groups=Array.isArray(t.cohort)?t.cohort:t.cohort?[t.cohort]:[];for(const g of new Set(groups.filter(Boolean).length?groups.filter(Boolean):["未設定"]))cohorts.set(g,(cohorts.get(g)||0)+1)}
+ const upcoming=data.schedule.filter(s=>s&&s.date>=today).sort((a,b)=>(a.date+" "+(a.time||"")).localeCompare(b.date+" "+(b.time||"")));
+ const dates=[];
+ for(const t of members)for(const [key,label] of [["birthday","誕生日"],["anniversary","活動記念日"],["debutDate","デビュー記念日"]]){
+ const raw=String(t[key]||"").trim(),m=raw.match(/^(?:\d{4}[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m)continue;
+ const month=Number(m[1]),day=Number(m[2]);let year=Number(today.slice(0,4));let date="";
+ for(let i=0;i<9;i++,year++){const d=new Date(Date.UTC(year,month-1,day));if(d.getUTCMonth()!==month-1||d.getUTCDate()!==day)continue;const iso=d.toISOString().slice(0,10);if(iso>=today){date=iso;break}}
+ if(date)dates.push({date,label,name:t.name,published:t.published===true});
+ }
+ dates.sort((a,b)=>a.date.localeCompare(b.date));
+ const state=x=>x.published===true?"公開設定":"非公開";
+ const rows=(items,fn,empty)=>items.length?items.slice(0,5).map(fn).join(""):'<p class="admin-empty">'+empty+'</p>';
+ metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>{const total=data[k].length,pub=data[k].filter(x=>x?.published===true).length;return '<div class="cms-metric"><span>'+LABELS[k]+'</span><strong>'+total+'</strong><small>公開設定 '+pub+' 件 / 非公開 '+(total-pub)+' 件</small></div>'}).join("");
+ const detail=$("cms-overview");if(!detail)return;
+ detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>誕生日・活動記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
+}
+
 function renderList(){
- const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
+ renderDashboard();
  const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
  $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
 }
