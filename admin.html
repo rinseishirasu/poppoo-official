@@ -12,15 +12,16 @@
 <meta name="poppoo-auth-api" content="https://poppoo-admin-auth.rinsei-shirasu.workers.dev">
 <link rel="icon" type="image/png" href="assets/image/poppoo-icon.png">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/admin-renewal.css">
 </head>
 <body class="admin-page">
 <header id="site-header"></header>
 <main>
-<section class="page-hero admin-hero"><div class="container page-heading"><div class="breadcrumbs"><a href="index.html">TOP</a> / ADMIN</div><span class="eyebrow">POPPŌ MANAGEMENT</span><h1>運営ページ</h1><p>公式サイトに掲載する情報の作成・編集・データ管理を行います。</p></div></section>
+<section class="page-hero admin-hero"><div class="container page-heading"><div class="breadcrumbs"><a href="index.html">TOP</a> / ADMIN</div><span class="eyebrow">POPPŌ MANAGEMENT</span><h1>ADMIN DASHBOARD</h1><p>公式サイトに掲載する情報の作成・編集・データ管理を行います。</p></div></section>
 <section class="content"><div class="container admin-content">
 <div class="admin-warning"><strong>運営ページについて</strong><p>GitHubアカウントでログインすると、編集中のデータをこの画面から公式サイトへ直接公開できます。公開前に内容と掲載許諾を確認してください。</p><p>公開リポジトリに掲載してよい情報だけを登録してください。個人情報・非公開情報・パスワード・アクセストークンは入力しないでください。</p></div>
 <div class="admin-auth-panel"><div><span class="eyebrow">GITHUB AUTHENTICATION</span><strong id="auth-status">ログインしていません</strong><p id="auth-detail">公開するには運営者のGitHubアカウントでログインしてください。</p></div><div class="admin-auth-actions"><button class="btn" id="login-button" type="button">GitHubでログイン</button><button class="btn secondary" id="logout-button" type="button" disabled>ログアウト</button></div></div>
-<div class="admin-toolbar"><div><span class="eyebrow">CONTENT MANAGER</span><h2>コンテンツ管理</h2></div><div class="admin-toolbar-actions"><button class="btn secondary" id="reset-button" type="button">公開データに戻す</button></div></div>
+<section class="cms-dashboard" aria-label="登録状況"><div id="cms-metrics" class="cms-metrics"></div><p class="small">ブラウザー内の登録状況です。公開設定はGitHubへの反映完了を意味しません。</p></section><div class="admin-toolbar"><div><span class="eyebrow">CONTENT MANAGER</span><h2>コンテンツ管理</h2></div><div class="admin-toolbar-actions"><button class="btn secondary" id="reset-button" type="button">公開データに戻す</button></div></div>
 <div class="admin-status" id="admin-status" role="status" aria-live="polite">データを読み込んでいます...</div>
 <div class="admin-tabs" role="tablist" aria-label="編集するコンテンツ">
 <button type="button" class="admin-tab active" data-kind="talents" role="tab" aria-selected="true">参加メンバー</button>
@@ -37,7 +38,7 @@
 </section>
 <aside class="admin-list-panel">
 <div class="admin-panel-heading"><div><span class="eyebrow">REGISTERED CONTENT</span><h2>登録済みデータ</h2></div></div>
-<div id="content-list" class="admin-list"><p class="admin-empty">データはありません。</p></div>
+<div class="cms-list-filters"><label>検索<input id="cms-search" type="search" placeholder="登録内容を検索"></label><label>公開設定<select id="cms-visibility"><option value="">すべて</option><option value="yes">公開設定</option><option value="no">非公開</option></select></label></div><div id="content-list" class="admin-list"><p class="admin-empty">データはありません。</p></div>
 <div class="admin-publish-box"><p id="publish-description">編集中のデータを確認してから公開してください。</p><button class="btn" id="publish-button" type="button" disabled>このデータを公開する</button></div>
 </aside>
 </div>
