@@ -27,3 +27,6 @@
 @media(prefers-reduced-motion:reduce){.renewal-home *{scroll-behavior:auto!important;transition:none!important}}
 
 .renewal-home .pop-spotlight-visual>a{border-top:6px solid var(--member-color,#1978c8);background:radial-gradient(circle,white,color-mix(in srgb,var(--member-color,#1978c8) 25%,white))}
+
+.renewal-home .pop-featured>img.pop-custom-hero{width:100%;max-width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:18px}
+.pop-home-notice{box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;padding:18px 24px;margin:24px auto;background:#edf6ff;border:1px solid #cbddeb;border-radius:12px;color:#142f56}
