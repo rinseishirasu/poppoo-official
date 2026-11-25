@@ -84,3 +84,10 @@
 .admin-page .admin-toolbar .admin-form-actions[hidden]{display:none!important}
 .admin-page .cms-sidebar{top:80px}
 @media(max-width:760px){.cms-topbar{padding:8px 12px;gap:8px}.cms-top-brand{gap:8px}.cms-top-actions{gap:8px;font-size:.72rem}.admin-page .admin-toolbar{top:64px}.admin-page .admin-toolbar h2{font-size:1rem}.admin-page .admin-toolbar .btn{font-size:.78rem;padding:8px 10px}}
+
+.admin-page .cms-shell.cms-sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
+.admin-page .cms-sidebar[hidden]{display:none!important}
+.cms-sidebar-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 12px;border:1px solid #dbe8f4;border-radius:8px;background:#fff;color:#142f56;font:inherit;cursor:pointer}
+.cms-sidebar-toggle:hover{background:#e4f2ff}.cms-sidebar-toggle:focus-visible{outline:2px solid #1978c8;outline-offset:3px}
+.cms-topbar .cms-top-brand{margin-right:auto}
+@media(max-width:760px){.cms-toggle-label{display:none}.cms-sidebar-toggle{min-width:40px;padding:8px}.cms-topbar .cms-top-brand img{width:32px;height:32px}.cms-topbar .cms-top-brand{font-size:.9rem}.cms-top-actions{flex-wrap:wrap;justify-content:flex-end}}
