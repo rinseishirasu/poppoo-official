@@ -28,6 +28,7 @@ function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
 function authReady(){return Boolean(accessToken&&Date.now()<tokenExpiresAt)}
 function updateAuthUI(){
  const ready=authReady();
+ $("cms-top-auth").textContent=ready?"@"+githubLogin:"未ログイン";
  $("auth-status").textContent=ready?"ログイン中: @"+githubLogin:"ログインしていません";
  $("auth-detail").textContent=ready?"GitHubへの直接公開が利用できます。ログインはこのブラウザーのメモリー上だけで保持されます。":(AUTH_API.includes("YOUR-WORKER")||!AUTH_API?"認証サーバーの設定がまだ完了していません。セットアップガイドを確認してください。":"公開するには運営者のGitHubアカウントでログインしてください。");
  $("login-button").disabled=ready||!AUTH_API||AUTH_API.includes("YOUR-WORKER");
@@ -131,7 +132,7 @@ function renderList(){
 $("cms-search")?.addEventListener("input",renderList);
 $("cms-visibility")?.addEventListener("change",renderList);
 let formDirty=false;
-function editorMode(open){document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
+function editorMode(open){document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
 function allowDiscard(){return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
 $("content-form").addEventListener("input",()=>{formDirty=true});
 $("cms-new-record").onclick=()=>{editing=-1;renderForm();formDirty=false;editorMode(true)};
