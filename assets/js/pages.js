@@ -5,7 +5,7 @@
  const published=a=>(Array.isArray(a)?a:[]).filter(x=>x&&x.published===true);
  const dateLabel=d=>d?escapeHtml(d.replaceAll("-","/")):"";
  const todayJST=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
- const anniversaryCountdown=value=>{
+ const anniversaryCountdown=(value,label="記念日")=>{
   if(!value)return "";
   let month=0,day=0;
   let match=value.match(/^\d{4}[-/](\d{1,2})[-/](\d{1,2})$/);
@@ -20,7 +20,7 @@
   if(Date.UTC(year,month-1,day)<Date.UTC(yearNow,monthNow-1,dayNow))year++;
   while(!valid(year))year++;
   const remaining=Math.round((Date.UTC(year,month-1,day)-Date.UTC(yearNow,monthNow-1,dayNow))/86400000);
-  return '<section class="profile-section profile-anniversary"><span class="eyebrow">ANNIVERSARY</span><h2>次の活動記念日</h2><div class="anniversary-countdown"><strong>'+remaining+'</strong><span>日後</span><p>'+year+'年'+month+'月'+day+'日</p></div></section>';
+  return '<section class="profile-section profile-anniversary"><span class="eyebrow">ANNIVERSARY</span><h2>次の'+escapeHtml(label)+'</h2><div class="anniversary-countdown"><strong>'+remaining+'</strong><span>日後</span><p>'+year+'年'+month+'月'+day+'日</p></div></section>';
  };
  const safeExternalLink=value=>{try{if(!value)return "";const u=new URL(value,location.href);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return ""}};
  const cohortBadges=t=>{const values=Array.isArray(t.cohort)?t.cohort:(t.cohort?[t.cohort]:[]);return values.filter(Boolean).map(v=>`<span class="pill cohort-pill">${escapeHtml(v)}</span>`).join("")};
@@ -60,8 +60,8 @@
    if(!avatarList.length&&t.avatarImage){const legacy=safeExternalLink(t.avatarImage);if(legacy)avatarList.push(legacy)}
    const avatar=avatarList[0]||"",icon=safeExternalLink(t.iconImage||"");
    
-   const facts=[["所属事務所・所属先",t.affiliationAgency],["誕生日",t.birthday],["デビュー日",t.debutDate?dateLabel(t.debutDate):""],["活動記念日",t.anniversary],["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
-   const anniversarySection=anniversaryCountdown(t.anniversary);
+   const facts=[["所属事務所・所属先",t.affiliationAgency],["誕生日",t.birthday],["REALITYデビュー日",t.debutDate?dateLabel(t.debutDate):""],["ぽっぽー加入日",t.joinDate?dateLabel(t.joinDate):""],...(Array.isArray(t.anniversaries)?t.anniversaries:t.anniversary?[{date:t.anniversary,title:"活動記念日"}]:[]).filter(x=>x&&x.title&&x.date).map(x=>[x.title,x.date]),["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
+   const anniversarySection=[[t.debutDate,"デビュー周年"],[t.joinDate,"ぽっぽー加入周年"],...(Array.isArray(t.anniversaries)?t.anniversaries:t.anniversary?[{date:t.anniversary,title:"活動記念日"}]:[]).filter(x=>x&&x.title&&x.date).map(x=>[x.date,x.title])].map(([date,label])=>anniversaryCountdown(date,label)).join("");
    const personality=[["趣味",t.hobbies],["特技",t.skills],["好きなもの",t.likes],["苦手なもの",t.dislikes],["好きな食べ物",t.favoriteFood],["好きな作品・ジャンル",t.favoriteWorks]].filter(x=>x[1]);
    const fan=[["ファンネーム",t.fanName],["推しマーク",t.oshiMark],["配信タグ",t.streamTag],["ファンアートタグ",t.fanArtTag]].filter(x=>x[1]);
    const factSection=(eyebrow,title,items,klass="")=>items.length?'<section class="profile-section '+klass+'"><span class="eyebrow">'+eyebrow+'</span><h2>'+title+'</h2><dl class="talent-facts">'+items.map(([label,value])=>'<div class="talent-fact"><dt>'+escapeHtml(label)+'</dt><dd>'+escapeHtml(value).replace(/\r?\n/g,"<br>")+'</dd></div>').join("")+'</dl></section>':"";
