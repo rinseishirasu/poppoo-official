@@ -21,3 +21,21 @@
 .pop-footer-bottom .copyright{margin:0;padding:0;border:0;color:#dceaff}
 @media(max-width:1100px){#site-header .pop-header{min-height:66px}#site-header .menu-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #dbe8f4;border-radius:10px;background:white;color:#142f56;font-size:1.3rem;cursor:pointer}#site-header .nav{display:none;position:absolute;top:100%;left:0;right:0;width:auto;max-height:calc(100dvh - 80px);overflow:auto;padding:16px 24px;background:white;border:1px solid #dbe8f4;box-shadow:0 12px 24px #142f561a}#site-header .nav.open{display:flex;flex-direction:column;align-items:stretch;gap:0}#site-header .nav a{padding:14px 8px;border-bottom:1px solid #edf3f8}#site-header .nav a[aria-current=page]:after{display:none}}
 @media(max-width:760px){#site-header .brand-logo,.pop-footer .brand-logo{width:40px;height:40px}.pop-footer .footer-grid{grid-template-columns:1fr;gap:24px}.pop-footer-bottom{align-items:flex-start;flex-direction:column}}
+
+/* Progressive motion: content remains visible without JavaScript */
+@media(prefers-reduced-motion:no-preference){
+ .pop-reveal-active{animation:popReveal .55s cubic-bezier(.2,.65,.3,1) both}
+ @keyframes popReveal{from{opacity:.45;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+ .pop-hero-copy{animation:popReveal .65s ease-out both}
+ .pop-stage{animation:popReveal .7s ease-out both}
+ .pop-link,.pop-member-card,.news-card,.pop-rail-controls button,.pop-spotlight-controls button{transition:transform .2s ease,box-shadow .2s ease,background-color .2s ease}
+ @media(hover:hover) and (pointer:fine){
+  .pop-link:hover{transform:translateY(-2px);box-shadow:0 7px 18px #142f561c}
+  .news-card:hover{transform:translateY(-3px);box-shadow:0 10px 25px #142f5615}
+  .pop-rail-controls button:not(:disabled):hover,.pop-spotlight-controls button:not(:disabled):hover{transform:translateY(-2px);background:#e5f3ff}
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ main .pop-link,main .pop-member-card,main .news-card,main .pop-news-image img,main .pop-stage,main .pop-hero-copy,main .pop-reveal-active{animation:none!important;transition:none!important;transform:none!important}
+ html{scroll-behavior:auto!important}
+}
