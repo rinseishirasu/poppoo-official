@@ -124,10 +124,17 @@ function renderList(){
 }
 $("cms-search")?.addEventListener("input",renderList);
 $("cms-visibility")?.addEventListener("change",renderList);
+let formDirty=false;
+function editorMode(open){document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
+function allowDiscard(){return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
+$("content-form").addEventListener("input",()=>{formDirty=true});
+$("cms-new-record").onclick=()=>{editing=-1;renderForm();formDirty=false;editorMode(true)};
+$("cms-back-list").onclick=()=>{if(!allowDiscard())return;editing=-1;renderForm();formDirty=false;editorMode(false)};
+window.addEventListener("beforeunload",e=>{if(formDirty){e.preventDefault();e.returnValue=""}});
 function renderTabs(){
  if($("cms-search"))$("cms-search").value="";if($("cms-visibility"))$("cms-visibility").value="";
  document.querySelectorAll(".admin-tab").forEach(b=>{const active=b.dataset.kind===current;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});
- if(singleton(current)){editing=data[current].length?0:-1;renderForm(data[current][0]||{})}else renderForm();renderList();updateAuthUI();
+ if(singleton(current)){editing=data[current].length?0:-1;renderForm(data[current][0]||{})}else renderForm();formDirty=false;editorMode(singleton(current));renderList();updateAuthUI();
 }
 function formObject(){
  const obj={};
@@ -253,15 +260,15 @@ $("content-form").addEventListener("submit",e=>{
  if(obj.url&&!/^https?:\/\//i.test(obj.url)){status("URLは http:// または https:// で始まる形式にしてください。");return}
  if(obj.id&&data[current].some((x,i)=>x.id===obj.id&&i!==editing)){status("同じIDがすでに登録されています。別のIDを指定してください。");return}
  if(singleton(current))data[current]=[obj];else if(editing<0)data[current].push(obj);else data[current][editing]={...data[current][editing],...obj};
- editing=singleton(current)?0:-1;renderForm(singleton(current)?data[current][0]:{});renderList();saveDraft();status("変更を一時保存しました。公開するには「このデータを公開する」を押してください。");
+ editing=singleton(current)?0:-1;renderForm(singleton(current)?data[current][0]:{});renderList();saveDraft();formDirty=false;editorMode(singleton(current));status("変更を一時保存しました。公開するには「このデータを公開する」を押してください。");
 });
-$("clear-button").addEventListener("click",()=>{editing=-1;renderForm();status("入力欄をクリアしました。")});
+$("clear-button").addEventListener("click",()=>{if(!allowDiscard())return;editing=singleton(current)&&data[current].length?0:-1;renderForm();formDirty=false;status("入力欄をクリアしました。")});
 $("content-list").addEventListener("click",e=>{
  const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");
- if(edit){editing=Number(edit.dataset.edit);renderForm(data[current][editing]);window.scrollTo({top:$("content-form").getBoundingClientRect().top+window.scrollY-110,behavior:"smooth"})}
+ if(edit){if(!allowDiscard())return;editing=Number(edit.dataset.edit);renderForm(data[current][editing]);formDirty=false;editorMode(true);window.scrollTo({top:0,behavior:"instant"})}
  if(del){const i=Number(del.dataset.delete);if(!confirm("このデータを削除しますか？"))return;data[current].splice(i,1);editing=-1;saveDraft();renderForm();renderList();status("データを削除しました。公開するには公開ボタンを押してください。")}
 });
-document.querySelectorAll(".admin-tab").forEach(b=>b.addEventListener("click",()=>{current=b.dataset.kind;editing=-1;renderTabs()}));
+document.querySelectorAll(".admin-tab").forEach(b=>b.addEventListener("click",()=>{if(!allowDiscard())return;current=b.dataset.kind;editing=-1;renderTabs()}));
 $("reset-button").addEventListener("click",async()=>{
  if(!confirm("このブラウザー内の編集内容を破棄し、GitHub上の公開データを読み直しますか？"))return;
  try{await loadRemote();localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(BASELINE_KEY);draftConflict=false;editing=-1;renderTabs();status("公開データを読み込みました。")}catch(e){status(e.message+"。編集内容は維持しました。")}
@@ -360,7 +367,7 @@ $("cms-media-close").onclick=()=>{mediaPanel.hidden=true};
 $("cms-media-load").onclick=mediaLoad;
 for(const id of ["cms-media-search","cms-media-category","cms-media-unused"])$(id).addEventListener("input",renderMedia);
 $("cms-media-copy").onclick=async()=>{try{await navigator.clipboard.writeText($("cms-media-path").value);$("cms-media-status").textContent="画像パスをコピーしました。"}catch{$("cms-media-path").select();$("cms-media-status").textContent="選択されたパスをコピーしてください。"}};
-$("cms-media-apply").onclick=()=>{const path=$("cms-media-path").value,key=$("cms-media-field").value,el=$("content-form").elements.namedItem(key);if(!mediaFiles.some(f=>f.path===path)||!el||!SCHEMAS[current].some(f=>f[0]===key&&f[2]==="image")){$("cms-media-status").textContent="対象の編集カテゴリ・画像欄を選択してください。";return}if((key==="thumbnailImage"&&!path.startsWith("assets/images/news/"))||(key==="heroImage"&&!path.startsWith("assets/images/home/"))){$("cms-media-status").textContent="この画像欄には対応するカテゴリの画像を選択してください。";return}el.value=path;const note=$("content-form").querySelector('[data-image-path="'+key+'"]');if(note)note.textContent=path;$("cms-media-status").textContent="編集フォームに設定しました。保存してから公開してください。"};
+$("cms-media-apply").onclick=()=>{const path=$("cms-media-path").value,key=$("cms-media-field").value,el=$("content-form").elements.namedItem(key);if(!mediaFiles.some(f=>f.path===path)||!el||!SCHEMAS[current].some(f=>f[0]===key&&f[2]==="image")){$("cms-media-status").textContent="対象の編集カテゴリ・画像欄を選択してください。";return}if((key==="thumbnailImage"&&!path.startsWith("assets/images/news/"))||(key==="heroImage"&&!path.startsWith("assets/images/home/"))){$("cms-media-status").textContent="この画像欄には対応するカテゴリの画像を選択してください。";return}el.value=path;formDirty=true;editorMode(true);const note=$("content-form").querySelector('[data-image-path="'+key+'"]');if(note)note.textContent=path;$("cms-media-status").textContent="編集フォームに設定しました。保存してから公開してください。"};
 $("cms-media-upload").onclick=async()=>{if(mediaBusy)return;mediaBusy=true;try{if(!authReady())throw Error("GitHubへログインしてください。");const folder=$("cms-media-upload-folder").value; if(!["talents","news","home","common"].includes(folder))throw Error("保存先が不正です");const files=Array.from($("cms-media-files").files);for(const file of files){const ext=({"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif"})[file.type];if(!ext||file.size>8*1024*1024)throw Error("PNG/JPG/WebP/GIF、8MB以下の画像を選択してください。")}for(const file of files){const ext=({"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif"})[file.type],path="assets/images/"+folder+"/"+crypto.randomUUID()+"."+ext;const bytes=new Uint8Array(await file.arrayBuffer());let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));const r=await githubRequest("/repos/"+REPO+"/contents/"+path,{method:"PUT",body:JSON.stringify({message:"Upload media "+path,content:btoa(binary),branch:BRANCH})});if(!r.ok)throw Error("アップロード失敗 ("+r.status+")。先に成功した画像はGitHubに残ります。")} $("cms-media-files").value="";$("cms-media-status").textContent="アップロード完了。画像は公開リポジトリに保存されました。"}catch(e){$("cms-media-status").textContent=e.message}finally{mediaBusy=false}};
 const historyPanel=$("cms-history-panel"),historyKind=$("cms-history-kind"),historyList=$("cms-history-list"),historyStatus=$("cms-history-status");
 let historySnapshot=null,historyBusy=false;
