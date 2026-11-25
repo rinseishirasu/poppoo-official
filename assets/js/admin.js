@@ -7,6 +7,8 @@ const AUTH_API=(document.querySelector('meta[name="poppoo-auth-api"]')?.content|
 const FILES={talents:"talents.json",schedule:"schedule.json",news:"news.json",home:"home.json",settings:"settings.json"};
 const LABELS={talents:"参加メンバー",schedule:"配信予定",news:"お知らせ",home:"トップページ設定",settings:"サイト基本設定"};
 const STORAGE_KEY="poppoo-admin-draft-v1";
+const BASELINE_KEY=STORAGE_KEY+"-baseline";
+let draftConflict=false;
 const singleton=k=>["home","settings"].includes(k);
 const SCHEMAS={
  settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"],["seoTitle","検索・SNS表示タイトル（トップページ）","text"],["seoDescription","検索・SNS表示説明文（トップページ）","textarea"],["seoImage","SNS共有画像パス（画像ライブラリからコピー）","text"]],
@@ -22,7 +24,7 @@ let current="talents",editing=-1,accessToken="",githubLogin="",tokenExpiresAt=0,
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function status(message){$("admin-status").textContent=message}
-function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{status("ブラウザー内に保存できませんでした。公開操作を行う前に内容を控えてください。")}}
+function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));localStorage.setItem(BASELINE_KEY,JSON.stringify(baseline))}catch{status("ブラウザー内に保存できませんでした。公開操作を行う前に内容を控えてください。")}}
 function authReady(){return Boolean(accessToken&&Date.now()<tokenExpiresAt)}
 function updateAuthUI(){
  const ready=authReady();
@@ -30,7 +32,7 @@ function updateAuthUI(){
  $("auth-detail").textContent=ready?"GitHubへの直接公開が利用できます。ログインはこのブラウザーのメモリー上だけで保持されます。":(AUTH_API.includes("YOUR-WORKER")||!AUTH_API?"認証サーバーの設定がまだ完了していません。セットアップガイドを確認してください。":"公開するには運営者のGitHubアカウントでログインしてください。");
  $("login-button").disabled=ready||!AUTH_API||AUTH_API.includes("YOUR-WORKER");
  $("logout-button").disabled=!ready;
- $("publish-button").disabled=!ready;
+ $("publish-button").disabled=!ready||publishing||draftConflict;
 }
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"";
@@ -277,6 +279,7 @@ async function githubRequest(path,options={}){
 }
 async function publishCurrent(){
  if(publishing)return;
+ if(draftConflict){status("保存済み下書きと公開データの比較基準が一致しません。下書きを控えて公開データを読み直してください。");return}
  if(!authReady()){status("先にGitHubへログインしてください。");updateAuthUI();return}
  const errors=checkData(data).filter(x=>x.kind===current&&x.level==="error");if(errors.length){status("公開できません: "+errors[0].message+"（データ整合性チェックを確認してください）");return}
  const validation=validateDataset(current,data[current]);if(validation){status("公開できません: "+validation);return}
@@ -410,7 +413,7 @@ $("cms-preview-close").addEventListener("click",closePreview);
 window.addEventListener("pagehide",closePreview);
 (async()=>{
  try{await loadRemote()}catch(e){status(e.message+"。再読み込みしてください。");return}
- try{const draft=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(draft&&typeof draft==="object")for(const key of Object.keys(FILES))if(Array.isArray(draft[key]))data[key]=draft[key]}catch{}
- renderTabs();status("準備完了。編集内容はこのブラウザー内に一時保存されます。");
+ try{const draft=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"),previous=JSON.parse(localStorage.getItem(BASELINE_KEY)||"null");if(draft&&typeof draft==="object")for(const key of Object.keys(FILES))if(Array.isArray(draft[key])){if(canonical(draft[key])===canonical(baseline[key]))continue;if(previous&&canonical(draft[key])===canonical(previous[key]))continue;if(!previous||canonical(previous[key])!==canonical(baseline[key]))draftConflict=true;data[key]=draft[key]}}catch{draftConflict=true}
+ renderTabs();status(draftConflict?"保存済み下書きの比較基準を確認できません。内容を控えて公開データを読み直してください。公開は停止しています。":"準備完了。編集内容はこのブラウザー内に一時保存されます。");
 })();
 })();
