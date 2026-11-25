@@ -134,7 +134,7 @@
   },
   {
     "id": "yu_zi_n_pecorino",
-    "published": false,
+    "published": true,
     "name": "ユージーン・ペコリーノ",
     "cohort": [
       "1期生"
@@ -169,7 +169,13 @@
     "favoriteFood": "",
     "illustrator": "",
     "modeler": "",
-    "message": ""
+    "message": "",
+    "imageColor": "",
+    "affiliationAgency": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "tags": [],
+    "links": []
   },
   {
     "id": "yu_hinsun",
@@ -332,6 +338,51 @@
     "debutDate": "",
     "anniversary": "",
     "activityStatus": "",
+    "regularSchedule": "",
+    "activityGoal": "",
+    "favoriteWorks": "",
+    "height": "",
+    "bloodType": "",
+    "fanName": "",
+    "oshiMark": "",
+    "streamTag": "",
+    "fanArtTag": "",
+    "greeting": "",
+    "hobbies": "",
+    "skills": "",
+    "likes": "",
+    "dislikes": "",
+    "favoriteFood": "",
+    "illustrator": "",
+    "modeler": "",
+    "message": "",
+    "tags": [],
+    "links": []
+  },
+  {
+    "id": "nanase_neki",
+    "published": true,
+    "name": "七瀬ネキ",
+    "imageColor": "",
+    "cohort": [
+      "1期生"
+    ],
+    "roles": [
+      "ネギの局"
+    ],
+    "affiliationAgency": "",
+    "iconImage": "",
+    "avatarImage": "",
+    "avatarImages": [],
+    "emoji": "",
+    "catchphrase": "",
+    "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "birthday": "11月8日",
+    "debutDate": "2024-09-01",
+    "anniversary": "",
+    "activityStatus": "活動中",
     "regularSchedule": "",
     "activityGoal": "",
     "favoriteWorks": "",
