@@ -53,8 +53,8 @@ async function equalSecret(a,b){
 function page(mode,message="",status=200,content=""){
  const nonce=randomToken(),csrf=randomToken();
  const setup=mode==="setup",home=mode==="home";
- const form=["activate","profile","avatars","schedule"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
- return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars","schedule"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":mode==="schedule"?"配信スケジュール":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ const form=["activate","profile","avatars","schedule","activity","notices","applications","operations"].includes(mode)?content:mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars","schedule","activity","notices","applications","operations"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":mode==="schedule"?"配信スケジュール":mode==="activity"?"活動記録・記念日":mode==="notices"?"運営からのお知らせ":mode==="applications"?"各種申請":mode==="operations"?"運営連絡・申請管理":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 async function publishedMembers(){
@@ -71,7 +71,7 @@ async function memberDashboard(db,session){
  const count=state=>requests===null?"取得できません":String(requests.find(x=>x.status===state)?.total||0)+"件";
  const tags=value=>(Array.isArray(value)?value:typeof value==="string"?[value]:[]).filter(v=>typeof v==="string"&&v.trim()).map(v=>'<span class="portal-tag">'+esc(v)+'</span>').join("");
  const profile=member?'<div>'+tags(member.cohort)+tags(member.roles)+'</div><p>'+esc(member.catchphrase||"")+'</p><a class="portal-link" href="'+base+'talent.html?id='+encodeURIComponent(member.id)+'" target="_blank" rel="noopener noreferrer">公式プロフィールを見る</a>':"<p>"+(registryError?"公開プロフィールを取得できません。":"公開プロフィールが見つかりません。")+"</p>";
- const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':i===1?'<a class="portal-link" href="/schedule">配信予定を管理</a>':'<span class="portal-tag">準備中</span>')+'</section>').join("");
+ const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':i===1?'<a class="portal-link" href="/schedule">配信予定を管理</a>':i===2?'<a class="portal-link" href="/activity">活動記録・記念日を管理</a>':i===3?'<a class="portal-link" href="/notices">お知らせを確認</a>':i===4?'<a class="portal-link" href="/applications">申請・履歴を確認</a>':'<span class="portal-tag">準備中</span>')+'</section>').join("");
  const html='<div class="portal-hero"><small>MEMBER DASHBOARD / TEST MODE</small><h2>おかえりなさい'+(member?'、'+esc(member.name)+'さん':'')+'</h2><p>あなたの配信活動を、ひとつの場所から。</p></div><p class="portal-notice">検証版です。プロフィール変更申請をお試しいただけます。</p><div class="portal-grid"><section class="portal-tile"><h2>マイプロフィール</h2>'+profile+'</section><section class="portal-tile"><h2>プロフィール申請状況</h2><p>審査待ち：'+esc(count("pending"))+'</p><p>差し戻し：'+esc(count("returned"))+'</p><p>下書き：'+esc(count("draft"))+'</p><small>申請は公式サイトにまだ反映されません。</small></section></div><section class="portal-section"><h2>メンバーメニュー</h2><div class="portal-grid">'+cards+'</div></section><p><a href="'+base+'" target="_blank" rel="noopener noreferrer">ぽっぽー公式サイト</a></p>';
  return page("home","",200,html);
 }
@@ -177,7 +177,7 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
  const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
  const form=eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
- return page("admin",message,status,"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
+ return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a></p>'+"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
 function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（16文字以上）<input name="password" type="password" required minlength="16" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="16" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
@@ -259,17 +259,92 @@ async function mutateSchedule(env,session,form,path){
  if(!response.ok)return json({error:response.status===409||response.status===422?"Publication conflict; reload schedule":"Publication failed"},response.status===409||response.status===422?409:502);
  return redirect("/schedule?updated=1");
 }
+// Member-only records and operations. No public GitHub writes from these routes.
+const applicationKinds={pause:"活動休止",resume:"活動再開",leave:"退所",other:"その他"};
+const applicationStatuses={pending:"審査待ち",accepted:"受付済み",returned:"差し戻し",withdrawn:"取り下げ"};
+const dateValid=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+"T00:00:00Z");return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s;};
+const memberBack='<p><a href="/">ダッシュボードに戻る</a></p>';
+const adminBack='<p><a href="/admin">アカウント管理に戻る</a></p>';
+const hInput=(name,value)=>'<input type="hidden" name="'+esc(name)+'" value="'+esc(value)+'">';
+const textField=(name,label,max,value="")=>'<label>'+esc(label)+'<textarea name="'+esc(name)+'" maxlength="'+max+'">'+esc(value)+'</textarea></label>';
+const inputField=(name,label,max,value="")=>'<label>'+esc(label)+'<input name="'+esc(name)+'" maxlength="'+max+'" value="'+esc(value)+'" required></label>';
+const confirmDelete='<label><input type="checkbox" name="confirm" value="yes" required>取り消しできないことを確認しました</label>';
+const safeId=s=>typeof s==="string"&&/^[a-f0-9-]{36}$/.test(s);
+const getText=(form,k,max,required=false)=>{const v=form.get(k);if(typeof v!=="string")return null;const s=v.trim();return s.length>max||(required&&!s)?null:s;};
+function activityFields(row={}){
+ return '<label>分類<select name="kind"><option value="activity"'+(row.kind!=="anniversary"?" selected":"")+'>活動記録</option><option value="anniversary"'+(row.kind==="anniversary"?" selected":"")+'>記念日</option></select></label><label>日付<input type="date" name="event_date" value="'+esc(row.event_date||"")+'" required></label>'+inputField("title","タイトル",150,row.title||"")+textField("description","詳細",1000,row.description||"");
+}
+async function activityPage(db,session){
+ const rows=(await db.prepare("SELECT id,kind,event_date,title,description FROM member_activity WHERE account_id=? ORDER BY event_date DESC,id LIMIT 100").bind(session.id).all()).results;
+ const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+ const dates=member?[["誕生日",member.birthday],["REALITYデビュー日",member.debutDate],["ぽっぽー加入日",member.joinDate],...(Array.isArray(member.anniversaries)?member.anniversaries.filter(x=>x&&typeof x==="object").map(x=>[x.title,x.date]):[["活動記念日",member.anniversary]])].filter(([,date])=>typeof date==="string"&&date):[];
+ const official=dates.map(([label,date])=>'<p>'+esc(label||"記念日")+'：'+esc(date)+'</p>').join("")||"<p>公開記念日は未登録です。</p>";
+ const list=rows.map(row=>'<article><strong>'+esc(row.event_date)+' '+esc(row.title)+'</strong><p>'+ (row.kind==="anniversary"?"記念日":"活動記録")+'</p><pre>'+esc(row.description)+'</pre><details><summary>編集する</summary><form method="post" action="/activity/save">'+hInput("id",row.id)+activityFields(row)+'<button>更新</button></form></details><form method="post" action="/activity/delete">'+hInput("id",row.id)+confirmDelete+'<button>削除</button></form></article>').join("");
+ return page("activity","",200,memberBack+'<p class="portal-notice">個人用の記録です。公式サイトには自動反映されません。</p><h2>公式プロフィールの記念日</h2>'+official+'<h2>新規登録</h2><form method="post" action="/activity/save">'+activityFields()+'<button>保存</button></form><h2>登録済み記録（最大100件表示）</h2>'+(list||"<p>記録はありません。</p>"));
+}
+async function mutateActivity(db,session,form,path){
+ const id=form.get("id")||"";
+ if(id&&!safeId(id))return json({error:"Invalid record"},400);
+ let result;
+ if(path==="/activity/delete"){
+ if(!id||form.get("confirm")!=="yes")return json({error:"Confirmation required"},400);
+ result=await db.prepare("DELETE FROM member_activity WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member')").bind(id,session.id,session.id).run();
+ }else{
+ const kind=form.get("kind"),date=form.get("event_date"),title=getText(form,"title",150,true),body=getText(form,"description",1000);
+ if(!["activity","anniversary"].includes(kind)||!dateValid(date)||title===null||body===null)return json({error:"Invalid record"},400);
+ if(id)result=await db.prepare("UPDATE member_activity SET kind=?,event_date=?,title=?,description=? WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member')").bind(kind,date,title,body,id,session.id,session.id).run();
+ else result=await db.prepare("INSERT INTO member_activity(id,account_id,kind,event_date,title,description) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member') AND (SELECT COUNT(*) FROM member_activity WHERE account_id=?)<500").bind(crypto.randomUUID(),session.id,kind,date,title,body,session.id,session.id).run();
+ }
+ if(result.meta.changes!==1)return json({error:"Record unavailable or limit reached"},409);
+ return redirect("/activity");
+}
+async function noticesPage(db,session){
+ const rows=(await db.prepare("SELECT n.id,n.title,n.body,n.created_at,r.read_at FROM portal_notices n LEFT JOIN notice_reads r ON r.notice_id=n.id AND r.account_id=? WHERE n.published=1 ORDER BY n.created_at DESC,n.id DESC LIMIT 100").bind(session.id).all()).results;
+ const list=rows.map(n=>'<article><strong>'+esc(n.title)+'</strong> <span class="portal-tag">'+(n.read_at?"既読":"未読")+'</span><p><small>'+esc(n.created_at)+' UTC</small></p><pre>'+esc(n.body)+'</pre>'+(n.read_at?"":'<form method="post" action="/notices/read">'+hInput("id",n.id)+'<button>既読にする</button></form>')+'</article>').join("");
+ return page("notices","",200,memberBack+'<p>運営からメンバーへの非公開のお知らせです。</p>'+(list||"<p>現在、お知らせはありません。</p>"));
+}
+async function applicationsPage(db,session){
+ const rows=(await db.prepare("SELECT id,kind,body,status,review_note,created_at FROM member_applications WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT 100").bind(session.id).all()).results;
+ const list=rows.map(a=>'<article><strong>'+esc(applicationKinds[a.kind]||a.kind)+'</strong> <span class="portal-tag">'+esc(applicationStatuses[a.status]||a.status)+'</span><p><small>'+esc(a.created_at)+' UTC</small></p><pre>'+esc(a.body)+'</pre>'+(a.review_note?'<p>運営コメント：'+esc(a.review_note)+'</p>':"")+(a.status==="pending"?'<form method="post" action="/applications/withdraw">'+hInput("id",a.id)+'<button>申請を取り下げる</button></form>':"")+'</article>').join("");
+ return page("applications","",200,memberBack+'<p class="portal-notice">申請は運営への連絡です。受付だけでアカウントや公開設定が変更されることはありません。</p><h2>新規申請</h2><form method="post" action="/applications/submit"><label>申請種別<select name="kind">'+Object.entries(applicationKinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join("")+'</select></label>'+textField("body","申請内容（必要な事項のみ）",1000)+'<button>申請する</button></form><h2>申請履歴</h2>'+(list||"<p>申請履歴はありません。</p>"));
+}
+async function operationsPage(db){
+ const [n,a]=await Promise.all([db.prepare("SELECT id,title,body,published,created_at FROM portal_notices ORDER BY created_at DESC,id DESC LIMIT 100").all(),db.prepare("SELECT a.id,a.kind,a.body,a.status,a.review_note,a.created_at,m.member_id FROM member_applications a JOIN accounts m ON m.id=a.account_id ORDER BY (a.status='pending') DESC,a.created_at DESC,a.id DESC LIMIT 100").all()]);
+ const notices=n.results.map(row=>'<article><strong>'+esc(row.title)+'</strong><p>'+(row.published?"掲載中":"非掲載")+'</p><pre>'+esc(row.body)+'</pre><form method="post" action="/admin/notice-toggle">'+hInput("id",row.id)+hInput("expected",row.published)+'<button>'+(row.published?"掲載を停止":"再掲載")+'</button></form></article>').join("");
+ const requests=a.results.map(row=>'<article><strong>'+esc(row.member_id)+' / '+esc(applicationKinds[row.kind]||row.kind)+'</strong><p>'+esc(applicationStatuses[row.status]||row.status)+'</p><pre>'+esc(row.body)+'</pre>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(row.status==="pending"?'<form method="post" action="/admin/application-review">'+hInput("id",row.id)+textField("note","運営コメント",1000)+'<button name="decision" value="accepted">受付済みにする</button><p></p><button name="decision" value="returned">差し戻す</button></form>':"")+'</article>').join("");
+ return page("operations","",200,adminBack+'<h2>メンバー向けお知らせ</h2><form method="post" action="/admin/notice-create">'+inputField("title","件名",150)+textField("body","本文",2000)+'<button>メンバー向けに掲載</button></form><h2>お知らせ一覧</h2>'+(notices||"<p>ありません。</p>")+'<h2>メンバーからの申請</h2>'+(requests||"<p>ありません。</p>"));
+}
+async function mutateOperations(db,session,form,path){
+ const id=form.get("id")||"";let result;
+ if(path==="/admin/notice-create"){
+ const title=getText(form,"title",150,true),body=getText(form,"body",2000,true);if(title===null||body===null)return json({error:"Invalid notice"},400);
+ result=await db.prepare("INSERT INTO portal_notices(id,author_id,title,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(crypto.randomUUID(),session.id,title,body,session.id).run();
+ }else if(path==="/admin/notice-toggle"){
+ const expected=form.get("expected");if(!safeId(id)||!["0","1"].includes(expected))return json({error:"Invalid notice"},400);
+ result=await db.prepare("UPDATE portal_notices SET published=1-published WHERE id=? AND published=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(id,Number(expected),session.id).run();
+ }else{
+ const decision=form.get("decision"),note=getText(form,"note",1000);if(!safeId(id)||!["accepted","returned"].includes(decision)||note===null||(decision==="returned"&&!note))return json({error:"Invalid review"},400);
+ result=await db.prepare("UPDATE member_applications SET status=?,review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(decision,note,session.id,id,session.id).run();
+ }
+ if(result.meta.changes!==1)return json({error:"Record changed; reopen page"},409);
+ return redirect("/admin/operations");
+}
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"release-dev-v11"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"release-dev-v12"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
  }
  if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&env.PORTAL_TEST_MODE==="true"?await memberDashboard(db,session):page("login");}
+ if(request.method==="GET"&&["/activity","/notices","/applications"].includes(path)){
+ const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ return path==="/activity"?await activityPage(db,session):path==="/notices"?await noticesPage(db,session):await applicationsPage(db,session);
+ }
+ if(request.method==="GET"&&path==="/admin/operations"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await operationsPage(db);}
  if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await schedulePage(env,session,url.searchParams.get("updated")==="1");}
  if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(db,session);}
  if(request.method==="GET"&&(path==="/avatars"||path==="/avatars/image")){
@@ -278,7 +353,7 @@ export default {async fetch(request,env){
  }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
 
@@ -287,7 +362,7 @@ export default {async fetch(request,env){
  const upload=path==="/avatars/upload",contentType=request.headers.get("Content-Type")||"";
  if(upload?!contentType.startsWith("multipart/form-data;"):!contentType.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
  if(upload){const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);}
- const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(upload?540672:path==="/profile/save"?65536:8192)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
+ const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(upload?540672:path==="/profile/save"?65536:32768)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
  const form=upload?await new Request(request.url,{method:"POST",headers:{"Content-Type":contentType},body:bytes}).formData():new URLSearchParams(new TextDecoder().decode(bytes)),email=typeof form.get("email")==="string"?form.get("email").trim().toLowerCase():"",password=typeof form.get("password")==="string"?form.get("password"):"";
  const csrfCookie=(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_csrf=([a-f0-9]{64})(?:;|$)/)?.[1];
@@ -300,6 +375,24 @@ export default {async fetch(request,env){
  const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=?").bind(session.id,slot,id).run();
  if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
  return redirect("/avatars");
+ }
+ if(["/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw"].includes(path)){
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ if(path.startsWith("/activity/"))return await mutateActivity(db,session,form,path);
+ const id=form.get("id")||"";
+ if(path==="/notices/read"){
+ if(!safeId(id))return json({error:"Invalid notice"},400);
+ await db.prepare("INSERT OR IGNORE INTO notice_reads(notice_id,account_id) SELECT id,? FROM portal_notices WHERE id=? AND published=1 AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member')").bind(session.id,id,session.id).run();return redirect("/notices");
+ }
+ let result;
+ if(path==="/applications/submit"){
+ const kind=form.get("kind"),body=getText(form,"body",1000,true);if(!Object.hasOwn(applicationKinds,kind)||body===null)return json({error:"Invalid application"},400);
+ result=await db.prepare("INSERT INTO member_applications(id,account_id,kind,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND (SELECT COUNT(*) FROM member_applications WHERE account_id=? AND status='pending')<10").bind(crypto.randomUUID(),session.id,kind,body,session.id,session.id).run();
+ }else{
+ if(!safeId(id))return json({error:"Invalid application"},400);
+ result=await db.prepare("UPDATE member_applications SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(id,session.id,session.id).run();
+ }
+ if(result.meta.changes!==1)return json({error:"Application unavailable or limit reached"},409);return redirect("/applications");
  }
  if(path.startsWith("/schedule/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
@@ -325,6 +418,7 @@ export default {async fetch(request,env){
  }
  if(path.startsWith("/admin/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
+ if(["/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return await mutateOperations(db,session,form,path);
  if(path==="/admin/accounts"){
  const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,env.PORTAL_TEST_MODE==="true");
  const members=await publishedMembers();if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
@@ -364,5 +458,5 @@ export default {async fetch(request,env){
  step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-dev-v11"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-dev-v12"},503);}
 }};
