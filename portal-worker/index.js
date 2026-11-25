@@ -50,36 +50,41 @@ async function equalSecret(a,b){
  const [x,y]=await Promise.all([crypto.subtle.digest("SHA-256",encoder.encode(a)),crypto.subtle.digest("SHA-256",encoder.encode(b))]);
  return crypto.subtle.timingSafeEqual(x,y);
 }
-function page(mode,message="",status=200){
+function page(mode,message="",status=200,content=""){
  const nonce=randomToken(),csrf=randomToken();
  const setup=mode==="setup",home=mode==="home";
- const form=home?'<p>ログインしました。メンバー機能は準備中です。</p><form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
- return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,440px)}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":home?"メンバーポータル":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ const form=mode==="admin"?content+'<form method="post" action="/logout"><button>ログアウト</button></form>':home?'<p>ログインしました。メンバー機能は準備中です。</p><form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":home?"メンバーポータル":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+}
+const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+async function publishedMembers(){
+ const response=await fetch("https://rinseishirasu.github.io/poppoo-official/data/talents.json",{headers:{"Accept":"application/json"},cache:"no-store"});
+ if(!response.ok)throw Error("Member registry unavailable");
+ const data=await response.json();if(!Array.isArray(data))throw Error("Member registry invalid");
+ return data.filter(t=>t&&t.published===true&&typeof t.id==="string"&&/^[A-Za-z0-9_-]{1,100}$/.test(t.id)&&typeof t.name==="string");
+}
+async function adminPage(db,message="",status=200){
+ const rows=(await db.prepare("SELECT id,email,member_id,role,status FROM accounts ORDER BY role,email").all()).results;
+ let members=[],warning="";try{members=await publishedMembers();}catch{warning="<p>公開メンバー情報を取得できません。アカウント発行は停止中です。</p>";}
+ const eligible=members.filter(m=>!rows.some(a=>a.member_id===m.id));
+ const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
+ const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
+ const form=eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
+ return page("admin",message,status,"<p>運営専用・検証版。メンバー招待と初回パスワード設定は未開放です。</p><h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
- if(request.method==="GET"&&path==="/setup/kdf-check"){
- if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
- return new Response('<!doctype html><meta charset="utf-8"><title>KDF check</title><form method="post"><label>Bootstrap Secret <input type="password" name="secret" required></label><button>Test</button></form>',{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; form-action 'self'; frame-ancestors 'none'","Referrer-Policy":"same-origin"}});
- }
- if(request.method==="POST"&&path==="/setup/kdf-check"){
- if(request.headers.get("Origin")!==url.origin||!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Forbidden"},403);
- if(!await limit(db,"kdf:"+ (request.headers.get("CF-Connecting-IP")||"unknown"),3))return json({error:"Rate limited"},429);
- if(Number(request.headers.get("Content-Length")||0)>4096)return json({error:"Too large"},413);
- const reader=request.body?.getReader();let raw="",size=0;const decoder=new TextDecoder();if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4096){await reader.cancel();return json({error:"Too large"},413);}raw+=decoder.decode(value,{stream:true});}raw+=decoder.decode();}
- if(!await equalSecret(new URLSearchParams(raw).get("secret"),env.BOOTSTRAP_SECRET))return json({error:"Forbidden"},403);
- try{const key=await crypto.subtle.importKey("raw",encoder.encode("synthetic diagnostic input"),"PBKDF2",false,["deriveBits"]);await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:crypto.getRandomValues(new Uint8Array(32)),iterations:100000},key,256);return json({ok:true,iterations:100000});}catch(e){return json({ok:false,iterations:100000,errorType:e?.name||"Error"});}
- }
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"auth-test-v5"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"admin-accounts-v6"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
  }
- if(request.method==="GET"&&path==="/"){return await readSession(db,cookie(request))?page("home"):page("login");}
- if(request.method!=="POST"||!["/setup","/login","/logout"].includes(path))return json({error:"Not found"},404);
+ if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session?page("home"):page("login");}
+ if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return adminPage(db); }
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
 
@@ -92,8 +97,21 @@ export default {async fetch(request,env){
  const csrfCookie=(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_csrf=([a-f0-9]{64})(?:;|$)/)?.[1];
  if(!csrfCookie||!await equalSecret(form.get("csrf"),csrfCookie))return json({error:"CSRF token invalid; reopen the form"},403);
  if(path==="/logout"){await revokeSession(db,cookie(request));return redirect("/",clearSessionCookie());}
+ if(path.startsWith("/admin/")){
+ const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
+ if(path==="/admin/accounts"){
+ const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return adminPage(db,"入力内容を確認してください。",400);
+ const members=await publishedMembers();if(!members.some(m=>m.id===memberId))return adminPage(db,"公開メンバーを選択してください。",400);
+ const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING").bind(id,email,memberId).run();if(result.meta.changes!==1)return adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409);
+ return redirect("/admin");
+ }
+ const id=form.get("id")||"";if(!/^[a-f0-9-]{36}$/.test(id))return json({error:"Invalid account"},400);
+ await db.batch([db.prepare("UPDATE accounts SET status=\'suspended\',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role=\'member\'").bind(id),db.prepare("DELETE FROM sessions WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role=\'member\')").bind(id),db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role=\'member\')").bind(id)]);
+ return redirect("/admin");
+ }
  if(!validEmail(email)||encoder.encode(password).length>1024)return page(path==="/setup"?"setup":"login","入力内容を確認してください。",400);
  if(path==="/setup"){
+  if(await db.prepare("SELECT id FROM accounts WHERE role=\'admin\' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   if(!await equalSecret(form.get("secret"),env.BOOTSTRAP_SECRET))return page("setup","登録できませんでした。",403);
   if(password.length<16)return page("setup","パスワードは16文字以上にしてください。",400);
   step="password-hash";
@@ -113,5 +131,5 @@ export default {async fetch(request,env){
  step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"auth-test-v5"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"admin-accounts-v6"},503);}
 }};
