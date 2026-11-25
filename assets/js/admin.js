@@ -278,6 +278,7 @@ async function githubRequest(path,options={}){
 async function publishCurrent(){
  if(publishing)return;
  if(!authReady()){status("先にGitHubへログインしてください。");updateAuthUI();return}
+ const errors=checkData(data).filter(x=>x.kind===current&&x.level==="error");if(errors.length){status("公開できません: "+errors[0].message+"（データ整合性チェックを確認してください）");return}
  const validation=validateDataset(current,data[current]);if(validation){status("公開できません: "+validation);return}
  const kind=current, snapshot=JSON.stringify(data[current],null,2)+"\n",file="data/"+FILES[kind],button=$("publish-button");
  const diff=changes(kind);if(canonical(baseline[kind])===canonical(data[kind])){status("公開する変更はありません。");return}
@@ -319,6 +320,33 @@ window.addEventListener("message",event=>{
  updateAuthUI();status("@"+githubLogin+" としてログインしました。公開するカテゴリを選択してください。");
 });
 
+
+function checkData(sets,paths=null){
+ const issues=[],add=(kind,index,level,message)=>issues.push({kind,index,level,message});
+ const validDate=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
+ const members=Array.isArray(sets.talents)?sets.talents.filter(x=>x&&typeof x==="object"):[];
+ for(const kind of Object.keys(FILES)){
+ const items=sets[kind];if(!Array.isArray(items)){add(kind,-1,"error","配列形式ではありません");continue}
+ if(singleton(kind)&&items.length>1)add(kind,-1,"error","設定は1件のみ登録できます");
+ const ids=new Set();
+ items.forEach((x,i)=>{
+ if(!x||typeof x!=="object"||Array.isArray(x)){add(kind,i,"error","レコード形式が不正です");return}
+ const issue=(level,msg)=>add(kind,i,level,msg);
+ for(const [key,label,,required] of SCHEMAS[kind])if(required&&(typeof x[key]!=="string"||!x[key].trim()))issue("error",label+"が未入力または不正です");
+ if(typeof x.published!=="boolean")issue("warning","公開設定が未指定または不正です");
+ if(["talents","news"].includes(kind)){if(!/^[A-Za-z0-9_-]+$/.test(x.id||""))issue("error","ID形式が不正です");if(ids.has(x.id))issue("error","IDが重複しています");ids.add(x.id)}
+ for(const key of ["date","debutDate"])if((x[key]||key==="date"&&["news","schedule"].includes(kind))&&!validDate(x[key]))issue("error",key+"が実在する日付ではありません");
+ if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const matches=members.filter(t=>t.name===x.talent);if(!matches.length)issue("warning","登録メンバーに一致する名前がありません");else if(x.published===true&&!matches.some(t=>t.published===true))issue("warning","公開設定の配信予定が非公開メンバーを参照しています");if(matches.length>1)issue("warning","同名メンバーが複数存在します")}
+ if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
+ if(kind==="home"&&Array.isArray(x.featuredIds))for(const id of x.featuredIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しないピックアップID: "+id);
+ for(const key of ["iconImage","avatarImage","avatarImages","thumbnailImage","heroImage","seoImage"]){const values=Array.isArray(x[key])?x[key]:x[key]?[x[key]]:[];for(const v of values){if(typeof v!=="string"){issue("error",key+"の画像パスが不正です");continue}if(/^https:\/\//i.test(v)){issue("warning",key+"の外部画像は到達確認対象外です");continue}if(!/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(v)||v.split("/").includes(".."))issue("error",key+"の画像パスが不正です");else if(paths&&!paths.has(v))issue("warning","GitHubに画像が見つかりません: "+v)}}
+ });
+ }return issues;
+}
+function showCheck(issues,note){$("cms-check-status").textContent="エラー "+issues.filter(x=>x.level==="error").length+"件 / 警告 "+issues.filter(x=>x.level==="warning").length+"件。"+note;$("cms-check-results").replaceChildren(...issues.map(x=>{const p=document.createElement("p");p.className="cms-check-"+x.level;p.textContent=(x.level==="error"?"エラー":"警告")+" | "+LABELS[x.kind]+(x.index>=0?" "+(x.index+1)+"件目":"")+" | "+x.message;return p}))}
+$("cms-check-open").onclick=()=>{$("cms-check-panel").hidden=false;showCheck(checkData(data),"画像の存在確認は未実施です。");$("cms-check-panel").scrollIntoView({block:"start"})};
+$("cms-check-close").onclick=()=>{$("cms-check-panel").hidden=true};
+$("cms-check-run").onclick=async()=>{const button=$("cms-check-run");button.disabled=true;let paths=null,note="画像の存在確認は未実施です。";try{if(authReady()){const r=await githubRequest("/repos/"+REPO+"/git/trees/"+BRANCH+"?recursive=1");if(!r.ok)throw Error("GitHub取得失敗");const tree=await r.json();if(tree.truncated||!Array.isArray(tree.tree))throw Error("一覧不完全");paths=new Set(tree.tree.filter(x=>x.type==="blob").map(x=>x.path));note="GitHub内の画像パスを確認しました。外部画像は未確認です。"}}catch(e){note="画像確認を完了できませんでした: "+e.message}finally{showCheck(checkData(data,paths),note);button.disabled=false}};
 const mediaPanel=$("cms-media-panel");let mediaFiles=[],mediaBusy=false;
 const mediaPath=p=>/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(p)&&!p.split("/").includes("..");
 function mediaRefs(path){const out=[];for(const [source,sets] of [["編集中",data],["読み込み時の公開データ",baseline]])for(const k of Object.keys(FILES))for(const item of sets[k]||[]){for(const field of ["iconImage","avatarImage","avatarImages","thumbnailImage","heroImage"]){const v=item[field];if(v===path||(Array.isArray(v)&&v.includes(path)))out.push(source+" / "+LABELS[k]+" / "+(item.name||item.title||item.id||"設定")+" / "+field)}}return out}
