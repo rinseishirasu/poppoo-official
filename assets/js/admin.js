@@ -318,6 +318,35 @@ window.addEventListener("message",event=>{
  accessToken=event.data.token;githubLogin=event.data.login;tokenExpiresAt=Date.now()+Number(event.data.expiresIn||28800)*1000;
  updateAuthUI();status("@"+githubLogin+" としてログインしました。公開するカテゴリを選択してください。");
 });
+const historyPanel=$("cms-history-panel"),historyKind=$("cms-history-kind"),historyList=$("cms-history-list"),historyStatus=$("cms-history-status");
+let historySnapshot=null,historyBusy=false;
+function clearHistory(){historySnapshot=null;$("cms-history-restore").disabled=true;$("cms-history-content").textContent="";historyList.replaceChildren()}
+async function historyAction(fn){if(historyBusy)return;historyBusy=true;for(const id of ["cms-history-load","cms-history-kind","cms-history-close","cms-history-open"])$(id).disabled=true;try{if(!authReady())throw Error("GitHubへログインしてください。");await fn()}catch(e){historyStatus.textContent=e.message}finally{historyBusy=false;for(const id of ["cms-history-load","cms-history-kind","cms-history-close","cms-history-open"])$(id).disabled=false}}
+$("cms-history-open").addEventListener("click",()=>{historyPanel.hidden=false;historyKind.value=current;clearHistory();historyStatus.textContent="カテゴリを選び、履歴を取得してください。";historyPanel.scrollIntoView({block:"start"})});
+$("cms-history-close").addEventListener("click",()=>{clearHistory();historyPanel.hidden=true});
+historyKind.addEventListener("change",()=>{clearHistory();historyStatus.textContent="履歴を取得してください。"});
+$("cms-history-load").addEventListener("click",()=>historyAction(async()=>{
+ clearHistory();const kind=historyKind.value;historyStatus.textContent="履歴を取得中...";
+ const q=new URLSearchParams({sha:BRANCH,path:"data/"+FILES[kind],per_page:"20"});
+ const r=await githubRequest("/repos/"+REPO+"/commits?"+q);if(!r.ok)throw Error("履歴取得に失敗しました ("+r.status+")");
+ const list=await r.json();if(!Array.isArray(list))throw Error("履歴形式が不正です");
+ for(const entry of list){if(!/^[a-f0-9]{40}$/.test(entry.sha))continue;const b=document.createElement("button");b.type="button";b.className="cms-history-entry";b.textContent=(entry.commit?.committer?.date||"")+" | "+entry.sha.slice(0,8)+" | "+(entry.commit?.message||"");b.addEventListener("click",()=>historyAction(async()=>{
+ historySnapshot=null;$("cms-history-restore").disabled=true;$("cms-history-content").textContent="";
+ const response=await githubRequest("/repos/"+REPO+"/contents/data/"+FILES[kind]+"?ref="+entry.sha);if(!response.ok)throw Error("過去データを取得できません ("+response.status+")");
+ const file=await response.json();const items=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))));
+ if(!Array.isArray(items))throw Error("過去データ形式が不正です");
+ const validation=validateDataset(kind,items);$("cms-history-content").textContent=JSON.stringify(items,null,2);
+ historyStatus.textContent=items.length+"件 / "+entry.sha.slice(0,8)+(validation?" / 復元不可: "+validation:" / 復元可能");
+ if(!validation){historySnapshot={kind,items,sha:entry.sha};$("cms-history-restore").disabled=false}
+ }));historyList.append(b)}
+ historyStatus.textContent=list.length+"件の履歴（最大20件）";
+}));
+$("cms-history-restore").addEventListener("click",()=>{
+ if(historyBusy||publishing||!historySnapshot||!authReady())return;
+ const {kind,items,sha}=historySnapshot;
+ if(!confirm(LABELS[kind]+"を "+sha.slice(0,8)+" 時点の内容に置き換えます。現在の保存済み編集内容と未保存の入力は失われます。GitHubにはまだ公開しません。続けますか？"))return;
+ data[kind]=JSON.parse(JSON.stringify(items));current=kind;editing=-1;renderTabs();saveDraft();status("過去データを編集用に復元しました。変更内容を確認してから公開してください。");historyPanel.hidden=true;clearHistory();
+});
 const previewPanel=$("cms-preview-panel"),previewFrame=$("cms-preview-frame"),previewTarget=$("cms-preview-target");
 function closePreview(){previewFrame.removeAttribute("src");previewPanel.hidden=true;try{sessionStorage.removeItem("poppoo-cms-preview")}catch{}}
 function refreshPreview(){
