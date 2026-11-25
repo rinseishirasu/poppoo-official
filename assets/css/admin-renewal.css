@@ -21,3 +21,20 @@
 .admin-page .admin-image-path,.admin-page .admin-gallery-path{overflow-wrap:anywhere}
 @media(max-width:950px){.admin-page .admin-workspace{grid-template-columns:1fr}}
 @media(max-width:600px){.cms-metrics{gap:8px}.cms-metric{padding:12px}.cms-metric strong{font-size:1.8rem}.cms-metric span,.cms-metric small{font-size:.7rem}.admin-page .admin-tab{padding:10px 12px}}
+
+/* CMS 2.0 navigation */
+.admin-page .cms-shell{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+.admin-page .cms-sidebar{position:sticky;top:100px;min-width:0;background:#142f56;color:white;border-radius:16px;padding:18px 12px;box-sizing:border-box}
+.cms-sidebar-brand{font-size:1.15rem;font-weight:850;padding:8px 12px 18px;letter-spacing:.04em}
+.cms-sidebar-brand small{display:block;color:#a9d9ff;font-size:.65rem;letter-spacing:.14em}
+.admin-page .cms-sidebar .admin-tabs{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;border:0;background:transparent}
+.cms-nav-label{font-size:.72rem;color:#b9d6ef;padding:14px 12px 4px;font-weight:700}
+.admin-page .cms-sidebar .admin-tab{display:block;width:100%;text-align:left;white-space:normal;background:transparent;color:#edf6ff;border:1px solid transparent;padding:12px;border-radius:8px;box-sizing:border-box}
+.admin-page .cms-sidebar .admin-tab.active{background:#e4f2ff;color:#142f56;border-color:#b5d8f4;font-weight:800}
+.admin-page .cms-sidebar .admin-tab:not(.active):hover{background:#284b73}
+.admin-page .cms-sidebar .admin-tab:focus-visible,.cms-sidebar-links a:focus-visible{outline:2px solid #9ed8ff;outline-offset:2px}
+.cms-sidebar-links{border-top:1px solid #ffffff30;margin-top:20px;padding:16px 12px 4px}
+.cms-sidebar-links a{color:#d5ebff;font-size:.82rem}
+.admin-page .cms-shell .admin-workspace{min-width:0;margin:0;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media(max-width:1200px){.admin-page .cms-shell .admin-workspace{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.admin-page .cms-shell{grid-template-columns:minmax(0,1fr);gap:14px}.admin-page .cms-sidebar{position:static;padding:12px}.admin-page .cms-sidebar .admin-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.cms-nav-label{grid-column:1/-1;padding:8px 6px 2px}.cms-sidebar-brand{padding:4px 6px 8px}.cms-sidebar-links{margin-top:10px;padding:10px 6px 2px}.admin-page .cms-sidebar .admin-tab{font-size:.85rem;padding:10px}}
