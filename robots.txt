@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /poppoo-official/admin.html
+Sitemap: https://rinseishirasu.github.io/poppoo-official/sitemap.xml
