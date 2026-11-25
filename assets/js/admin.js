@@ -47,7 +47,7 @@ function fieldHtml(field){
 function renderForm(item={}){
  const form=$("content-form");form.reset();$("form-fields").innerHTML=SCHEMAS[current].map(fieldHtml).join("");
  for(const [key,,type] of SCHEMAS[current]){
-  const el=form.elements.namedItem(key);if(!el)continue;
+  const el=form.elements.namedItem(key);if(!el&&type!=="memberSelect")continue;
   if(type==="memberSelect")form.querySelectorAll('input[name="featuredIds"]').forEach(e=>e.checked=(item[key]||[]).includes(e.value));
   else if(type==="checkbox")el.checked=item[key]===true;
   else if(type==="visibility"){const values=Array.isArray(item[key])?item[key]:[];form.querySelectorAll('input[name="hiddenSections"]').forEach(input=>input.checked=values.includes(input.value))}
@@ -71,7 +71,7 @@ function summary(item){
  return [item.date,item.title].filter(Boolean).join("　");
 }
 function renderList(){
- const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
+ const metrics=$("cms-metrics");if(metrics)metrics.innerHTML=Object.keys(FILES).filter(k=>k!=="home").map(k=>`<div class="cms-metric"><span>${LABELS[k]}</span><strong>${data[k].length}</strong><small>公開設定 ${data[k].filter(x=>x.published===true).length} 件</small></div>`).join("");
  const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
  $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
 }
@@ -85,7 +85,7 @@ function renderTabs(){
 function formObject(){
  const obj={};
  for(const [key,,type] of SCHEMAS[current]){
-  const el=$("content-form").elements.namedItem(key);if(!el)continue;
+  const el=$("content-form").elements.namedItem(key);if(!el&&type!=="memberSelect")continue;
   if(type==="memberSelect")obj[key]=Array.from($("content-form").querySelectorAll('input[name="featuredIds"]:checked')).map(e=>e.value);
   else if(type==="checkbox")obj[key]=el.checked;
   else if(type==="visibility")obj[key]=Array.from($("content-form").querySelectorAll('input[name="hiddenSections"]:checked')).map(input=>input.value);
@@ -100,7 +100,7 @@ function formObject(){
  return obj;
 }
 function validateDataset(kind,items){
- if(kind==="home"&&items.length>1)return "トップページ設定は1件のみです。";
+ if(kind==="home"&&Array.isArray(items)&&items.length>1)return "トップページ設定は1件のみです。";
  if(!Array.isArray(items))return "データ形式が配列ではありません。";
  const ids=new Set();
  for(let i=0;i<items.length;i++){
