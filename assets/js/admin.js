@@ -23,7 +23,7 @@ let publishing=false;
 let current="talents",editing=-1,accessToken="",githubLogin="",tokenExpiresAt=0,authPopup=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function status(message){$("admin-status").textContent=message}
+function status(message){const el=$("admin-status");el.textContent=message;el.dataset.tone=/失敗|できません|不正|停止|中止|重複/.test(message)?"error":/公開しました|保存しました|準備完了|読み込みました/.test(message)?"success":/確認|注意|未保存/.test(message)?"warning":"info"}
 function saveDraft(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));if(!draftConflict)localStorage.setItem(BASELINE_KEY,JSON.stringify(baseline))}catch{status("ブラウザー内に保存できませんでした。公開操作を行う前に内容を控えてください。")}}
 function authReady(){return Boolean(accessToken&&Date.now()<tokenExpiresAt)}
 function updateAuthUI(){
