@@ -47,7 +47,7 @@ function renderForm(item={}){
   const el=form.elements.namedItem(key);if(!el)continue;
   if(type==="checkbox")el.checked=item[key]===true;
   else if(type==="visibility"){const values=Array.isArray(item[key])?item[key]:[];form.querySelectorAll('input[name="hiddenSections"]').forEach(input=>input.checked=values.includes(input.value))}
-  else if(type==="achievements"){el.value=Array.isArray(item[key])?item[key].map(x=>[x.date||"",x.title||"",x.description||""].join(" | ")).join("\\n"):(item[key]||"")}
+  else if(type==="achievements"){el.value=Array.isArray(item[key])?item[key].map(x=>[x.date||"",x.title||"",x.description||""].join(" | ")).join("\n"):(item[key]||"")}
   else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
   else if(type==="image"){el.value=item[key]||"";const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=item[key]?`登録済み: ${esc(item[key])} <button type="button" class="admin-small-button danger" data-image-delete="${key}" data-image-path-value="${esc(item[key])}">GitHubから削除</button>`:"画像未登録"}
   else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.length?values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">GitHubから削除</button></span>`).join(""):"画像未登録"}
@@ -82,7 +82,7 @@ function formObject(){
   const el=$("content-form").elements.namedItem(key);if(!el)continue;
   if(type==="checkbox")obj[key]=el.checked;
   else if(type==="visibility")obj[key]=Array.from($("content-form").querySelectorAll('input[name="hiddenSections"]:checked')).map(input=>input.value);
-  else if(type==="achievements")obj[key]=el.value.split("\\n").map(line=>{const parts=line.split("|").map(s=>s.trim());return parts[1]?{date:parts[0],title:parts[1],description:parts.slice(2).join(" | ")}:null}).filter(Boolean);
+  else if(type==="achievements")obj[key]=el.value.split(/\r?\n/).map(line=>{const parts=line.split("|").map(s=>s.trim());return parts[1]?{date:parts[0],title:parts[1],description:parts.slice(2).join(" | ")}:null}).filter(Boolean);
   else if(type==="cohort")obj[key]=Array.from($("content-form").querySelectorAll('input[name="cohort"]:checked')).map(input=>input.value);
   else if(type==="image")obj[key]=el.value;
   else if(type==="gallery"){try{obj[key]=JSON.parse(el.value||"[]")}catch{obj[key]=[]}}
@@ -131,7 +131,7 @@ async function uploadTalentImage(input){
    const file=files[i],ext=allowed[file.type];
    let path;
    if(gallery){
-    const n=existing.length+uploaded.length+1;
+    const n=Math.max(0,...existing.concat(uploaded).map(p=>Number(p.match(/-look-(\d+)\./)?.[1]||0)))+1;
     const seq=String(n).padStart(3,"0");
     path="assets/images/talents/"+id+"-look-"+seq+"."+ext;
    }else path="assets/images/talents/"+id+"-"+(key==="iconImage"?"icon":"avatar")+"."+ext;
@@ -188,8 +188,8 @@ $("form-fields").addEventListener("click",e=>{
 $("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
  e.preventDefault();const obj=formObject();
- if(current==="talents"&&obj.links.length===0)delete obj.links;
- if(current==="talents"&&obj.tags.length===0)delete obj.tags;
+ 
+ 
  if(obj.url&&!/^https?:\/\//i.test(obj.url)){status("URLは http:// または https:// で始まる形式にしてください。");return}
  if(obj.id&&data[current].some((x,i)=>x.id===obj.id&&i!==editing)){status("同じIDがすでに登録されています。別のIDを指定してください。");return}
  if(editing<0)data[current].push(obj);else data[current][editing]={...data[current][editing],...obj};
@@ -204,10 +204,10 @@ $("content-list").addEventListener("click",e=>{
 document.querySelectorAll(".admin-tab").forEach(b=>b.addEventListener("click",()=>{current=b.dataset.kind;editing=-1;renderTabs()}));
 $("reset-button").addEventListener("click",async()=>{
  if(!confirm("このブラウザー内の編集内容を破棄し、GitHub上の公開データを読み直しますか？"))return;
- localStorage.removeItem(STORAGE_KEY);await loadRemote();status("GitHub上の公開データを読み込みました。");
+ try{await loadRemote();localStorage.removeItem(STORAGE_KEY);editing=-1;renderTabs();status("公開データを読み込みました。")}catch(e){status(e.message+"。編集内容は維持しました。")}
 });
 async function loadRemote(){
- for(const key of Object.keys(FILES)){try{const r=await fetch("data/"+FILES[key],{cache:"no-store"});if(!r.ok)throw new Error();const a=await r.json();data[key]=Array.isArray(a)?a:[]}catch{data[key]=[]}}
+ const next={};for(const key of Object.keys(FILES)){const r=await fetch("data/"+FILES[key],{cache:"no-store"});if(!r.ok)throw new Error("公開データを取得できません: "+LABELS[key]);const a=await r.json();if(!Array.isArray(a))throw new Error("データ形式が不正です: "+LABELS[key]);next[key]=a}Object.assign(data,next);
 }
 function base64Utf8(value){
  const bytes=new TextEncoder().encode(value);let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary);
@@ -220,7 +220,7 @@ async function githubRequest(path,options={}){
 async function publishCurrent(){
  if(!authReady()){status("先にGitHubへログインしてください。");updateAuthUI();return}
  const validation=validateDataset(current,data[current]);if(validation){status("公開できません: "+validation);return}
- const file="data/"+FILES[current],button=$("publish-button");
+ const kind=current, snapshot=JSON.stringify(data[current],null,2)+"\n",file="data/"+FILES[kind],button=$("publish-button");
  if(!confirm(LABELS[current]+"のデータ "+data[current].length+"件をGitHubへ公開します。よろしいですか？"))return;
  button.disabled=true;button.textContent="公開中...";
  try{
@@ -229,7 +229,7 @@ async function publishCurrent(){
   let sha=null;
   if(get.status===200){const existing=await get.json();sha=existing.sha}
   else if(get.status!==404){const detail=await get.text();throw new Error("現在の公開データを確認できませんでした ("+get.status+"): "+detail.slice(0,180))}
-  const payload={message:"Update "+file+" via Poppoo Admin",content:base64Utf8(JSON.stringify(data[current],null,2)+"\n"),branch:BRANCH};
+  const payload={message:"Update "+file+" via Poppoo Admin",content:base64Utf8(snapshot),branch:BRANCH};
   if(sha)payload.sha=sha;
   const put=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath,{method:"PUT",body:JSON.stringify(payload)});
   if(!put.ok){const detail=await put.text();throw new Error("GitHubへの保存に失敗しました ("+put.status+"): "+detail.slice(0,240))}
@@ -257,7 +257,7 @@ window.addEventListener("message",event=>{
  updateAuthUI();status("@"+githubLogin+" としてログインしました。公開するカテゴリを選択してください。");
 });
 (async()=>{
- await loadRemote();
+ try{await loadRemote()}catch(e){status(e.message+"。再読み込みしてください。");return}
  try{const draft=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(draft&&typeof draft==="object")for(const key of Object.keys(FILES))if(Array.isArray(draft[key]))data[key]=draft[key]}catch{}
  renderTabs();status("準備完了。編集内容はこのブラウザー内に一時保存されます。");
 })();
