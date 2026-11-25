@@ -25,3 +25,5 @@
 .renewal-home #home-talents .talent-art img{max-height:none}
 @media(max-width:760px){.renewal-home .pop-hero-grid{grid-template-columns:1fr;min-height:0;gap:20px}.renewal-home .pop-stage{min-height:260px}.renewal-home .pop-featured>img{width:min(60%,230px)}.renewal-home .pop-spotlight-visual>a{height:360px}.renewal-home #home-talents{grid-auto-columns:clamp(160px,65%,260px);gap:12px}.pop-wave-decoration{mask-image:none;opacity:.5}}
 @media(prefers-reduced-motion:reduce){.renewal-home *{scroll-behavior:auto!important;transition:none!important}}
+
+.renewal-home .pop-spotlight-visual>a{border-top:6px solid var(--member-color,#1978c8);background:radial-gradient(circle,white,color-mix(in srgb,var(--member-color,#1978c8) 25%,white))}
