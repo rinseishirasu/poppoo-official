@@ -2,9 +2,9 @@
  const [talents,news,schedule]=await Promise.all([
   loadData("data/talents.json"),loadData("data/news.json"),loadData("data/schedule.json")
  ]);
- const published=a=>a.filter(x=>x.published===true);
+ const published=a=>(Array.isArray(a)?a:[]).filter(x=>x&&x.published===true);
  const dateLabel=d=>d?escapeHtml(d.replaceAll("-","/")):"";
- const todayJST=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+ const todayJST=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
  const anniversaryCountdown=value=>{
   if(!value)return "";
   let month=0,day=0;
@@ -15,10 +15,10 @@
   if(month<1||month>12||day<1||day>31)return "";
   const [yearNow,monthNow,dayNow]=todayJST.split("-").map(Number);
   const valid=(y)=>{const d=new Date(Date.UTC(y,month-1,day));return d.getUTCMonth()===month-1&&d.getUTCDate()===day};
-  if(!valid(yearNow))return "";
+  if(!valid(2000))return "";
   let year=yearNow;
   if(Date.UTC(year,month-1,day)<Date.UTC(yearNow,monthNow-1,dayNow))year++;
-  if(!valid(year))return "";
+  while(!valid(year))year++;
   const remaining=Math.round((Date.UTC(year,month-1,day)-Date.UTC(yearNow,monthNow-1,dayNow))/86400000);
   return '<section class="profile-section profile-anniversary"><span class="eyebrow">ANNIVERSARY</span><h2>次の活動記念日</h2><div class="anniversary-countdown"><strong>'+remaining+'</strong><span>日後</span><p>'+year+'年'+month+'月'+day+'日</p></div></section>';
  };
@@ -32,7 +32,7 @@
  const featured=document.querySelector("#home-featured");
  if(featured){const list=published(talents).map(t=>({t,src:safeExternalLink((Array.isArray(t.avatarImages)?t.avatarImages[0]:t.avatarImages)||t.avatarImage||t.iconImage||"")})).filter(x=>x.src).slice(0,3);if(list.length)featured.innerHTML=list.map(({t,src})=>'<a href="talent.html?id='+encodeURIComponent(t.id)+'"><img src="'+escapeHtml(src)+'" alt="'+escapeHtml(t.name)+'"><strong>'+escapeHtml(t.name)+'</strong></a>').join("");}
  const tg=document.querySelector("#talent-grid");
- if(tg){const q=document.querySelector("#talent-search"),filter=document.querySelector("#cohort-filter"),count=document.querySelector("#member-count"),all=published(talents);if(filter){[...new Set(all.flatMap(cohorts).filter(Boolean))].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;filter.append(o)})}const render=()=>{const v=(q?.value||"").trim().toLowerCase(),group=filter?.value||"";const list=all.filter(t=>(!group||cohorts(t).includes(group))&&[t.name,t.bio,t.catchphrase,t.affiliationAgency,...cohorts(t),...(Array.isArray(t.roles)?t.roles:[t.roles||""]),...(t.tags||[])].join(" ").toLowerCase().includes(v));if(count)count.textContent=list.length+" / "+all.length+" MEMBERS";tg.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するメンバーはいません。":"参加メンバーの紹介は準備中です。")+'</div>'};q?.addEventListener("input",render);filter?.addEventListener("change",render);render()}
+ if(tg){const q=document.querySelector("#talent-search"),filter=document.querySelector("#cohort-filter"),count=document.querySelector("#member-count"),all=published(talents);if(filter){[...new Set(all.flatMap(cohorts).filter(Boolean))].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;filter.append(o)})}const render=()=>{const v=(q?.value||"").trim().toLowerCase(),group=filter?.value||"";const list=all.filter(t=>(!group||cohorts(t).includes(group))&&[t.name,t.bio,t.catchphrase,t.affiliationAgency,...cohorts(t),...(Array.isArray(t.roles)?t.roles:[t.roles||""]),...(Array.isArray(t.tags)?t.tags:[])].join(" ").toLowerCase().includes(v));if(count)count.textContent=list.length+" / "+all.length+" MEMBERS";tg.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するメンバーはいません。":"参加メンバーの紹介は準備中です。")+'</div>'};q?.addEventListener("input",render);filter?.addEventListener("change",render);render()}
  const homeT=document.querySelector("#home-talents");if(homeT){const list=published(talents).slice(0,4);homeT.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">参加メンバー情報は準備中です。公開準備が整い次第、こちらでご紹介します。</div>'}
  const fillOptions=(el,values)=>{if(el)[...new Set(values.filter(Boolean))].sort().forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
  const nl=document.querySelector("#news-list");
@@ -47,8 +47,8 @@
    document.title=t.name+" | MEMBERS | 架空事務所 ぽっぽー";
    const hidden=new Set(Array.isArray(t.hiddenSections)?t.hiddenSections:[]);
    const visible=(key,html)=>hidden.has(key)?"":html;
-   const tags=(t.tags||[]).filter(Boolean);
-   const links=(t.links||[]).map(l=>({label:l.label||"公式リンク",url:safeExternalLink(l.url)})).filter(l=>l.url);
+   const tags=(Array.isArray(t.tags)?t.tags:[]).filter(Boolean);
+   const links=(Array.isArray(t.links)?t.links:[]).filter(Boolean).map(l=>({label:l.label||"公式リンク",url:safeExternalLink(l.url)})).filter(l=>l.url);
    const avatarList=(Array.isArray(t.avatarImages)?t.avatarImages:t.avatarImages?[t.avatarImages]:[]).map(safeExternalLink).filter(Boolean);
    if(!avatarList.length&&t.avatarImage){const legacy=safeExternalLink(t.avatarImage);if(legacy)avatarList.push(legacy)}
    const avatar=avatarList[0]||"",icon=safeExternalLink(t.iconImage||"");
@@ -83,5 +83,5 @@
 
   }else{profile.innerHTML='<div class="empty-state profile-empty"><span class="eyebrow">PROFILE</span><h1>プロフィールは準備中です</h1><p>お探しのプロフィールは、まだ公開されていないか、掲載を終了しています。</p><a class="btn secondary" href="talents.html">参加メンバー一覧へ戻る</a></div>'}
  }
- const article=document.querySelector("#news-detail");if(article){const id=new URLSearchParams(location.search).get("id");const n=published(news).find(x=>x.id===id);article.innerHTML=n?`<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">${escapeHtml(n.category||"INFORMATION")}</span><time datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time></div><h1>${escapeHtml(n.title)}</h1>${n.summary?`<p class="detail-summary">${escapeHtml(n.summary)}</p>`:""}<div class="prose news-prose">${(n.body||"").split(/\r?\n/).map(line=>line?`<p>${escapeHtml(line)}</p>`:"").join("")}</div><div class="news-detail-footer"><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>`:'<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>'}
+ const article=document.querySelector("#news-detail");if(article){const id=new URLSearchParams(location.search).get("id");const n=published(news).find(x=>x.id===id);if(n)document.title=n.title+" | NEWS | 架空事務所 ぽっぽー";article.innerHTML=n?`<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">${escapeHtml(n.category||"INFORMATION")}</span><time datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time></div><h1>${escapeHtml(n.title)}</h1>${n.summary?`<p class="detail-summary">${escapeHtml(n.summary)}</p>`:""}<div class="prose news-prose">${(n.body||"").split(/\r?\n/).map(line=>line?`<p>${escapeHtml(line)}</p>`:"").join("")}</div><div class="news-detail-footer"><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>`:'<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>'}
 })();
