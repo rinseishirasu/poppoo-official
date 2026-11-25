@@ -1,6 +1,6 @@
 // Portal authentication: initial administrator and login.
 const encoder = new TextEncoder();
-const ITERATIONS = 600000;
+const ITERATIONS = 100000; // Compatibility test only; review before production.
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,"0")).join("");
 function randomToken(){return hex(crypto.getRandomValues(new Uint8Array(32)));}
 async function digest(value){return hex(await crypto.subtle.digest("SHA-256",encoder.encode(value)));}
@@ -9,7 +9,7 @@ async function derive(password,salt){
  return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:encoder.encode(salt),iterations:ITERATIONS},key,256));
 }
 export async function hashPassword(password){
- if(typeof password!=="string" || password.length<12 || encoder.encode(password).length>1024) throw new Error("Invalid password length");
+ if(typeof password!=="string" || password.length<16 || encoder.encode(password).length>1024) throw new Error("Invalid password length");
  const salt=randomToken();
  return "pbkdf2-sha256$"+ITERATIONS+"$"+salt+"$"+await derive(password,salt);
 }
@@ -53,7 +53,7 @@ async function equalSecret(a,b){
 function page(mode,message="",status=200){
  const nonce=randomToken(),csrf=randomToken();
  const setup=mode==="setup",home=mode==="home";
- const form=home?'<p>ログインしました。メンバー機能は準備中です。</p><form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="12" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ const form=home?'<p>ログインしました。メンバー機能は準備中です。</p><form method="post" action="/logout"><button>ログアウト</button></form>':'<form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="16" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
  return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,440px)}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer}p{line-height:1.7}small{color:#536b83}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":home?"メンバーポータル":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
@@ -73,7 +73,7 @@ export default {async fetch(request,env){
  if(!await equalSecret(new URLSearchParams(raw).get("secret"),env.BOOTSTRAP_SECRET))return json({error:"Forbidden"},403);
  try{const key=await crypto.subtle.importKey("raw",encoder.encode("synthetic diagnostic input"),"PBKDF2",false,["deriveBits"]);await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:crypto.getRandomValues(new Uint8Array(32)),iterations:100000},key,256);return json({ok:true,iterations:100000});}catch(e){return json({ok:false,iterations:100000,errorType:e?.name||"Error"});}
  }
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"kdf-check-v4"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"auth-test-v5"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
@@ -95,7 +95,7 @@ export default {async fetch(request,env){
  if(!validEmail(email)||encoder.encode(password).length>1024)return page(path==="/setup"?"setup":"login","入力内容を確認してください。",400);
  if(path==="/setup"){
   if(!await equalSecret(form.get("secret"),env.BOOTSTRAP_SECRET))return page("setup","登録できませんでした。",403);
-  if(password.length<12)return page("setup","パスワードは12文字以上にしてください。",400);
+  if(password.length<16)return page("setup","パスワードは16文字以上にしてください。",400);
   step="password-hash";
  const hash=await hashPassword(password);
  step="administrator-insert";
@@ -105,7 +105,7 @@ export default {async fetch(request,env){
  }
  if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
  const account=await db.prepare("SELECT id,status,password_hash FROM accounts WHERE email=?").bind(email).first();
- const dummy="pbkdf2-sha256$600000$"+"0".repeat(64)+"$"+"0".repeat(64);
+ const dummy="pbkdf2-sha256$"+ITERATIONS+"$"+"0".repeat(64)+"$"+"0".repeat(64);
  step="password-verify";
  const valid=await verifyPassword(password,account?.password_hash||dummy);
  if(!valid||account?.status!=="active")return page("login","メールアドレスまたはパスワードを確認してください。",401);
@@ -113,5 +113,5 @@ export default {async fetch(request,env){
  step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"kdf-check-v4"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"auth-test-v5"},503);}
 }};
