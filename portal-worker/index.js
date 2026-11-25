@@ -135,11 +135,67 @@ async function saveProfile(db,session,form){
 // Private submissions: fixed per-account slots, never write to public GitHub.
 const AVATAR_SLOTS=[["icon","アイコン"],["avatar1","アバター1"],["avatar2","アバター2"],["avatar3","アバター3"]];
 const avatarSlot=s=>AVATAR_SLOTS.some(([k])=>k===s);
+// Bounded structural validation, not a full image decoder. Reject animation and metadata containers.
 function imageMime(b){
- if(b.length<12)return "";
- if([137,80,78,71,13,10,26,10].every((v,i)=>b[i]===v))return "image/png";
- if(b[0]===255&&b[1]===216&&b[2]===255)return "image/jpeg";
- if(String.fromCharCode(...b.slice(0,4))==="RIFF"&&String.fromCharCode(...b.slice(8,12))==="WEBP")return "image/webp";
+ if(!(b instanceof Uint8Array)||b.length<24||b.length>524288)return "";
+ const v=new DataView(b.buffer,b.byteOffset,b.byteLength),str=(i,n)=>String.fromCharCode(...b.subarray(i,i+n));
+ const dimensions=(w,h)=>Number.isInteger(w)&&Number.isInteger(h)&&w>0&&h>0&&w<=2048&&h<=2048&&w*h<=4194304;
+ if([137,80,78,71,13,10,26,10].every((x,i)=>b[i]===x)){
+ let pos=8,seenHeader=false,seenData=false,seenEnd=false;
+ const allowed=new Set(["IHDR","PLTE","IDAT","IEND","tRNS","gAMA","cHRM","sRGB","pHYs","sBIT","bKGD"]);
+ while(pos+12<=b.length){
+ const n=v.getUint32(pos),type=str(pos+4,4),next=pos+12+n;
+ if(next>b.length||!allowed.has(type)||seenEnd)return "";
+ if(!seenHeader){if(type!=="IHDR"||n!==13||!dimensions(v.getUint32(pos+8),v.getUint32(pos+12)))return "";seenHeader=true;}
+ else if(type==="IHDR")return "";
+ if(type==="IDAT"){if(!n)return "";seenData=true;}
+ if(type==="IEND"){if(n!==0||!seenData||next!==b.length)return "";seenEnd=true;}
+ pos=next;
+ }
+ return seenHeader&&seenData&&seenEnd&&pos===b.length?"image/png":"";
+ }
+ if(b[0]===255&&b[1]===216&&b[b.length-2]===255&&b[b.length-1]===217){
+ let pos=2,frame=false;
+ while(pos<b.length-2){
+ if(b[pos++]!==255)return "";
+ while(pos<b.length&&b[pos]===255)pos++;
+ const marker=b[pos++];if(pos+2>b.length)return "";
+ const n=v.getUint16(pos),end=pos+n;
+ if(n<2||end>b.length)return "";
+ // Only ordinary baseline/progressive JPEG; reject comment, EXIF and other application metadata.
+ if(marker===0xe0){if(n!==16||str(pos+2,5)!=="JFIF\0"||b[pos+14]!==0||b[pos+15]!==0)return "";}
+ else if(marker===0xee){if(n!==14||str(pos+2,5)!=="Adobe")return "";}
+ else if(marker>=0xe0&&marker<=0xef||marker===0xfe)return "";
+ else if(marker===0xc0||marker===0xc2){if(frame||n<8||!dimensions(v.getUint16(pos+5),v.getUint16(pos+3)))return "";frame=true;}
+ else if(marker===0xda){return frame&&n>=6&&end<b.length-2?"image/jpeg":"";}
+ else if(![0xdb,0xc4,0xdd].includes(marker))return "";
+ pos=end;
+ }
+ return "";
+ }
+ if(str(0,4)==="RIFF"&&str(8,4)==="WEBP"&&v.getUint32(4,true)+8===b.length){
+ let pos=12,frame=false,extended=false,canvasW=0,canvasH=0;
+ const u24=i=>b[i]+(b[i+1]<<8)+(b[i+2]<<16);
+ while(pos+8<=b.length){
+ const type=str(pos,4),n=v.getUint32(pos+4,true),i=pos+8,end=i+n;
+ if(end+(n%2)>b.length)return "";
+ if(type==="VP8X"){
+ if(pos!==12||extended||n!==10||(b[i]&~0x10)!==0)return "";
+ canvasW=u24(i+4)+1;canvasH=u24(i+7)+1;if(!dimensions(canvasW,canvasH))return "";extended=true;
+ }else if(type==="VP8 "){
+ if(frame||n<10||(b[i]&1)!==0||b[i+3]!==157||b[i+4]!==1||b[i+5]!==42)return "";
+ const w=v.getUint16(i+6,true)&16383,h=v.getUint16(i+8,true)&16383;
+ if(!dimensions(w,h)||(extended&&(w!==canvasW||h!==canvasH)))return "";frame=true;
+ }else if(type==="VP8L"){
+ if(frame||n<5||b[i]!==47)return "";
+ const bits=v.getUint32(i+1,true),w=(bits&16383)+1,h=((bits>>>14)&16383)+1;
+ if((bits>>>29)!==0||!dimensions(w,h)||(extended&&(w!==canvasW||h!==canvasH)))return "";frame=true;
+ }else if(type==="ALPH"){if(!extended||frame||!n)return "";}
+ else return "";
+ pos=end+(n%2);
+ }
+ return frame&&pos===b.length?"image/webp":"";
+ }
  return "";
 }
 function publicAvatar(path){
@@ -157,17 +213,17 @@ async function avatarPage(db,session){
  const published=current.length?current.map(([label,url])=>'<div class="portal-tile"><h3>'+esc(label)+'</h3><img class="avatar-preview" src="'+esc(url)+'" alt="'+esc(label)+'" referrerpolicy="no-referrer"></div>').join(""):"<p>公開画像はありません。</p>";
  const cards=AVATAR_SLOTS.map(([slot,label])=>{
  const row=rows.find(x=>x.slot===slot);
- return '<section class="portal-tile"><h3>'+esc(label)+'</h3>'+(row?'<p>審査待ち・非公開</p><img class="avatar-preview" src="/avatars/image?slot='+slot+'&amp;v='+encodeURIComponent(row.id)+'" alt="提出画像"><form method="post" action="/avatars/withdraw"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>提出を取り下げる</button></form>':'<p>未提出</p>')+'<form method="post" enctype="multipart/form-data" action="/avatars/upload"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="previous" value="'+esc(row?.id||"")+'"><label>画像を選択（512KiB以下）<input type="file" name="image" accept="image/png,image/jpeg,image/webp" required></label><button>'+(row?"画像を差し替える":"画像を提出する")+'</button></form></section>';
+ return '<section class="portal-tile"><h3>'+esc(label)+'</h3>'+(row?'<p>審査待ち・非公開</p><img class="avatar-preview" src="/avatars/image?slot='+slot+'&amp;v='+encodeURIComponent(row.id)+'" alt="提出画像"><form method="post" action="/avatars/withdraw"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>提出を取り下げる</button></form>':'<p>未提出</p>')+'<form method="post" enctype="multipart/form-data" action="/avatars/upload"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="previous" value="'+esc(row?.id||"")+'"><label>画像を選択（512KiB以下・縦横2048px以内）<input type="file" name="image" accept="image/png,image/jpeg,image/webp" required></label><button>'+(row?"画像を差し替える":"画像を提出する")+'</button></form></section>';
  }).join("");
  const reviewed=(await db.prepare("SELECT request_id,state,note,updated_at FROM publication_jobs WHERE account_id=? AND kind='avatar' AND state IN ('published','returned') ORDER BY updated_at DESC LIMIT 30").bind(session.id).all()).results;
  const history=reviewed.map(j=>'<article><strong>'+(j.state==="published"?"公開済み":"差し戻し")+'</strong><p><small>'+esc(j.updated_at)+' UTC</small></p><pre>'+esc(j.note||"")+'</pre></article>').join("")||"<p>審査履歴はありません。</p>";
- return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
+ return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。位置情報などのメタデータを除去し、静止画に書き出してから提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
 }
 async function uploadAvatar(db,session,form){
  const slot=form.get("slot"),previous=form.get("previous")||"",file=form.get("image");
  if(!avatarSlot(slot)||typeof previous!=="string"||previous.length>36||!file||typeof file.arrayBuffer!=="function"||file.size<12||file.size>524288)return json({error:"Invalid image or size; maximum 512KiB"},400);
  const data=await file.arrayBuffer(),mime=imageMime(new Uint8Array(data));
- if(!mime||file.type!==mime)return json({error:"Unsupported image format"},400);
+ if(!mime||file.type!==mime)return json({error:"Unsupported image structure, metadata or dimensions"},400);
  const member=(await publishedMembers()).find(m=>m.id===session.member_id);
  if(!member)return json({error:"Profile unavailable"},404);
  const id=crypto.randomUUID();
@@ -194,7 +250,7 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
 }
 function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
-const publicationReady=env=>pepperReady(env)&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
+const publicationReady=env=>pepperReady(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
 async function githubDataset(env,kind,ref="main"){
@@ -381,7 +437,7 @@ async function reviewPage(env){
  const [profiles,avatars,jobs,members]=await Promise.all([
  db.prepare("SELECT p.id,p.account_id,p.base_revision,p.patch_json,p.updated_at,a.member_id,a.status AS account_status FROM profile_requests p JOIN accounts a ON a.id=p.account_id WHERE p.status='pending' ORDER BY p.created_at LIMIT 100").all(),
  db.prepare("SELECT p.id,p.slot,p.account_id,p.created_at,a.member_id,a.status AS account_status FROM avatar_requests p JOIN accounts a ON a.id=p.account_id ORDER BY p.created_at LIMIT 100").all(),
- db.prepare("SELECT request_id,kind,account_id,state,commit_sha,note,updated_at FROM publication_jobs ORDER BY updated_at DESC LIMIT 100").all(),
+ db.prepare("SELECT request_id,kind,account_id,state,commit_sha,note,updated_at FROM publication_jobs ORDER BY (state='processing') DESC,updated_at DESC LIMIT 100").all(),
  enabled?githubDataset(env,"talents"):publishedMembers().then(data=>({data,sha:""}))
  ]);
  const member=id=>members.data.find(m=>m.id===id&&m.published===true);
@@ -455,6 +511,7 @@ async function reviewSubmission(env,session,form){
  if(saved.meta.changes!==1)throw Error("Job changed");
  commitSha=sha;
  // Non-forced update rejects concurrent changes to main.
+ const current=await gitHead(env);if(current.sha!==head.sha)throw Error("Branch head changed before publish");
  const ref=await gitCall(env,"/git/refs/heads/main","PATCH",{sha:commitSha,force:false});
  if(ref.object?.sha!==commitSha)throw Error("Unconfirmed ref update");
  await finishPublication(db,{kind,request_id:id,account_id:row.account_id,actor_id:session.id,note,commit_sha:commitSha});
@@ -519,7 +576,7 @@ export default {async fetch(request,env){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
  const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
  const schemaReady=tables.every(t=>found.includes(t));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-dev-v14",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-candidate-v15",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -566,7 +623,7 @@ export default {async fetch(request,env){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
  if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(db,session,form);}
  const slot=form.get("slot"),id=form.get("id");if(!avatarSlot(slot)||typeof id!=="string")return json({error:"Invalid submission"},400);
- const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing')").bind(session.id,slot,id).run();
+ const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(session.id,slot,id,session.id).run();
  if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
  return redirect("/avatars");
  }
@@ -624,7 +681,7 @@ export default {async fetch(request,env){
  }
  const id=form.get("id")||"";if(!/^[a-f0-9-]{36}$/.test(id))return json({error:"Invalid account"},400);
  if(path==="/admin/invite"){
-  if(env.PORTAL_TEST_MODE!=="true")return json({error:"Invitation disabled"},403);
+  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env))return json({error:"Invitation disabled"},403);
   const token=randomToken(),tokenHash=await digest(token);
   const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited'").bind(tokenHash,now()+86400,id)]);
   if(result[1].meta.changes!==1)return json({error:"Account not eligible"},409);
@@ -657,5 +714,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-dev-v14"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-candidate-v15"},503);}
 }};
