@@ -171,3 +171,31 @@
 .pop-directory .pop-filters button{min-height:44px}
 @media(max-width:1000px){.pop-directory #talent-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.pop-directory #talent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.pop-directory .pop-member-card .card-body{padding:10px}.pop-directory .pop-member-placeholder{font-size:2.5rem}.pop-directory .pop-filters{display:grid;grid-template-columns:minmax(0,1fr)}.pop-directory .pop-filters input,.pop-directory .pop-filters select{width:100%}}
+
+/* Individual profile refinement */
+.pop-profile .profile-top{grid-template-columns:minmax(0, .9fr) minmax(0,1.1fr);gap:clamp(20px,4vw,48px);padding:clamp(18px,3vw,36px)}
+.pop-profile .profile-avatar{aspect-ratio:1/1;max-height:none;min-height:0}
+.pop-profile .profile-image-open{display:block;padding:0;border:0;background:transparent;cursor:zoom-in;min-height:0;overflow:hidden}
+.pop-profile .profile-avatar img{display:block;width:100%;height:100%;max-height:none;object-fit:contain}
+.pop-profile .profile-image-open span{position:absolute;bottom:12px;right:12px;background:#142f56e6;color:white;padding:7px 12px;border-radius:8px;font-size:.75rem}
+.pop-profile .profile-intro h1{margin:12px 0;font-size:clamp(2rem,4.6vw,3.6rem)}
+.pop-profile .profile-intro .lead{line-height:1.7;overflow-wrap:anywhere}
+.pop-profile .profile-index{align-items:center;gap:8px;padding:12px}
+.pop-profile .profile-index a{padding:8px 12px;border-radius:7px;background:#edf6ff;color:#145b98;font-size:.8rem;text-decoration:none}
+.pop-profile .profile-index a:hover{background:#d9ecfc}
+.pop-profile .profile-details{align-items:start;gap:16px}
+.pop-profile .profile-section{padding:clamp(16px,2.5vw,28px)}
+.pop-profile .profile-section h2{font-size:1.2rem;line-height:1.5}
+.pop-profile .talent-fact{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0,1.2fr);gap:12px;padding:10px 0;border-bottom:1px solid #e5edf5}
+.pop-profile .talent-fact:last-child{border-bottom:0}
+.pop-profile .talent-fact dt,.pop-profile .talent-fact dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.pop-profile .talent-fact dt{color:#536b83;font-size:.85rem}
+.pop-profile .talent-fact dd{color:#142f56;font-size:.9rem}
+.pop-profile .profile-anniversary .anniversary-countdown{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}
+.pop-profile .profile-anniversary .anniversary-countdown p{flex-basis:100%;margin:0;color:#536b83}
+.pop-profile .avatar-lookbook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pop-profile .avatar-lookbook-item{min-width:0;overflow:hidden}
+.pop-profile .avatar-lookbook-item img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#f0f6fc}
+.pop-profile .profile-member-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pop-profile .profile-member-link{min-width:0;overflow-wrap:anywhere}
+@media(max-width:760px){.pop-profile .profile-top,.pop-profile .profile-details{grid-template-columns:minmax(0,1fr)}.pop-profile .profile-avatar{max-width:440px;margin-inline:auto}.pop-profile .profile-intro h1{font-size:2rem}.pop-profile .avatar-lookbook-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pop-profile .profile-index a{font-size:.75rem;padding:7px 9px}}
