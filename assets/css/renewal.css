@@ -236,3 +236,20 @@
 .pop-news-detail .news-detail-footer a{display:inline-flex;align-items:center;min-height:44px}
 @media(max-width:1000px){.pop-info #news-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.pop-info #news-list{grid-template-columns:minmax(0,1fr);gap:14px}.pop-info #news-list .card-body{padding:16px}.pop-news-detail .detail-article h1{font-size:1.55rem}.pop-news-detail .news-prose{font-size:.95rem}.pop-news-detail .detail-summary{padding:12px 14px}}
+
+/* About page: compact mission and readable community facts */
+.pop-brand-about .pop-brand-content{gap:20px;max-width:1040px}
+.pop-brand-about .pop-brand-intro{grid-template-columns:minmax(0,1fr) minmax(100px,180px);gap:24px;padding:clamp(22px,4vw,40px);border-radius:18px}
+.pop-brand-about .pop-brand-intro h2{font-size:clamp(1.65rem,3.6vw,2.7rem);overflow-wrap:anywhere}
+.pop-brand-about .pop-brand-intro img{border-radius:14px}
+.pop-brand-about .pop-brand-panel{padding:clamp(20px,3vw,32px);border-radius:16px}
+.pop-brand-about .pop-brand-panel p{max-width:76ch;margin:0 0 12px;overflow-wrap:anywhere}
+.pop-brand-about .pop-brand-panel p:last-child{margin-bottom:0}
+.pop-brand-about .about-values .info-box{line-height:1.7;padding:18px}
+.pop-brand-about .about-values .info-box strong{display:block;margin-bottom:10px;font-size:.78rem;letter-spacing:.06em}
+.pop-brand-about .about-values .info-box span{display:block;margin-top:8px;font-size:.88rem;color:#536b83}
+.pop-brand-about .about-overview{grid-template-columns:minmax(0,1fr)}
+.pop-brand-about .about-overview .info-box{display:grid;grid-template-columns:minmax(120px,.35fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:14px 8px;line-height:1.65}
+.pop-brand-about .about-overview .info-box strong{margin:0;color:#536b83;font-size:.85rem}
+.pop-brand-about .about-overview .info-box:last-child{border-bottom:0}
+@media(max-width:760px){.pop-brand-about .pop-brand-intro{grid-template-columns:minmax(0,1fr);gap:16px}.pop-brand-about .pop-brand-intro img{max-width:110px;justify-self:start}.pop-brand-about .about-overview .info-box{grid-template-columns:minmax(85px,.42fr) minmax(0,1fr);gap:10px;padding:12px 0;font-size:.9rem}.pop-brand-about .pop-brand-cta .pop-link{width:100%;justify-content:center}}
