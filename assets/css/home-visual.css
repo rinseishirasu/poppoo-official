@@ -55,3 +55,15 @@
 .renewal-home .pop-join .pop-link:focus-visible{outline-color:white}
 @media(max-width:900px){.renewal-home .pop-news .cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.renewal-home .pop-hero-grid{grid-template-columns:minmax(0,1fr);min-height:0;gap:22px}.renewal-home .pop-hero h1{font-size:clamp(1.7rem,6.8vw,2.65rem);margin:12px 0}.renewal-home .pop-hero-copy p{font-size:.95rem;margin-bottom:16px}.renewal-home .pop-hero-actions{gap:8px}.renewal-home .pop-spotlight-visual>a{height:clamp(240px,72vw,340px)}.renewal-home .pop-featured>img{width:min(52%,190px)}.renewal-home .pop-news .cards{grid-template-columns:minmax(0,1fr)}.renewal-home .pop-heading h2{font-size:.9rem}.renewal-home .pop-heading{gap:8px}.renewal-home .pop-heading .pop-link{flex-shrink:0}.renewal-home .pop-stage-label{font-size:.65rem}}
+
+/* Homepage member grid: avoid clipped cards and image letterboxing */
+.renewal-home #home-talents{display:grid;grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;scroll-snap-type:none;padding:0;gap:18px}
+.renewal-home #home-member-controls{display:none}
+.renewal-home #home-talents .pop-member-card{min-width:0;height:100%}
+.renewal-home #home-talents .talent-art{aspect-ratio:1/1;height:auto;background:#eaf4fc}
+.renewal-home #home-talents .talent-art img{display:block;width:100%;height:100%;max-height:none;object-fit:cover;object-position:center}
+.renewal-home #home-talents .pop-member-placeholder{font-size:clamp(2rem,4vw,3.4rem);color:#6296c1}
+.renewal-home #home-talents .card-body{padding:14px;gap:6px}
+.renewal-home #home-talents .pop-member-more{margin-top:4px}
+@media(max-width:1000px){.renewal-home #home-talents{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.renewal-home #home-talents{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.renewal-home #home-talents .card-body{padding:10px}.renewal-home #home-talents .pop-member-placeholder{font-size:2.5rem}}
