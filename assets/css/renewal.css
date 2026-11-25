@@ -253,3 +253,27 @@
 .pop-brand-about .about-overview .info-box strong{margin:0;color:#536b83;font-size:.85rem}
 .pop-brand-about .about-overview .info-box:last-child{border-bottom:0}
 @media(max-width:760px){.pop-brand-about .pop-brand-intro{grid-template-columns:minmax(0,1fr);gap:16px}.pop-brand-about .pop-brand-intro img{max-width:110px;justify-self:start}.pop-brand-about .about-overview .info-box{grid-template-columns:minmax(85px,.42fr) minmax(0,1fr);gap:10px;padding:12px 0;font-size:.9rem}.pop-brand-about .pop-brand-cta .pop-link{width:100%;justify-content:center}}
+
+/* Join page: clear participation requirements and application status */
+.pop-brand-join .pop-brand-content{max-width:1040px;gap:20px}
+.pop-brand-join .audition-lead{padding:clamp(24px,4vw,44px);border:1px solid #dbe8f4;border-radius:18px}
+.pop-brand-join .audition-lead h2{font-size:clamp(1.65rem,3.6vw,2.7rem);line-height:1.5;color:#142f56;margin:12px 0 16px}
+.pop-brand-join .audition-lead p{max-width:76ch;line-height:1.9;color:#536b83;overflow-wrap:anywhere}
+.pop-brand-join .audition-section,.pop-brand-join .pop-brand-panel{padding:clamp(20px,3vw,32px);border-radius:16px}
+.pop-brand-join .audition-checklist{display:grid;gap:10px;padding:0;margin:18px 0 0;list-style:none}
+.pop-brand-join .audition-checklist li{position:relative;list-style:none;padding:12px 14px 12px 42px;background:#f1f8ff;border:1px solid #dbe8f4;border-radius:10px;line-height:1.75;overflow-wrap:anywhere}
+.pop-brand-join .audition-checklist li::before{content:"✓";position:absolute;left:14px;top:12px;color:#1978c8;font-weight:800;background:none}
+.pop-brand-join .audition-facts>div{min-width:0;display:flex;flex-direction:column;gap:8px;padding:20px}
+.pop-brand-join .audition-facts strong{color:#536b83;font-size:.85rem}
+.pop-brand-join .audition-facts span{font-size:clamp(1.2rem,2.5vw,1.7rem);font-weight:800;line-height:1.5}
+.pop-brand-join .audition-facts p{margin:0;font-size:.9rem}
+.pop-brand-join .pop-faq details{padding:0}
+.pop-brand-join .pop-faq summary{padding:16px 4px;min-height:44px;box-sizing:border-box}
+.pop-brand-join .pop-faq details[open] summary{color:#145b98}
+.pop-brand-join .pop-faq details p{margin:0 0 16px;padding:0 18px;overflow-wrap:anywhere}
+.pop-brand-join .pop-faq summary:focus-visible{outline:2px solid #1978c8;outline-offset:3px}
+.pop-brand-join .audition-status{padding:20px;margin-top:18px;border:1px solid #cbddeb}
+.pop-brand-join .audition-status strong{display:block;color:#142f56;margin-bottom:8px}
+.pop-brand-join .audition-status p{margin:0}
+.pop-brand-join .audition-status .pop-link{margin-top:14px;min-height:44px}
+@media(max-width:760px){.pop-brand-join .audition-facts{gap:12px}.pop-brand-join .audition-facts>div,.pop-brand-join .audition-status{padding:16px}.pop-brand-join .audition-status .pop-link{display:flex;justify-content:center}.pop-brand-join .audition-checklist li{font-size:.9rem}}
