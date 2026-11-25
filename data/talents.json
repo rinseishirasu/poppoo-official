@@ -20,7 +20,7 @@
     "hiddenSections": [],
     "birthday": "1月26日",
     "debutDate": "2023-06-20",
-    "anniversary": "6月20日",
+    "anniversary": "",
     "activityStatus": "活動中",
     "regularSchedule": "毎日21:00",
     "activityGoal": "",
@@ -45,7 +45,9 @@
         "label": "X",
         "url": "https://x.com/1Kkb2Qpvh5rJksg"
       }
-    ]
+    ],
+    "imageColor": "",
+    "tags": []
   },
   {
     "id": "dondoko",
@@ -68,7 +70,7 @@
     "hiddenSections": [],
     "birthday": "11月16日",
     "debutDate": "2025-03-14",
-    "anniversary": "2025/03/14",
+    "anniversary": "",
     "activityStatus": "活動中",
     "regularSchedule": "毎日22:00",
     "activityGoal": "",
@@ -87,7 +89,10 @@
     "favoriteFood": "",
     "illustrator": "",
     "modeler": "",
-    "message": ""
+    "message": "",
+    "imageColor": "",
+    "tags": [],
+    "links": []
   },
   {
     "id": "kakao_choco",
@@ -105,7 +110,7 @@
     "bio": "",
     "birthday": "12月28日",
     "debutDate": "2023-08-19",
-    "anniversary": "2023/08/19",
+    "anniversary": "",
     "activityStatus": "活動中",
     "regularSchedule": "毎日18:00",
     "activityGoal": "",
@@ -292,7 +297,7 @@
     "hiddenSections": [],
     "birthday": "7月30日",
     "debutDate": "2026-01-02",
-    "anniversary": "1月2日",
+    "anniversary": "",
     "activityStatus": "活動中",
     "regularSchedule": "毎日8時、23時",
     "activityGoal": "",
