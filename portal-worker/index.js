@@ -59,8 +59,9 @@ function page(mode,message="",status=200){
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
+ let step="request";
  try{
- if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"csrf-v2"});}
+ if(request.method==="GET"&&path==="/health"){await db.prepare("SELECT id FROM accounts LIMIT 0").all();return json({ok:true,stage:"authentication",authenticationEnabled:true,revision:"auth-diagnostics-v3"});}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
@@ -83,7 +84,9 @@ export default {async fetch(request,env){
  if(path==="/setup"){
   if(!await equalSecret(form.get("secret"),env.BOOTSTRAP_SECRET))return page("setup","登録できませんでした。",403);
   if(password.length<12)return page("setup","パスワードは12文字以上にしてください。",400);
-  const hash=await hashPassword(password);
+  step="password-hash";
+ const hash=await hashPassword(password);
+ step="administrator-insert";
   const result=await db.prepare("INSERT INTO accounts(id,email,role,status,password_hash) SELECT ?,?,'admin','active',? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE role='admin')").bind(crypto.randomUUID(),email,hash).run();
   if(result.meta.changes!==1)return json({error:"Setup unavailable"},409);
   return redirect("/");
@@ -91,10 +94,12 @@ export default {async fetch(request,env){
  if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
  const account=await db.prepare("SELECT id,status,password_hash FROM accounts WHERE email=?").bind(email).first();
  const dummy="pbkdf2-sha256$600000$"+"0".repeat(64)+"$"+"0".repeat(64);
+ step="password-verify";
  const valid=await verifyPassword(password,account?.password_hash||dummy);
  if(!valid||account?.status!=="active")return page("login","メールアドレスまたはパスワードを確認してください。",401);
  await revokeSession(db,cookie(request));
+ step="session-create";
  const session=await createSession(db,account.id);
  return redirect("/",sessionCookie(session.token));
- }catch{return json({error:"Service unavailable"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"auth-diagnostics-v3"},503);}
 }};
