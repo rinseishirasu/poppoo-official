@@ -314,14 +314,27 @@ function activationPage(message="",status=200){return page("activate",message,st
 const publicationReady=env=>env.PORTAL_MAINTENANCE!=="true"&&pepperReady(env)&&kdfConfigValid(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json",news:"news.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
+// Safe diagnostics: never expose response bodies, URLs, headers, tokens or raw exception messages.
+class GitHubFailure extends Error {
+ constructor(operation,reason,status){super("GitHub operation failed");this.operation=operation;this.reason=reason;this.status=status;}
+}
+async function gitFetchJson(operation,url,options){
+ let res;
+ try{res=await fetch(url,options)}catch{throw new GitHubFailure(operation,"transport")}
+ if(!res.ok)throw new GitHubFailure(operation,"http",res.status);
+ try{return await res.json()}catch{throw new GitHubFailure(operation,"invalid-json")}
+}
+function safeGitDiagnostic(error){
+ if(!(error instanceof GitHubFailure))return {};
+ return {githubOperation:error.operation,githubReason:error.reason,...(Number.isInteger(error.status)&&error.status>=100&&error.status<=599?{githubStatus:error.status}:{})};
+}
 async function githubDataset(env,kind,ref="main"){
  if(!["schedule","talents","news"].includes(kind)||!publicationReady(env))throw Error("Publication disabled");
- const res=await fetch(githubDataUrl(kind)+"?ref="+encodeURIComponent(ref),{headers:githubHeaders(env),redirect:"error",cache:"no-store"});
- if(!res.ok)throw Error("GitHub dataset unavailable");
- const f=await res.json();
- if(f.encoding!=="base64"||typeof f.content!=="string"||f.content.length>1500000||!/^[a-f0-9]{40}$/.test(f.sha||""))throw Error("Unsupported dataset");
- const data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(f.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))));
- if(!Array.isArray(data)||data.some(x=>!x||typeof x!=="object"||Array.isArray(x)))throw Error("Invalid dataset");
+ const operation="dataset-"+kind;
+ const f=await gitFetchJson(operation,githubDataUrl(kind)+"?ref="+encodeURIComponent(ref),{headers:githubHeaders(env),redirect:"error",cache:"no-store"});
+ if(!f||f.encoding!=="base64"||typeof f.content!=="string"||f.content.length>1500000||!/^[a-f0-9]{40}$/.test(f.sha||""))throw new GitHubFailure(operation,"invalid-response");
+ let data;try{data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(f.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))))}catch{throw new GitHubFailure(operation,"invalid-dataset")}
+ if(!Array.isArray(data)||data.some(x=>!x||typeof x!=="object"||Array.isArray(x)))throw new GitHubFailure(operation,"invalid-dataset");
  return {data,sha:f.sha};
 }
 function encodeGitHubJson(data){
@@ -400,7 +413,7 @@ async function mutateSchedule(env,session,form,path){
  try{commit=await buildScheduleCommit(env,head,next);const current=await gitHead(env);if(current.sha!==head.sha)return json({error:"Publication conflict; reload schedule"},409);
  const stillActive=await env.DB.prepare("SELECT id FROM accounts WHERE id=? AND member_id=? AND role='member' AND status='active'").bind(session.id,session.member_id).first();
  if(!stillActive)return json({error:"Forbidden"},403);
- }catch{return json({error:"Publication stopped; reload schedule before retry"},409);}
+ }catch(error){return json({error:"Publication stopped; reload schedule before retry",...safeGitDiagnostic(error)},409);}
  // After the ref request, transport failure can be ambiguous. Recheck before any retry.
  try{const result=await gitCall(env,"/git/refs/heads/main","PATCH",{sha:commit,force:false});if(result.object?.sha!==commit)throw Error("Unconfirmed ref");}
  catch{return page("schedule","公開結果を確認できませんでした。再登録せず、最新の配信予定を確認してください。",409,'<p><a href="/schedule">配信予定を再読み込み</a></p>');}
@@ -536,14 +549,13 @@ const shaValid=s=>typeof s==="string"&&/^[a-f0-9]{40}$/.test(s);
 const reconciliationReady=env=>env.PORTAL_MAINTENANCE==="true"&&env.PORTAL_RECOVERY_ENABLED==="true"&&env.PORTAL_PUBLICATION_ENABLED!=="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 async function gitCall(env,path,method="GET",body){
  if(!publicationReady(env)&&!(reconciliationReady(env)&&method==="GET"&&/^\/compare\/[a-f0-9]{40}\.\.\.main$/.test(path)))throw Error("Publication disabled");
- const res=await fetch(gitRoot+path,{method,redirect:"error",headers:{...githubHeaders(env),"Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
- if(!res.ok)throw Error("GitHub request failed "+res.status);
- return res.json();
+ const operation=path==="/git/ref/heads/main"?"head-ref":path.startsWith("/git/commits/")?"head-commit":path==="/git/commits"?"create-commit":path==="/git/blobs"?"create-blob":path==="/git/trees"?"create-tree":path==="/git/refs/heads/main"?"update-ref":path.startsWith("/compare/")?"compare":"git-request";
+ return gitFetchJson(operation,gitRoot+path,{method,redirect:"error",headers:{...githubHeaders(env),"Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
 }
 async function gitHead(env){
- const ref=await gitCall(env,"/git/ref/heads/main");if(!shaValid(ref.object?.sha))throw Error("Invalid ref");
+ const ref=await gitCall(env,"/git/ref/heads/main");if(!shaValid(ref?.object?.sha))throw new GitHubFailure("head-ref","invalid-response");
  const commit=await gitCall(env,"/git/commits/"+ref.object.sha);
- if(!shaValid(commit.tree?.sha))throw Error("Invalid tree");
+ if(!shaValid(commit?.tree?.sha))throw new GitHubFailure("head-commit","invalid-response");
  return {sha:ref.object.sha,tree:commit.tree.sha};
 }
 function bytesBase64(bytes){let s="";for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);}
@@ -768,7 +780,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v22",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v23",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -787,7 +799,7 @@ export default {async fetch(request,env){
  return path==="/admin/reviews"?await reviewPage(env):await adminReviewImage(db,url.searchParams.get("id"));
  }
  if(request.method==="GET"&&path==="/admin/operations"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await operationsPage(db);}
- if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await schedulePage(env,session,false);}
+ if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);step="schedule-read";return await schedulePage(env,session,false);}
  if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(env,session);}
  if(request.method==="GET"&&(path==="/avatars"||path==="/avatars/image")){
  const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
@@ -909,5 +921,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-validation-v22"},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v23",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }};
