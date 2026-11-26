@@ -192,3 +192,20 @@ html{scroll-padding-top:calc(var(--public-header-height,76px) + 12px)}
  #site-header .brand{margin-right:auto}
  #site-header .nav{order:3}
 }
+
+/* Common public visual language: comfortable Japanese headings, fewer oversized controls. */
+main:not(.admin-page main) .page-hero:not(.detail-breadcrumb){padding:clamp(24px,4vw,48px) 0;background:#f8f8f8}
+main:not(.admin-page main) .page-hero .page-heading h1{font-size:clamp(1.8rem,3.8vw,2.8rem);font-weight:750;letter-spacing:.015em;line-height:1.45;color:#282828;overflow-wrap:anywhere;margin:10px 0}
+main:not(.admin-page main) .page-heading>p{font-size:.95rem;line-height:1.8;margin:8px 0 0}
+main:not(.admin-page main) .breadcrumbs{font-size:.76rem;line-height:1.65;color:#595959}
+main:not(.admin-page main) .pop-link{min-height:44px;border-radius:9px;padding:10px 16px;gap:12px;font-size:.88rem;font-weight:700;white-space:normal;line-height:1.5}
+main:not(.admin-page main) .pop-link.outline{border:1px solid #c9c9c9}
+main:not(.admin-page main) .pop-page-share-wrap{padding-bottom:24px}
+.pop-page-share-disclosure{border-top:1px solid #dedede;padding-top:6px}
+.pop-page-share-disclosure summary{cursor:pointer;min-height:44px;padding:10px 0;color:#555;font-size:.87rem;font-weight:700}
+.pop-page-share-disclosure .pop-share-panel{border:0;margin:0 0 8px;padding-top:4px}
+@media(max-width:760px){
+ main:not(.admin-page main) .page-hero:not(.detail-breadcrumb){padding:24px 0}
+ main:not(.admin-page main) .page-hero .page-heading h1{font-size:clamp(1.6rem,6.6vw,2.1rem)}
+ main:not(.admin-page main) .pop-link{font-size:.85rem;padding:9px 12px}
+}

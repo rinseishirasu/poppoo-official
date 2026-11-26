@@ -139,7 +139,7 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
 const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","anniversary.html":"記念日カレンダー | 架空事務所 ぽっぽー","activity.html":"メンバーの活動実績 | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
 if(sharePageTitles[current]&&mainContent&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview")){
  const section=document.createElement("section");section.className="container pop-page-share-wrap";
- const target=document.createElement("div");section.append(target);mainContent.append(section);
+ const disclosure=document.createElement("details");disclosure.className="pop-page-share-disclosure";const summary=document.createElement("summary");summary.textContent="このページをシェア";const target=document.createElement("div");disclosure.append(summary,target);section.append(disclosure);mainContent.append(section);
  mountPublicShare(target,{page:current,title:sharePageTitles[current]});
 }
 // Annual dates from visible public profile fields and published site settings.
