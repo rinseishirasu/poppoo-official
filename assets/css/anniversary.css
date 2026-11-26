@@ -37,3 +37,16 @@
 .anniversary-panel .small{margin-top:18px;color:#555555}
 .renewal-home .pop-anniversary-section{background:#f8f8f8}
 @media(max-width:760px){.anniversary-table td{height:67px;padding:3px}.anniversary-cell-names{display:none}.anniversary-event{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:12px}.anniversary-event-info{grid-column:1/-1;grid-row:2}.anniversary-countdown-label{grid-column:2;grid-row:1}.anniversary-day-events{font-size:.68rem;min-height:34px}.anniversary-month-nav h3{font-size:1rem}.anniversary-controls select{font-size:16px}.anniversary-panel{padding:14px}}
+
+@media(max-width:760px){
+ .anniversary-panel{min-width:0}
+ .anniversary-table th{font-size:.78rem}
+ .anniversary-table td{height:74px}
+ .anniversary-day-events{min-height:44px;padding:2px;line-height:1.25;overflow-wrap:anywhere}
+ .anniversary-month-nav button{min-width:0}
+}
+@media(max-width:380px){
+ .anniversary-month-nav{grid-template-columns:44px minmax(0,1fr) 44px}
+ #anniversary-today{grid-column:1/-1}
+ .anniversary-table td{padding:2px}
+}

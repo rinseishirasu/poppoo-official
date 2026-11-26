@@ -151,3 +151,19 @@
 .renewal-home .home-member-colors:not([hidden]){display:flex;gap:4px;width:min(100%,340px);height:8px;margin:0 0 20px;overflow:hidden;border-radius:5px}
 .renewal-home .home-member-colors span{flex:1;min-width:0;background:var(--identity-color);border-radius:3px}
 .renewal-home #home-talents .pop-member-art{background:radial-gradient(circle at 50% 42%,white 0 28%,color-mix(in srgb,var(--member-color,#666666) 10%,white) 29% 59%,color-mix(in srgb,var(--member-color,#666666) 20%,white) 60%)}
+
+/* Keep the mobile spotlight caption in normal flow so long names and roles never cover the avatar. */
+@media(max-width:760px){
+ .renewal-home .pop-hero-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+ .renewal-home .pop-hero-actions .pop-link{min-width:0;justify-content:center;text-align:center}
+ .renewal-home .pop-spotlight-visual>a{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;aspect-ratio:auto;min-height:0;max-height:none;height:auto}
+ .renewal-home .pop-spotlight-visual img{position:static;inset:auto;width:100%;height:clamp(190px,58vw,290px);padding:8px;object-fit:contain;flex:none}
+ .renewal-home .pop-spotlight-name{position:static;width:100%;box-sizing:border-box;flex:none}
+ .renewal-home .pop-spotlight-fallback{display:grid;place-items:center;min-height:190px;padding:10px}
+ .renewal-home .home-schedule-day .schedule-date{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:flex-start}
+ .renewal-home .home-schedule-day .schedule-program{grid-column:2;grid-row:1;min-width:0}
+ .renewal-home .home-schedule-day .schedule-link,.renewal-home .home-schedule-day .schedule-link-pending{grid-column:2;grid-row:2;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .renewal-home .home-schedule-day .schedule-link{display:inline-flex;align-items:center;min-height:44px}
+ .renewal-home .pop-heading .pop-link{white-space:normal;max-width:44%;text-align:center}
+}
+@media(max-width:380px){.renewal-home .pop-hero-actions{grid-template-columns:minmax(0,1fr)}}

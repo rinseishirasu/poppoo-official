@@ -492,3 +492,35 @@
 .pop-profile .member-themed .profile-intro .lead{color:var(--member-ink)}
 .pop-profile .member-themed .profile-quick-links .btn.secondary{color:var(--member-ink);border-color:var(--member-border)}
 .pop-directory .pop-member-card .pop-member-more,.renewal-home .pop-member-card .pop-member-more{color:#404040}
+
+/* Mobile public directory, profile and schedule. */
+@media(max-width:760px){
+ .pop-directory .talent-directory>.container,.pop-profile .content>.container{width:calc(100% - 28px)}
+ .pop-directory .pop-filters,.pop-info .pop-info-filters{padding:12px;gap:10px}
+ .pop-directory .pop-member-card .card-body{padding:12px}
+ .pop-directory .pop-member-card h3{font-size:1rem;line-height:1.45}
+ .pop-directory .pop-member-card p{font-size:.85rem;line-height:1.6}
+ .pop-directory .member-result-bar{gap:8px}
+ .pop-directory .member-filter-chip,.pop-schedule-page .schedule-filter-chip{min-height:44px}
+ .pop-profile .profile-top,.pop-profile .profile-details,.pop-profile .profile-section{min-width:0}
+ .pop-profile .profile-intro h1{overflow-wrap:anywhere;line-height:1.35}
+ .pop-profile .profile-index{gap:6px}
+ .pop-profile .profile-index a{min-height:44px;align-items:center}
+ .pop-profile .profile-quick-links{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .pop-profile .profile-quick-links a{width:100%}
+ .pop-profile .profile-lightbox{padding:calc(64px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))}
+ .pop-profile .profile-lightbox img{max-width:100%;max-height:100%;object-fit:contain}
+ .pop-profile .profile-lightbox-close{top:max(12px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));width:48px;height:48px}
+ .pop-schedule-page .pop-day-group .schedule-date{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+ .pop-schedule-page .pop-day-group .schedule-program{grid-column:2;grid-row:1;min-width:0}
+ .pop-schedule-page .pop-day-group .schedule-link,.pop-schedule-page .pop-day-group .schedule-link-pending{grid-column:2;grid-row:2;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .pop-schedule-page .schedule-link{display:inline-flex;align-items:center;min-height:44px}
+ .pop-schedule-page .schedule-week-day{min-height:76px}
+ .pop-info .policy-article,.pop-info .news-card,.pop-info .detail-article{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:380px){
+ .pop-directory #talent-grid{grid-template-columns:minmax(0,1fr)}
+ .pop-directory #talent-grid.member-list-view .pop-member-link{grid-template-columns:minmax(70px,29%) minmax(0,1fr)}
+ .pop-profile .talent-fact{grid-template-columns:minmax(0,1fr);gap:3px}
+ .pop-profile .profile-index a{font-size:.8rem}
+}

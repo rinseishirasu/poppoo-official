@@ -144,3 +144,39 @@ main:not(.admin-page main) :is(a,button,input,select,textarea,summary):focus-vis
 @media(max-width:1250px){#site-header .pop-search-link span{display:none}#site-header .pop-search-link{padding:8px}}
 @media(max-width:1400px){#site-header .brand{margin-right:auto}#site-header .pop-search-link{order:1}#site-header .menu-toggle{order:2}#site-header .nav{order:3}}
 @media(max-width:760px){.pop-search-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pop-search-filters button{font-size:.8rem;padding:8px 6px}.pop-search-input-row button{padding:8px 14px}.pop-search-result{padding:16px}}
+
+/* Mobile public layout: predictable header, focus and tap targets. */
+html{scroll-padding-top:calc(var(--public-header-height,76px) + 12px)}
+#site-header .pop-header{min-width:0}
+#site-header .pop-search-link{order:1}
+#site-header .menu-toggle{order:2}
+#site-header .nav{order:3}
+#site-header .brand{margin-right:auto}
+#site-header .pop-search-link,#site-header .menu-toggle{flex:0 0 auto}
+#site-header .nav.open{overscroll-behavior:contain}
+@media(max-width:1400px){
+ #site-header .nav{max-height:calc(100vh - var(--public-header-height,76px) - 12px);max-height:calc(100dvh - var(--public-header-height,76px) - env(safe-area-inset-bottom,0px) - 12px)}
+}
+@media(max-width:760px){
+ #site-header .pop-header{width:calc(100% - 24px);gap:8px;min-height:64px}
+ #site-header .brand{min-width:0;gap:7px}
+ #site-header .pop-brand-name{white-space:normal;overflow-wrap:anywhere;line-height:1.15;font-size:1.12rem}
+ #site-header .pop-brand-name small{font-size:.48rem;letter-spacing:.035em;line-height:1.25}
+ #site-header .brand-logo{width:38px;height:38px}
+ #site-header .nav{left:0;right:0;padding:8px}
+ #site-header .nav a{min-height:48px}
+ #site-footer .pop-footer{min-width:0}
+ .pop-footer .footer-links a{min-height:44px;line-height:1.55}
+ main:not(.admin-page main) .breadcrumbs{overflow-wrap:anywhere;white-space:normal}
+ main:not(.admin-page main) :is(.pop-link,.btn,.text-link){max-width:100%;overflow-wrap:anywhere}
+ main:not(.admin-page main) :is(.pop-link,.btn){min-height:44px;white-space:normal}
+ .pop-search-input-row{grid-template-columns:minmax(0,1fr) auto}
+ .pop-search-input-row button{min-width:60px}
+}
+@media(max-width:360px){
+ #site-header .pop-header{width:calc(100% - 16px);gap:6px}
+ #site-header .brand-logo{width:32px;height:32px}
+ #site-header .pop-brand-name{font-size:1rem}
+ #site-header .pop-brand-name small{display:none}
+ .pop-search-input-row{grid-template-columns:minmax(0,1fr)}
+}
