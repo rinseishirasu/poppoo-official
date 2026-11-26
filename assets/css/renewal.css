@@ -345,3 +345,17 @@
 .news-detail-footer [role=status]{font-size:.8rem;color:#355979;overflow-wrap:anywhere}
 .schedule-period button:focus-visible,.news-neighbor-nav a:focus-visible,.pop-info-filters button:focus-visible{outline:3px solid #1978c8;outline-offset:3px}
 @media(max-width:760px){.pop-info-filters input,.pop-info-filters select{font-size:16px}.pop-info-filters>button{width:100%}.schedule-period{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.schedule-period button{padding:8px;font-size:.82rem}.news-related-grid{grid-template-columns:minmax(0,1fr)}.news-neighbor-nav a{padding:12px;font-size:.83rem}.news-detail-footer{align-items:stretch;flex-direction:column}}
+
+/* Member-related public updates */
+.pop-profile .profile-news{grid-column:1/-1}
+.profile-related-news-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:12px 0 20px}
+.profile-related-news-grid .news-card{min-width:0;display:flex;flex-direction:column}
+.profile-related-news-grid .card-body{padding:14px;overflow-wrap:anywhere}
+.profile-related-news-grid .news-card h3{font-size:1rem;line-height:1.5}
+.profile-related-empty{color:#536b83;padding:14px;background:#f4f9fe;border-radius:8px}
+.profile-schedule-platform{display:block;color:#536b83;font-size:.75rem;margin-top:4px}
+.news-linked-members{padding:16px 0;margin-top:24px;border-top:1px solid #dbe8f4}
+.news-linked-members h2{font-size:1.1rem;color:#142f56}
+.news-linked-grid{display:flex;flex-wrap:wrap;gap:10px}
+.news-linked-grid a{padding:10px 14px;background:#edf6ff;color:#145b98;border-radius:8px;font-size:.88rem;font-weight:700;text-decoration:none;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box}
+@media(max-width:760px){.profile-related-news-grid{grid-template-columns:minmax(0,1fr)}}
