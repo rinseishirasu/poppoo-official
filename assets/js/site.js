@@ -160,6 +160,14 @@ function publicActivityRecords(talents){
  }
  return rows.sort((a,b)=>b.dateKey.localeCompare(a.dateKey)||a.name.localeCompare(b.name,"ja"));
 }
+// Default order follows the explicitly agreed initial management team.
+const DEFAULT_MANAGEMENT_IDS=["itsumin","yu_zi_n_pecorino","dondoko","rinsei_shirasu"];
+function managementMembers(talents,settings){
+ const config=(Array.isArray(settings)?settings:[]).find(x=>x?.published===true);
+ const ids=Array.isArray(config?.managementIds)?config.managementIds:DEFAULT_MANAGEMENT_IDS;
+ const members=(Array.isArray(talents)?talents:[]).filter(t=>t?.published===true&&typeof t.id==="string"&&/^[A-Za-z0-9_-]+$/.test(t.id)&&typeof t.name==="string"&&t.name.trim());
+ return [...new Set(ids)].map(id=>members.find(t=>t.id===id)).filter(Boolean);
+}
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
 async function loadData(file){
