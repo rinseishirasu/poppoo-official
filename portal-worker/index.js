@@ -275,10 +275,18 @@ function encodeGitHubJson(data){
  let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
  return btoa(binary);
 }
-async function writeSchedule(env,data,sha){
- return fetch(githubDataUrl("schedule"),{method:"PUT",redirect:"error",headers:{...githubHeaders(env),"Content-Type":"application/json"},body:JSON.stringify({branch:"main",sha,message:"Update member schedule via portal",content:encodeGitHubJson(data)})});
+// Only explicitly member-created, currently published records can be changed by members.
+const scheduleUuid=id=>typeof id==="string"&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id);
+const scheduleOwned=(s,session)=>s?.scheduleSource==="member"&&s.published===true&&s.memberId===session.member_id&&scheduleUuid(s.id);
+const scheduleRelated=(s,member,uniqueName)=>s?.published===true&&(s.memberId?s.memberId===member.id:uniqueName&&s.talent===member.name);
+async function buildScheduleCommit(env,head,data){
+ const blob=await gitBlob(env,encodeGitHubJson(data));
+ const tree=await gitCall(env,"/git/trees","POST",{base_tree:head.tree,tree:[{path:"data/schedule.json",mode:"100644",type:"blob",sha:blob}]});
+ if(!shaValid(tree.sha))throw Error("Invalid schedule tree");
+ const commit=await gitCall(env,"/git/commits","POST",{message:"Update member schedule via portal",tree:tree.sha,parents:[head.sha]});
+ if(!shaValid(commit.sha))throw Error("Invalid schedule commit");
+ return commit.sha;
 }
-const scheduleOwned=(s,session)=>s.memberId===session.member_id&&typeof s.id==="string"&&/^[a-f0-9-]{36}$/.test(s.id);
 const jstDate=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
 function validScheduleDate(s){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
@@ -292,7 +300,8 @@ function scheduleFields(s={}){
 async function schedulePage(env,session,success=false){
  let data,sha="",member,legacyCount=0,enabled=publicationReady(env);
  if(enabled){
- const [s,t]=await Promise.all([githubDataset(env,"schedule"),githubDataset(env,"talents")]);
+ const head=await gitHead(env);
+ const [s,t]=await Promise.all([githubDataset(env,"schedule",head.sha),githubDataset(env,"talents",head.sha)]);
  data=s.data;sha=s.sha;member=t.data.find(m=>m.id===session.member_id&&m.published===true);
  legacyCount=t.data.filter(m=>m.published===true&&m.name===member?.name).length;
  }else{
@@ -301,8 +310,8 @@ async function schedulePage(env,session,success=false){
  member=t.find(m=>m.id===session.member_id);legacyCount=t.filter(m=>m.name===member?.name).length;
  }
  if(!member)return page("schedule","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
- const owned=data.filter(s=>s&&scheduleOwned(s,session));
- const legacy=data.filter(s=>s&&!s.memberId&&legacyCount===1&&s.published===true&&s.talent===member.name);
+ const owned=data.filter(s=>scheduleOwned(s,session));
+ const legacy=data.filter(s=>scheduleRelated(s,member,legacyCount===1)&&!scheduleOwned(s,session));
  const revision='<input type="hidden" name="revision" value="'+esc(sha)+'">';
  const form=enabled?'<form method="post" action="/schedule/save">'+revision+scheduleFields()+'<button>配信予定を公開登録</button></form>':'<p class="portal-notice">公開登録・更新は最終検証まで停止しています。</p>';
  const rows=owned.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))).map(s=>'<article><strong>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'</strong><p>'+esc(s.platform||"")+'</p>'+(enabled?'<details><summary>編集する</summary><form method="post" action="/schedule/save">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'">'+scheduleFields(s)+'<button>変更を公開</button></form></details><form method="post" action="/schedule/delete">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>この配信予定を削除する</label><button>公開予定を削除</button></form>':"")+'</article>').join("");
@@ -311,7 +320,8 @@ async function schedulePage(env,session,success=false){
 }
 async function mutateSchedule(env,session,form,path){
  if(!publicationReady(env))return json({error:"Publication disabled"},403);
- const [s,t]=await Promise.all([githubDataset(env,"schedule"),githubDataset(env,"talents")]);
+ const head=await gitHead(env);
+ const [s,t]=await Promise.all([githubDataset(env,"schedule",head.sha),githubDataset(env,"talents",head.sha)]);
  const member=t.data.find(m=>m.id===session.member_id&&m.published===true);
  if(!member||typeof member.name!=="string"||!member.name.trim())return json({error:"Profile unavailable"},404);
  if(form.get("revision")!==s.sha)return json({error:"Schedule changed; reopen editor"},409);
@@ -322,16 +332,23 @@ async function mutateSchedule(env,session,form,path){
  if(!id||form.get("confirm")!=="yes")return json({error:"Confirmation required"},400);
  next=s.data.filter(x=>x.id!==id);
  }else{
- const values=Object.fromEntries(["date","time","title","platform","url"].map(k=>[k,(form.get(k)||"").trim()]));
+ const fields=["date","time","title","platform","url"];if(fields.some(k=>typeof form.get(k)!=="string"))return json({error:"Invalid schedule fields"},400);
+ const values=Object.fromEntries(fields.map(k=>[k,form.get(k).trim()]));
  if(!validScheduleDate(values.date)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(values.time)||!values.title||values.title.length>150||!values.platform||values.platform.length>80||values.url.length>500)return json({error:"Invalid schedule"},400);
  if(values.url){try{const u=new URL(values.url);if(!["https:","http:"].includes(u.protocol)||u.username||u.password)throw Error();}catch{return json({error:"Invalid URL"},400);}}
- const item={...(matches[0]||{}),...values,id:id||crypto.randomUUID(),memberId:session.member_id,talent:member.name,published:true};
+ const item={...(matches[0]||{}),...values,id:id||crypto.randomUUID(),memberId:session.member_id,talent:member.name,published:true,scheduleSource:"member"};
  next=id?s.data.map(x=>x.id===id?item:x):[...s.data,item];
  }
  const active=await env.DB.prepare("SELECT id FROM accounts WHERE id=? AND member_id=? AND role='member' AND status='active'").bind(session.id,session.member_id).first();
  if(!active)return json({error:"Forbidden"},403);
- const response=await writeSchedule(env,next,s.sha);
- if(!response.ok)return json({error:response.status===409||response.status===422?"Publication conflict; reload schedule":"Publication failed"},response.status===409||response.status===422?409:502);
+ let commit;
+ try{commit=await buildScheduleCommit(env,head,next);const current=await gitHead(env);if(current.sha!==head.sha)return json({error:"Publication conflict; reload schedule"},409);
+ const stillActive=await env.DB.prepare("SELECT id FROM accounts WHERE id=? AND member_id=? AND role='member' AND status='active'").bind(session.id,session.member_id).first();
+ if(!stillActive)return json({error:"Forbidden"},403);
+ }catch{return json({error:"Publication stopped; reload schedule before retry"},409);}
+ // After the ref request, transport failure can be ambiguous. Recheck before any retry.
+ try{const result=await gitCall(env,"/git/refs/heads/main","PATCH",{sha:commit,force:false});if(result.object?.sha!==commit)throw Error("Unconfirmed ref");}
+ catch{return page("schedule","公開結果を確認できませんでした。再登録せず、最新の配信予定を確認してください。",409,'<p><a href="/schedule">配信予定を再読み込み</a></p>');}
  return page("schedule","GitHubへの更新が完了しました。公式サイトへの反映には時間がかかる場合があります。",200,'<p><a href="/schedule">配信予定へ戻る</a></p>');
 }
 // Member-only records and operations. No public GitHub writes from these routes.
@@ -625,7 +642,7 @@ export default {async fetch(request,env){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
  const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
  const schemaReady=tables.every(t=>found.includes(t));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v16",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v17",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -763,5 +780,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v16"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v17"},503);}
 }};
