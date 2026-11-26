@@ -524,3 +524,30 @@
  .pop-profile .talent-fact{grid-template-columns:minmax(0,1fr);gap:3px}
  .pop-profile .profile-index a{font-size:.8rem}
 }
+
+/* Directory and profile: progressive disclosure, content before controls. */
+.pop-directory .directory-search-panel{margin:0 0 20px;display:grid;gap:8px}
+.pop-directory .directory-primary-search label{display:grid;gap:6px;font-weight:700;font-size:.85rem}
+.pop-directory .directory-primary-search input{min-height:48px;width:100%;max-width:580px;padding:10px 14px;border:1px solid #c8c8c8;border-radius:8px;background:#fff;color:#282828;font:inherit;font-size:16px}
+.pop-directory .directory-advanced{border:1px solid #ddd;border-radius:10px;background:#fff}
+.pop-directory .directory-advanced summary,.pop-profile .profile-content-menu summary,.pop-profile .profile-extra summary{cursor:pointer;min-height:44px;padding:12px 14px;font-weight:700;line-height:1.55}
+.pop-directory .directory-advanced .pop-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;padding:12px;margin:0;border:0;box-shadow:none;gap:10px}
+.pop-directory .directory-advanced .pop-filters label:first-child{grid-column:auto}
+.pop-directory .directory-advanced .pop-filters label{display:grid;gap:5px;font-size:.8rem}
+.pop-directory .directory-advanced .pop-filters select{width:100%}
+.pop-directory .directory-related{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:24px 0 10px}
+.pop-directory .directory-related a{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px;border:1px solid #ddd;border-radius:8px;color:#333;background:#fff;font-size:.9rem;font-weight:700}
+.pop-profile .profile-content-menu{margin:14px 0;border:1px solid var(--member-border,#ddd);border-radius:10px;background:var(--member-surface,#fafafa)}
+.pop-profile .member-themed .profile-content-menu .profile-index{margin:0;border:0;border-radius:0;padding:4px 12px 12px}
+.pop-profile .profile-extra summary{padding:0;min-height:44px}
+.pop-profile .profile-extra summary h2{display:inline;font-size:1.15rem;line-height:1.5;margin:0}
+.pop-profile .profile-extra[open] summary{margin-bottom:12px}
+.pop-profile .profile-extra summary::marker,.pop-profile .profile-content-menu summary::marker{color:var(--member-ink,#444)}
+@media(max-width:760px){
+ .pop-directory .directory-advanced .pop-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pop-directory .directory-related{grid-template-columns:minmax(0,1fr)}
+ .pop-directory #talent-grid:not(.member-list-view){grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .pop-directory .pop-member-card .card-body{padding:10px}
+ .pop-directory .pop-member-card h3{overflow-wrap:anywhere}
+}
+@media(max-width:330px){.pop-directory .directory-advanced .pop-filters{grid-template-columns:minmax(0,1fr)}}

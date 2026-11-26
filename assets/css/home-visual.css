@@ -169,3 +169,46 @@
 @media(max-width:380px){.renewal-home .pop-hero-actions{grid-template-columns:minmax(0,1fr)}}
 
 .renewal-home .pop-news .home-news-editorial .home-news-latest:only-child{grid-column:1/-1;grid-row:auto}
+
+/* Simplified public homepage: member portraits and short lists take precedence. */
+.renewal-home .pop-hero-expanded{padding:clamp(24px,4vw,52px) 0;background:#f8f8f8}
+.renewal-home .pop-wave-decoration,.renewal-home .pop-stage:before{display:none}
+.renewal-home .pop-hero-grid{min-height:0;gap:clamp(24px,4vw,54px)}
+.renewal-home .pop-hero-copy .pop-kicker{padding:0;border:0;background:transparent;font-size:.7rem}
+.renewal-home .pop-hero h1{font-size:clamp(1.8rem,3.5vw,3.5rem);line-height:1.48}
+.renewal-home .pop-stage-label{font-size:.78rem;letter-spacing:.04em}
+.renewal-home .home-member-mosaic{display:grid;gap:10px}
+.renewal-home .home-mosaic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+.renewal-home .home-mosaic-grid .home-mosaic-member{display:flex;flex-direction:column;max-width:none;min-width:0;padding:0;background:white;border:1px solid #e1e1e1;border-radius:12px;overflow:hidden;text-align:left;align-items:stretch;justify-content:flex-start}
+.renewal-home .home-mosaic-grid .home-mosaic-member .pop-member-art{aspect-ratio:5/4;min-width:0;display:grid;place-items:center;background:color-mix(in srgb,var(--member-color,#666) 15%,white)}
+.renewal-home .home-mosaic-grid .home-mosaic-member img{display:block;width:100%;height:100%;max-height:180px;object-fit:contain}
+.renewal-home .home-mosaic-grid .home-mosaic-member strong{padding:8px 10px;font-size:.87rem;line-height:1.5;overflow-wrap:anywhere}
+.renewal-home .home-mosaic-grid .pop-member-placeholder{font-size:2.8rem;color:#555}
+.renewal-home .home-member-mosaic .pop-spotlight-controls[hidden]{display:none}
+.renewal-home .pop-section{padding:clamp(30px,4.5vw,56px) 0}
+.renewal-home .pop-heading{align-items:center;margin:0 0 20px;gap:12px}
+.renewal-home .pop-heading h2{margin:0;font-size:clamp(1.35rem,2.8vw,2rem);line-height:1.45;letter-spacing:.02em}
+.renewal-home .home-section-link{display:inline-flex;align-items:center;min-height:44px;font-size:.85rem;font-weight:700;color:#444;text-decoration:underline;text-underline-offset:4px;white-space:nowrap}
+.renewal-home #home-talents{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.renewal-home #home-talents .pop-member-card{box-shadow:none}
+.renewal-home #home-talents .pop-member-card .card-body{padding:12px}
+.renewal-home #home-talents .pop-member-card .card-body p,.renewal-home #home-talents .pop-member-status,.renewal-home #home-talents .pop-member-more{display:none}
+.renewal-home #home-talents .pop-member-card h3{font-size:1rem;overflow-wrap:anywhere}
+.renewal-home .home-members-more{margin-top:14px}
+.renewal-home .home-news-simple{display:grid;gap:0}
+.renewal-home .home-news-row{display:grid;grid-template-columns:100px minmax(0,1fr) auto;align-items:center;gap:16px;min-height:64px;padding:14px 0;border-bottom:1px solid #dedede;text-decoration:none;overflow-wrap:anywhere}
+.renewal-home .home-news-row time{font-size:.83rem;color:#555}
+.renewal-home .home-news-row strong{font-size:.97rem;line-height:1.55}
+.renewal-home .home-news-row:hover strong{text-decoration:underline}
+.renewal-home .pop-about-grid h2,.renewal-home .pop-join h2{font-size:clamp(1.35rem,3vw,2rem)}
+@media(max-width:760px){
+ .renewal-home .pop-hero-grid{grid-template-columns:minmax(0,1fr);gap:20px}
+ .renewal-home .pop-hero h1{font-size:clamp(1.7rem,7vw,2.5rem)}
+ .renewal-home .home-mosaic-grid .home-mosaic-member img{max-height:140px}
+ .renewal-home #home-talents{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .renewal-home #home-talents .pop-member-card .card-body{padding:10px}
+ .renewal-home .home-news-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
+ .renewal-home .home-news-row time{grid-column:1;grid-row:1}
+ .renewal-home .home-news-row strong{grid-column:1;grid-row:2}
+ .renewal-home .home-news-row>span{grid-column:2;grid-row:1/3}
+}

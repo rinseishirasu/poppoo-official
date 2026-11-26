@@ -1,7 +1,5 @@
 const navItems = [
-  ["TOP","index.html"],["ABOUT","about.html"],["MEMBERS","talents.html"],
-  ["SCHEDULE","schedule.html"],["ANNIVERSARY","anniversary.html"],["ACTIVITY","activity.html"],["NEWS","news.html"],
-  ["JOIN","audition.html"],["CONTACT","contact.html"]
+ ["メンバー","talents.html"],["配信予定","schedule.html"],["お知らせ","news.html"],["ぽっぽーについて","about.html"],["参加案内","audition.html"]
 ];
 const pageFile=location.pathname.split("/").pop()||"index.html";
 const shareRoute=pageFile.match(/^share-(member|news)-([A-Za-z0-9_-]+)\.html$/);
@@ -19,13 +17,13 @@ if(mainContent){
 }
 const header = document.querySelector("#site-header");
 if (header) {
-  header.innerHTML = `<div class="container header-inner pop-header"><a class="brand" href="index.html" aria-label="ぽっぽー トップページ"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><a class="pop-search-link" href="search.html" aria-label="サイト内検索" title="サイト内検索" ${current==="search.html"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>検索</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="メニューを開く">☰</button><nav class="nav" id="main-navigation" aria-label="メインナビゲーション">${navItems.map(([n,u])=>`<a href="${u}" ${navCurrent===u?'aria-current="page"':""}>${n}</a>`).join("")}</nav></div>`;
+  header.innerHTML = `<div class="container header-inner pop-header"><a class="brand" href="index.html" aria-label="ぽっぽー トップページ"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><a class="pop-search-link" href="search.html" aria-label="サイト内検索" title="サイト内検索" ${current==="search.html"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>検索</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="メニューを開く">☰</button><nav class="nav" id="main-navigation" aria-label="メインナビゲーション">${navItems.map(([n,u])=>`<a href="${u}" ${navCurrent===u?'aria-current="page"':u==="talents.html"&&["anniversary.html","activity.html"].includes(current)?'aria-current="location"':""}>${n}</a>`).join("")}</nav></div>`;
   const btn = header.querySelector(".menu-toggle"), nav = header.querySelector(".nav");
   const setMenu=(open)=>{nav.classList.toggle("open",open);btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"✕":"☰";btn.setAttribute("aria-label",open?"メニューを閉じる":"メニューを開く");};
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
   nav.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("open")){setMenu(false);btn.focus()}});
-  const desktop=matchMedia("(min-width:1401px)");
+  const desktop=matchMedia("(min-width:1001px)");
   desktop.addEventListener("change",()=>setMenu(false));
   const syncHeaderHeight=()=>document.documentElement.style.setProperty("--public-header-height",Math.ceil(header.getBoundingClientRect().height)+"px");
   syncHeaderHeight();if(typeof ResizeObserver==="function"){const observer=new ResizeObserver(syncHeaderHeight);observer.observe(header)}else window.addEventListener("resize",syncHeaderHeight,{passive:true});
