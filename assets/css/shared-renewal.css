@@ -19,7 +19,7 @@
 .pop-footer-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #ffffff30;margin-top:30px;padding-top:18px}
 .pop-footer-bottom>a{color:#fff;font-weight:800;text-decoration:none;font-size:.8rem}
 .pop-footer-bottom .copyright{margin:0;padding:0;border:0;color:#dceaff}
-@media(max-width:1300px){#site-header .pop-header{min-height:66px}#site-header .menu-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #dbe8f4;border-radius:10px;background:white;color:#142f56;font-size:1.3rem;cursor:pointer}#site-header .nav{display:none;position:absolute;top:100%;left:0;right:0;width:auto;max-height:calc(100dvh - 80px);overflow:auto;padding:16px 24px;background:white;border:1px solid #dbe8f4;box-shadow:0 12px 24px #142f561a}#site-header .nav.open{display:flex;flex-direction:column;align-items:stretch;gap:0}#site-header .nav a{padding:14px 8px;border-bottom:1px solid #edf3f8}#site-header .nav a[aria-current=page]:after{display:none}}
+@media(max-width:1400px){#site-header .pop-header{min-height:66px}#site-header .menu-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #dbe8f4;border-radius:10px;background:white;color:#142f56;font-size:1.3rem;cursor:pointer}#site-header .nav{display:none;position:absolute;top:100%;left:0;right:0;width:auto;max-height:calc(100dvh - 80px);overflow:auto;padding:16px 24px;background:white;border:1px solid #dbe8f4;box-shadow:0 12px 24px #142f561a}#site-header .nav.open{display:flex;flex-direction:column;align-items:stretch;gap:0}#site-header .nav a{padding:14px 8px;border-bottom:1px solid #edf3f8}#site-header .nav a[aria-current=page]:after{display:none}}
 @media(max-width:760px){#site-header .brand-logo,.pop-footer .brand-logo{width:40px;height:40px}.pop-footer .footer-grid{grid-template-columns:1fr;gap:24px}.pop-footer-bottom{align-items:flex-start;flex-direction:column}}
 
 /* Progressive motion: content remains visible without JavaScript */
@@ -56,7 +56,7 @@
 .pop-footer-bottom .copyright{font-size:.75rem;overflow-wrap:anywhere}
 .pop-back-top{display:inline-flex;align-items:center;gap:12px;min-height:40px;padding:8px 14px;border:1px solid #ffffff50;border-radius:8px;background:transparent;color:white;font:inherit;font-size:.78rem;cursor:pointer}
 .pop-back-top:hover{background:#ffffff18}
-@media(max-width:1300px){#site-header .pop-header{min-height:64px;gap:12px}#site-header .nav{border-radius:0 0 14px 14px;padding:8px 16px}#site-header .nav a{min-height:48px;padding:12px 14px}#site-header .nav a[aria-current=page]{background:#edf6ff;border-radius:6px;color:#145b98}}
+@media(max-width:1400px){#site-header .pop-header{min-height:64px;gap:12px}#site-header .nav{border-radius:0 0 14px 14px;padding:8px 16px}#site-header .nav a{min-height:48px;padding:12px 14px}#site-header .nav a[aria-current=page]{background:#edf6ff;border-radius:6px;color:#145b98}}
 @media(max-width:760px){#site-header .brand{gap:8px}#site-header .pop-brand-name{font-size:1.18rem}.pop-footer .footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.pop-footer .footer-grid>div:first-child{grid-column:1/-1}.pop-footer-bottom{flex-direction:row;align-items:center}.pop-footer .footer-links a{font-size:.8rem}}
 @media(max-width:350px){.pop-footer .footer-grid{grid-template-columns:1fr}}
 
@@ -142,5 +142,5 @@ main:not(.admin-page main) :is(a,button,input,select,textarea,summary):focus-vis
 #site-search-more-wrap{text-align:center;margin:24px 0}
 #site-search-more-wrap[hidden]{display:none}
 @media(max-width:1250px){#site-header .pop-search-link span{display:none}#site-header .pop-search-link{padding:8px}}
-@media(max-width:1300px){#site-header .brand{margin-right:auto}#site-header .pop-search-link{order:1}#site-header .menu-toggle{order:2}#site-header .nav{order:3}}
+@media(max-width:1400px){#site-header .brand{margin-right:auto}#site-header .pop-search-link{order:1}#site-header .menu-toggle{order:2}#site-header .nav{order:3}}
 @media(max-width:760px){.pop-search-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pop-search-filters button{font-size:.8rem;padding:8px 6px}.pop-search-input-row button{padding:8px 14px}.pop-search-result{padding:16px}}
