@@ -156,3 +156,11 @@
 .admin-management-controls button,[data-management-add],[data-management-default]{min-height:40px}
 [data-management-select]{width:100%;margin-bottom:8px}
 @media(max-width:760px){.admin-management-row{align-items:flex-start;flex-direction:column}.admin-management-controls{width:100%}}
+
+/* Live member color preview */
+.admin-theme-preview{display:flex;align-items:center;gap:14px;border:1px solid var(--member-border,#b5d4ed);border-top:5px solid var(--member-color,#1978c8);border-radius:12px;padding:16px;background:linear-gradient(125deg,var(--member-soft,#e3eff8),#fff);overflow-wrap:anywhere}
+.admin-theme-swatch{width:48px;height:48px;flex:none;border:2px solid var(--member-ink,#145b98);border-radius:12px;background:var(--member-color,#1978c8)}
+.admin-theme-preview strong{color:var(--member-ink,#145b98);font-size:.82rem;letter-spacing:.08em}
+.admin-theme-preview p{color:#142f56;font-weight:700;margin:5px 0}
+.admin-theme-preview [data-theme-label]{color:var(--member-ink,#145b98);font-variant-numeric:tabular-nums}
+[data-theme-clear]{min-height:40px;justify-self:start}
