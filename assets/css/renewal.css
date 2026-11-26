@@ -405,3 +405,18 @@
  .pop-profile .profile-member-nav{grid-template-columns:minmax(0,1fr)}
  .pop-profile .profile-member-nav>span:empty{display:none}
 }
+
+/* ABOUT management team */
+.management-team-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:20px}
+.management-team-list>.empty-state{grid-column:1/-1}
+.management-member{display:grid;grid-template-columns:80px minmax(0,1fr);gap:16px;align-items:center;min-width:0;padding:18px;border:1px solid #dbe8f4;background:#f6faff;border-radius:14px;text-decoration:none;color:#142f56}
+.management-member:hover{border-color:#1978c8;background:#edf6ff}
+.management-visual{display:grid;place-items:center;width:80px;height:80px;background:#e1effd;border-radius:12px;overflow:hidden}
+.management-visual img{width:100%;height:100%;object-fit:contain}
+.management-placeholder{font-size:1.8rem;color:#527ea6;font-weight:800}
+.management-info{min-width:0;display:grid;gap:8px;overflow-wrap:anywhere}
+.management-roles{display:flex;flex-wrap:wrap;gap:5px}
+.management-role{display:inline-block;padding:3px 9px;border-radius:5px;background:#e0efff;color:#145b98;font-size:.76rem;font-weight:700}
+.management-info h3{margin:0;font-size:1.08rem;line-height:1.5}
+.management-more{font-size:.8rem;color:#145b98;font-weight:700}
+@media(max-width:760px){.management-team-list{grid-template-columns:minmax(0,1fr)}.management-member{grid-template-columns:64px minmax(0,1fr);padding:14px;gap:12px}.management-visual{width:64px;height:64px}}
