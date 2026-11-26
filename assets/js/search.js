@@ -45,8 +45,9 @@ function buildIndex(sets,today){
  ["費用・配信収益","参加費・月額費用は無料。収益は原則本人に帰属","audition.html#join-cost",["所属 事務所 契約 お金"]],
  ["応募窓口","参加申込み・受付方法","audition.html#join-application",["応募 申込み 参加 審査"]],
  ["よくある質問","他の事務所・休止・退会・交流","audition.html#join-faq",["所属事務所 退所 退会 コラボ FAQ"]],
- ["お問い合わせ","受付方法とお問い合わせ内容","contact.html",["連絡 相談 コラボレーション 不具合 権利"]],
- ["プライバシー・サイトポリシー","個人情報・著作権・利用について","policy.html",["アクセス情報 外部サービス 禁止事項 免責"]]
+ ["お問い合わせ","受付窓口・ご相談内容","contact.html#contact-method",["連絡 相談 コラボレーション 不具合 権利"]],
+ ["プライバシー・サイトポリシー","個人情報・著作権・利用について","policy.html",["アクセス情報 外部サービス 禁止事項 免責"]],
+ ["公開プロフィール・掲載情報","掲載データと非表示設定の取り扱い","policy.html#publication",["公開リポジトリ 訂正 削除 プロフィール コラボ 個人情報"]]
  ];
  for(const [title,detail,href,keywords] of basic)add("info",title,detail,href,keywords);
  for(const e of nextAnniversaryEvents(anniversaryRecords(sets.talents,sets.settings),today)){
