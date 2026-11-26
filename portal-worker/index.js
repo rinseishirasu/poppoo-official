@@ -107,7 +107,8 @@ async function profilePage(env,session,message="",status=200){
  const editor=open?.status==="pending"?'<p class="portal-notice">審査中の申請があります。取り下げるまで新規申請はできません。</p>':stale?'<p class="portal-notice">公開プロフィールが変更されています。下書きを取り下げてから編集し直してください。</p>':'<form method="post" action="/profile/save"><input type="hidden" name="revision" value="'+esc(revision)+'"><input type="hidden" name="request_id" value="'+esc(draft?.id||"")+'"><input type="hidden" name="draft_version" value="'+esc(draft?await digest(draft.patch_json):"")+'">'+PROFILE_FIELDS.map(([k,label,max])=>'<label>'+esc(label)+'（'+max+'文字以内）<textarea name="'+k+'" maxlength="'+max+'">'+esc(values[k])+'</textarea></label>').join("")+'<p>変更内容はD1に保存され、公式サイトには反映されません。</p><button name="action" value="draft">下書き保存</button><p></p><button name="action" value="pending">審査へ提出</button></form>';
  const history=rows.length?rows.map(row=>{
  const patch=JSON.parse(row.patch_json);
- const details=PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("");
+ const record=publicationRecordPatch(patch);
+ const details=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("");
  return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(row.updated_at)+' UTC</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
  }).join(""):"<p>申請履歴はまだありません。</p>";
  return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
@@ -366,14 +367,66 @@ const getText=(form,k,max,required=false)=>{const v=form.get(k);if(typeof v!=="s
 function activityFields(row={}){
  return '<label>分類<select name="kind"><option value="activity"'+(row.kind!=="anniversary"?" selected":"")+'>活動記録</option><option value="anniversary"'+(row.kind==="anniversary"?" selected":"")+'>記念日</option></select></label><label>日付<input type="date" name="event_date" value="'+esc(row.event_date||"")+'" required></label>'+inputField("title","タイトル",150,row.title||"")+textField("description","詳細",1000,row.description||"");
 }
+// Record publication uses the existing profile approval queue and Git publication job.
+function recordPublication(row){
+ if(!row||!["activity","anniversary"].includes(row.kind)||typeof row.event_date!=="string"||!dateValid(row.event_date)||typeof row.title!=="string"||!row.title.trim()||row.title.length>150)throw Error("Invalid activity");
+ const record={kind:row.kind,date:row.event_date,title:row.title.trim()};
+ if(row.kind==="activity"){if(typeof row.description!=="string"||row.description.length>1000)throw Error("Invalid description");record.description=row.description.trim()}
+ return record;
+}
+function publicationRecordPatch(patch){
+ if(!patch||typeof patch!=="object"||Array.isArray(patch)||!Object.hasOwn(patch,"recordPublication"))return null;
+ const r=patch.recordPublication;
+ if(Object.keys(patch).length!==1||!r||typeof r!=="object"||Array.isArray(r))throw Error("Invalid record patch");
+ const normalized=recordPublication({kind:r.kind,event_date:r.date,title:r.title,description:r.description});
+ if(JSON.stringify(normalized)!==JSON.stringify(r))throw Error("Invalid record fields");
+ return normalized;
+}
+function annualDateKey(v){
+ const m=String(v||"").match(/^(?:(\d{4})(?:年|[-/]))?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);
+ return m?Number(m[2])+"-"+Number(m[3]):"";
+}
+function recordPublicationBase(member,record){
+ const hidden=Array.isArray(member.hiddenSections)?member.hiddenSections:[];
+ if(hidden.includes(record.kind==="activity"?"achievements":"facts"))throw Error("Section hidden");
+ const key=record.kind==="activity"?"achievements":"anniversaries";
+ let rows=member[key];
+ if(rows!==undefined&&rows!==null&&!Array.isArray(rows))throw Error("Invalid published records");
+ rows=Array.isArray(rows)?rows:[];
+ if(key==="anniversaries"&&!rows.length&&typeof member.anniversary==="string"&&member.anniversary.trim())rows=[{date:member.anniversary,title:"活動記念日"}];
+ if(rows.length>=500)throw Error("Published record limit");
+ if(rows.some(x=>x&&x.title===record.title&&(record.kind==="activity"?x.date===record.date:annualDateKey(x.date)===annualDateKey(record.date))))throw Error("Already published");
+ return {key,rows};
+}
+async function recordRevision(member,record){
+ const {key,rows}=recordPublicationBase(member,record);
+ return digest(JSON.stringify([member.id,key,rows]));
+}
+function recordPatchDetail(record){
+ return '<p><strong>'+esc(record.kind==="activity"?"活動実績の追加":"その他の記念日の追加")+'</strong></p><p>'+esc(record.date)+' / '+esc(record.title)+'</p>'+(record.kind==="activity"?'<pre>'+esc(record.description)+'</pre>':'<p>毎年の記念日として日付と名称を掲載します。非公開メモは掲載しません。</p>');
+}
+async function submitActivityPublication(env,session,form){
+ const id=form.get("id"),version=form.get("version");
+ if(!safeId(id)||typeof version!=="string"||!/^[a-f0-9]{64}$/.test(version)||form.get("confirm")!=="yes")return json({error:"Invalid publication request"},400);
+ const db=env.DB,row=await db.prepare("SELECT id,kind,event_date,title,description FROM member_activity WHERE id=? AND account_id=?").bind(id,session.id).first();
+ if(!row||await digest(JSON.stringify([row.kind,row.event_date,row.title,row.description]))!==version)return json({error:"Record changed; reopen activity"},409);
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
+ if(!member)return json({error:"Profile unavailable"},404);
+ let record,revision;
+ try{record=recordPublication(row);revision=await recordRevision(member,record)}catch{return page("activity","公開済み・非表示設定・日付などを確認してください。",409,memberBack+'<p><a href="/activity">活動記録へ戻る</a></p>')}
+ const payload=JSON.stringify({recordPublication:record});
+ const result=await db.prepare("INSERT INTO profile_requests(id,account_id,base_revision,patch_json,status) SELECT ?,?,?,?,'pending' WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND EXISTS(SELECT 1 FROM member_activity WHERE id=? AND account_id=? AND kind=? AND event_date=? AND title=? AND description=?) AND NOT EXISTS(SELECT 1 FROM profile_requests WHERE account_id=? AND status IN ('draft','pending'))").bind(crypto.randomUUID(),session.id,revision,payload,session.id,id,session.id,row.kind,row.event_date,row.title,row.description,session.id).run();
+ if(result.meta.changes!==1)return page("activity","記録が変更されたか、審査中・下書きのプロフィール申請があります。先に申請状況を確認してください。",409,memberBack+'<p><a href="/profile">申請状況を確認</a>　<a href="/activity">活動記録へ戻る</a></p>');
+ return redirect("/profile");
+}
 async function activityPage(env,session){
  const db=env.DB;
  const rows=(await db.prepare("SELECT id,kind,event_date,title,description FROM member_activity WHERE account_id=? ORDER BY event_date DESC,id LIMIT 100").bind(session.id).all()).results;
  const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  const dates=member?[["誕生日",member.birthday],["REALITYデビュー日",member.debutDate],["ぽっぽー加入日",member.joinDate],...(Array.isArray(member.anniversaries)?member.anniversaries.filter(x=>x&&typeof x==="object").map(x=>[x.title,x.date]):[["活動記念日",member.anniversary]])].filter(([,date])=>typeof date==="string"&&date):[];
  const official=dates.map(([label,date])=>'<p>'+esc(label||"記念日")+'：'+esc(date)+'</p>').join("")||"<p>公開記念日は未登録です。</p>";
- const list=rows.map(row=>'<article><strong>'+esc(row.event_date)+' '+esc(row.title)+'</strong><p>'+ (row.kind==="anniversary"?"記念日":"活動記録")+'</p><pre>'+esc(row.description)+'</pre><details><summary>編集する</summary><form method="post" action="/activity/save">'+hInput("id",row.id)+activityFields(row)+'<button>更新</button></form></details><form method="post" action="/activity/delete">'+hInput("id",row.id)+confirmDelete+'<button>削除</button></form></article>').join("");
- return page("activity","",200,memberBack+'<p class="portal-notice">個人用の記録です。公式サイトには自動反映されません。</p><h2>公式プロフィールの記念日</h2>'+official+'<h2>新規登録</h2><form method="post" action="/activity/save">'+activityFields()+'<button>保存</button></form><h2>登録済み記録（最大100件表示）</h2>'+(list||"<p>記録はありません。</p>"));
+ const list=(await Promise.all(rows.map(async row=>'<article><strong>'+esc(row.event_date)+' '+esc(row.title)+'</strong><p>'+ (row.kind==="anniversary"?"記念日":"活動記録")+'</p><pre>'+esc(row.description)+'</pre><details><summary>編集する</summary><form method="post" action="/activity/save">'+hInput("id",row.id)+activityFields(row)+'<button>更新</button></form></details><form method="post" action="/activity/delete">'+hInput("id",row.id)+confirmDelete+'<button>削除</button></form>'+(member?'<form method="post" action="/activity/publish">'+hInput("id",row.id)+hInput("version",await digest(JSON.stringify([row.kind,row.event_date,row.title,row.description])))+'<p>'+(row.kind==="activity"?"日付・タイトル・詳細を公開申請します。":"日付・タイトルのみ公開申請します。詳細メモは非公開のままです。")+'</p><label><input type="checkbox" name="confirm" value="yes" required>公開内容を確認しました</label><button>公式サイトへの掲載を申請</button></form>':"")+'</article>'))).join("");
+ return page("activity","",200,memberBack+'<p class="portal-notice">個人用の記録です。掲載を申請した項目だけ運営が審査します。記録の編集・削除は申請済みの内容や公開情報には影響しません。申請状況はプロフィール変更申請で確認できます。</p><h2>公式プロフィールの記念日</h2>'+official+'<h2>新規登録</h2><form method="post" action="/activity/save">'+activityFields()+'<button>保存</button></form><h2>登録済み記録（最大100件表示）</h2>'+(list||"<p>記録はありません。</p>"));
 }
 async function mutateActivity(db,session,form,path){
  const id=form.get("id")||"";
@@ -514,7 +567,8 @@ async function reviewPage(env){
  };
  const p=profiles.results.map(row=>{
  const m=member(row.member_id),patch=JSON.parse(row.patch_json);
- const changes=PROFILE_FIELDS.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?.[k]||"（空欄）")+'</pre><small>申請内容</small><pre>'+esc(patch[k]||"（空欄）")+'</pre>').join("");
+ const record=publicationRecordPatch(patch);
+ const changes=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?.[k]||"（空欄）")+'</pre><small>申請内容</small><pre>'+esc(patch[k]||"（空欄）")+'</pre>').join("");
  return '<article><h3>'+esc(m?.name||row.member_id)+'</h3><details open><summary>変更差分</summary>'+changes+'</details>'+form(row,"profile")+'</article>';
  }).join("");
  const a=avatars.results.map(row=>'<article><h3>'+esc(member(row.member_id)?.name||row.member_id)+' / '+esc(AVATAR_SLOTS.find(([k])=>k===row.slot)?.[1]||row.slot)+'</h3><img class="avatar-preview" src="/admin/review-image?id='+encodeURIComponent(row.id)+'" alt="審査対象画像">'+form(row,"avatar")+'</article>').join("");
@@ -552,10 +606,17 @@ async function reviewSubmission(env,session,form){
  if(matches.length!==1)throw Error("Member unavailable");
  const member=matches[0];let updated={...member},image=null;
  if(kind==="profile"){
- if(await profileRevision(member)!==row.base_revision)throw Error("Profile base changed");
  const patch=JSON.parse(row.patch_json);
  if(!patch||typeof patch!=="object"||Array.isArray(patch)||!Object.keys(patch).length)throw Error("Invalid patch");
+ const record=publicationRecordPatch(patch);
+ if(record){
+ if(await recordRevision(member,record)!==row.base_revision)throw Error("Published records changed");
+ const {key,rows}=recordPublicationBase(member,record);
+ updated[key]=[...rows,record.kind==="activity"?{date:record.date,title:record.title,description:record.description}:{date:record.date,title:record.title}];
+ }else{
+ if(await profileRevision(member)!==row.base_revision)throw Error("Profile base changed");
  for(const [k,v] of Object.entries(patch)){const field=PROFILE_FIELDS.find(([key])=>key===k);if(!field||typeof v!=="string"||v.length>field[2])throw Error("Invalid patch field");updated[k]=v;}
+ }
  }else{
  const bytes=new Uint8Array(row.image_data),mime=imageMime(bytes),ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[mime];
  if(!ext||mime!==row.mime||bytes.length>524288||!avatarSlot(row.slot)||!/^[A-Za-z0-9_-]{1,100}$/.test(row.member_id))throw Error("Invalid image");
@@ -642,7 +703,7 @@ export default {async fetch(request,env){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
  const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
  const schemaReady=tables.every(t=>found.includes(t));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v17",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v18",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -668,7 +729,7 @@ export default {async fetch(request,env){
  }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
 
@@ -693,8 +754,9 @@ export default {async fetch(request,env){
  if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
  return redirect("/avatars");
  }
- if(["/activity/save","/activity/delete","/notices/read","/applications/submit","/applications/withdraw"].includes(path)){
+ if(["/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw"].includes(path)){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ if(path==="/activity/publish")return await submitActivityPublication(env,session,form);
  if(path.startsWith("/activity/"))return await mutateActivity(db,session,form,path);
  const id=form.get("id")||"";
  if(path==="/notices/read"){
@@ -780,5 +842,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v17"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v18"},503);}
 }};
