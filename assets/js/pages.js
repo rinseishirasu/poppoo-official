@@ -150,7 +150,7 @@
  }
  const profile=document.querySelector("#talent-profile");
  if(profile&&!markUnavailable(profile,"talents","プロフィール","talents.html")){
-  const id=new URLSearchParams(location.search).get("id");
+  const id=publicDetailId();
   const t=published(talents).find(x=>x.id===id);
   if(t){
    profile.style.setProperty("--member-color",memberColor(t));document.title=t.name+" | MEMBERS | 架空事務所 ぽっぽー";
@@ -201,7 +201,7 @@
  }
  const article=document.querySelector("#news-detail");
  if(article&&!markUnavailable(article,"news","記事","news.html")){
- const id=new URLSearchParams(location.search).get("id"),all=published(news).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))),n=all.find(x=>x.id===id);
+ const id=publicDetailId(),all=published(news).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))),n=all.find(x=>x.id===id);
  if(n){
  document.title=n.title+" | NEWS | 架空事務所 ぽっぽー";
  const index=all.indexOf(n),newer=all[index-1],older=all[index+1],category=n.category||"INFORMATION";
