@@ -28,23 +28,6 @@
  updateSummary("home-summary-today","schedule",published(schedule).filter(s=>s.date===todayJST).length+"件");
  updateSummary("home-summary-news","news",published(news).length+"件");
 
- const anniversaryCountdown=(value,label="記念日")=>{
-  if(!value)return "";
-  let month=0,day=0;
-  let match=value.match(/^\d{4}[-/](\d{1,2})[-/](\d{1,2})$/);
-  if(match){month=Number(match[1]);day=Number(match[2])}
-  else if((match=value.match(/^(\d{1,2})月(\d{1,2})日$/))){month=Number(match[1]);day=Number(match[2])}
-  else if((match=value.match(/^(\d{1,2})[/-](\d{1,2})$/))){month=Number(match[1]);day=Number(match[2])}
-  if(month<1||month>12||day<1||day>31)return "";
-  const [yearNow,monthNow,dayNow]=todayJST.split("-").map(Number);
-  const valid=(y)=>{const d=new Date(Date.UTC(y,month-1,day));return d.getUTCMonth()===month-1&&d.getUTCDate()===day};
-  if(!valid(2000))return "";
-  let year=yearNow;
-  if(Date.UTC(year,month-1,day)<Date.UTC(yearNow,monthNow-1,dayNow))year++;
-  while(!valid(year))year++;
-  const remaining=Math.round((Date.UTC(year,month-1,day)-Date.UTC(yearNow,monthNow-1,dayNow))/86400000);
-  return '<section class="profile-section profile-anniversary"><span class="eyebrow">ANNIVERSARY</span><h2>次の'+escapeHtml(label)+'</h2><div class="anniversary-countdown"><strong>'+remaining+'</strong><span>日後</span><p>'+year+'年'+month+'月'+day+'日</p></div></section>';
- };
  const safeExternalLink=value=>{try{if(!value)return "";const u=new URL(value,location.href);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return ""}};
  const cohortBadges=t=>{const values=Array.isArray(t.cohort)?t.cohort:(t.cohort?[t.cohort]:[]);return values.filter(Boolean).map(v=>`<span class="pill cohort-pill">${escapeHtml(v)}</span>`).join("")};
  const roleBadges=t=>{const values=Array.isArray(t.roles)?t.roles:(t.roles?[t.roles]:[]);return values.filter(Boolean).map(v=>`<span class="pill role-pill">${escapeHtml(v)}</span>`).join("")};
@@ -163,7 +146,7 @@
    const avatar=sectionVisible(t,"gallery")?avatarList[0]||"":"",icon=safeExternalLink(t.iconImage||"");
    
    const facts=[["所属事務所・所属先",t.affiliationAgency],["誕生日",t.birthday],["REALITYデビュー日",t.debutDate?dateLabel(t.debutDate):""],["ぽっぽー加入日",t.joinDate?dateLabel(t.joinDate):""],...(Array.isArray(t.anniversaries)?t.anniversaries:t.anniversary?[{date:t.anniversary,title:"活動記念日"}]:[]).filter(x=>x&&x.title&&x.date).map(x=>[x.title,x.date]),["身長",t.height],["血液型",t.bloodType]].filter(x=>x[1]);
-   const anniversarySection=[[t.birthday,"誕生日"],[t.debutDate,"デビュー周年"],[t.joinDate,"ぽっぽー加入周年"],...(Array.isArray(t.anniversaries)?t.anniversaries:t.anniversary?[{date:t.anniversary,title:"活動記念日"}]:[]).filter(x=>x&&x.title&&x.date).map(x=>[x.date,x.title])].map(([date,label])=>anniversaryCountdown(date,label)).join("");
+   const anniversarySection=nextAnniversaryEvents(anniversaryRecords([t],[]).filter(e=>e.id===t.id),todayJST).map(e=>{const remaining=Math.round((Date.parse(e.date)-Date.parse(todayJST))/86400000);return '<section class="profile-section profile-anniversary"><span class="eyebrow">ANNIVERSARY</span><h2>次の'+escapeHtml(e.label)+'</h2><div class="anniversary-countdown"><strong>'+remaining+'</strong><span>日後</span><p>'+escapeHtml(e.title)+' ・ '+escapeHtml(e.date.replaceAll("-","/"))+'</p></div><a class="text-link" href="anniversary.html?member='+encodeURIComponent(t.id)+'&amp;month='+e.date.slice(0,7)+'">記念日カレンダーへ →</a></section>'}).join("");
    const personality=[["趣味",t.hobbies],["特技",t.skills],["好きなもの",t.likes],["苦手なもの",t.dislikes],["好きな食べ物",t.favoriteFood],["好きな作品・ジャンル",t.favoriteWorks]].filter(x=>x[1]);
    const fan=[["ファンネーム",t.fanName],["推しマーク",t.oshiMark],["配信タグ",t.streamTag],["ファンアートタグ",t.fanArtTag]].filter(x=>x[1]);
    const factSection=(eyebrow,title,items,klass="")=>items.length?'<section class="profile-section '+klass+'"><span class="eyebrow">'+eyebrow+'</span><h2>'+title+'</h2><dl class="talent-facts">'+items.map(([label,value])=>'<div class="talent-fact"><dt>'+escapeHtml(label)+'</dt><dd>'+escapeHtml(value).replace(/\r?\n/g,"<br>")+'</dd></div>').join("")+'</dl></section>':"";
