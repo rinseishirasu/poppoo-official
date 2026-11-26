@@ -223,7 +223,7 @@
   },
   {
     "id": "yucchi",
-    "published": false,
+    "published": true,
     "name": "癒椿Bユッチー",
     "cohort": [
       "1期生"
@@ -258,7 +258,15 @@
     "favoriteFood": "",
     "illustrator": "",
     "modeler": "",
-    "message": ""
+    "message": "",
+    "imageColor": "",
+    "affiliationAgency": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "joinDate": "",
+    "anniversaries": [],
+    "tags": [],
+    "links": []
   },
   {
     "id": "rinsei_shirasu",
@@ -328,7 +336,7 @@
   },
   {
     "id": "sakurabachi_kamui",
-    "published": false,
+    "published": true,
     "name": "桜鉢 神威",
     "imageColor": "",
     "cohort": [
@@ -367,7 +375,9 @@
     "modeler": "",
     "message": "",
     "tags": [],
-    "links": []
+    "links": [],
+    "joinDate": "",
+    "anniversaries": []
   },
   {
     "id": "nanase_neki",
