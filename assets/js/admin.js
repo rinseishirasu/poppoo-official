@@ -301,6 +301,34 @@ async function githubRequest(path,options={}){
  if(response.status===401){accessToken="";githubLogin="";tokenExpiresAt=0;updateAuthUI();throw new Error("GitHubログインの有効期限が切れました。再度ログインしてください。")}
  return response;
 }
+// Publish JSON and its generated Open Graph pages in a single non-forced commit.
+async function publishWithSharePages(kind,file,snapshot){
+ const base="/repos/"+REPO+"/",encoded=file.split("/").map(encodeURIComponent).join("/");
+ const git=async(path,method="GET",payload)=>{const res=await githubRequest(base+path,{method,...(payload?{body:JSON.stringify(payload)}:{})});if(!res.ok)throw Error("OGP付き公開を中止しました ("+res.status+")。GitHubの状態を確認してから再試行してください。");return res.json()};
+ const head=await git("git/ref/heads/"+encodeURIComponent(BRANCH)),parent=head.object?.sha;
+ if(!/^[a-f0-9]{40}$/.test(parent||""))throw Error("公開ブランチを確認できません。");
+ const commit=await git("git/commits/"+parent),treeSha=commit.tree?.sha;
+ if(!/^[a-f0-9]{40}$/.test(treeSha||""))throw Error("公開データのツリーを確認できません。");
+ const remote=await git("contents/"+encoded+"?ref="+parent);
+ const decoded=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(remote.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))));
+ if(canonical(decoded)!==canonical(baseline[kind]))throw Error("GitHub上のデータが変更されました。上書きを中止しました。公開データを再読込してください。");
+ const generated=new Map();
+ for(const item of JSON.parse(snapshot)){if(item.published!==true)continue;const entry=sharePageHtml(kind,item);if(!entry||generated.has(entry.path))throw Error("共有ページを生成できません。公開レコードのID・名称を確認してください。");generated.set(entry.path,entry.content)}
+ const existing=await git("git/trees/"+treeSha);
+ if(existing.truncated||!Array.isArray(existing.tree))throw Error("共有ページ一覧が不完全です。公開を中止しました。");
+ const prefix=kind==="talents"?"share-member-":"share-news-",pattern=new RegExp("^"+prefix+"[A-Za-z0-9_-]+\\.html$");
+ const entries=[{path:file,mode:"100644",type:"blob",content:snapshot},...[...generated].map(([path,content])=>({path,mode:"100644",type:"blob",content}))];
+ for(const entry of existing.tree)if(entry.type==="blob"&&pattern.test(entry.path)&&!generated.has(entry.path))entries.push({path:entry.path,mode:"100644",type:"blob",sha:null});
+ const tree=await git("git/trees","POST",{base_tree:treeSha,tree:entries});
+ if(!/^[a-f0-9]{40}$/.test(tree.sha||""))throw Error("共有ページの保存を確認できません。");
+ const next=await git("git/commits","POST",{message:"Update "+file+" and Open Graph pages via Poppoo Admin",tree:tree.sha,parents:[parent]});
+ if(!/^[a-f0-9]{40}$/.test(next.sha||""))throw Error("公開コミットを確認できません。");
+ const latest=await git("git/ref/heads/"+encodeURIComponent(BRANCH));
+ if(latest.object?.sha!==parent)throw Error("別の更新を検出したため公開を中止しました。再読み込みしてください。");
+ const updated=await git("git/refs/heads/"+encodeURIComponent(BRANCH),"PATCH",{sha:next.sha,force:false});
+ if(updated.object?.sha!==next.sha)throw Error("公開結果を確認できません。GitHub上の状態をご確認ください。");
+ return {commit:{sha:next.sha}};
+}
 async function publishCurrent(){
  if(publishing||imageBusy||!dataReady)return;
  if(formDirty){status("未保存の入力があります。先に変更を保存してください。");return}
@@ -315,6 +343,9 @@ async function publishCurrent(){
  publishing=true;
  button.disabled=true;button.textContent="公開中...";
  try{
+  let result;
+  if(["talents","news"].includes(kind))result=await publishWithSharePages(kind,file,snapshot);
+  else{
   const encodedPath=file.split("/").map(encodeURIComponent).join("/");
   const get=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath+"?ref="+encodeURIComponent(BRANCH));
   let sha=null;
@@ -324,7 +355,8 @@ async function publishCurrent(){
   if(sha)payload.sha=sha;
   const put=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath,{method:"PUT",body:JSON.stringify(payload)});
   if(!put.ok){const detail=await put.text();throw new Error("GitHubへの保存に失敗しました ("+put.status+"): "+detail.slice(0,240))}
-  const result=await put.json();
+  result=await put.json();
+  }
   baseline[kind]=JSON.parse(snapshot);renderList();
   const saved=saveDraft();
   status("公開しました。GitHubのコミット: "+(result.commit?.sha||"完了")+(saved?"":"。ブラウザー内の保存に失敗しました。公開データを再読込してください。")+". 公式サイトへの反映には数分かかる場合があります。");
