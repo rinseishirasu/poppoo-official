@@ -47,7 +47,8 @@
       }
     ],
     "imageColor": "",
-    "tags": []
+    "tags": [],
+    "joinDate": "2026-11-25"
   },
   {
     "id": "dondoko",
@@ -92,7 +93,8 @@
     "message": "",
     "imageColor": "",
     "tags": [],
-    "links": []
+    "links": [],
+    "joinDate": "2026-11-25"
   },
   {
     "id": "kakao_choco",
@@ -138,7 +140,7 @@
     "hiddenSections": [],
     "tags": [],
     "links": [],
-    "joinDate": "",
+    "joinDate": "2026-11-25",
     "anniversaries": []
   },
   {
@@ -185,7 +187,7 @@
     "hiddenSections": [],
     "tags": [],
     "links": [],
-    "joinDate": "",
+    "joinDate": "2026-11-25",
     "anniversaries": []
   },
   {
@@ -225,7 +227,8 @@
     "favoriteFood": "",
     "illustrator": "",
     "modeler": "",
-    "message": ""
+    "message": "",
+    "joinDate": "2026-11-25"
   },
   {
     "id": "yucchi",
@@ -269,7 +272,7 @@
     "affiliationAgency": "",
     "achievements": [],
     "hiddenSections": [],
-    "joinDate": "",
+    "joinDate": "2026-11-25",
     "anniversaries": [],
     "tags": [],
     "links": []
@@ -337,7 +340,7 @@
       "歌"
     ],
     "links": [],
-    "joinDate": "2026-11-23",
+    "joinDate": "2026-11-25",
     "anniversaries": []
   },
   {
@@ -382,7 +385,7 @@
     "message": "",
     "tags": [],
     "links": [],
-    "joinDate": "",
+    "joinDate": "2026-11-25",
     "anniversaries": []
   },
   {
@@ -429,6 +432,7 @@
     "modeler": "",
     "message": "",
     "tags": [],
-    "links": []
+    "links": [],
+    "joinDate": "2026-11-25"
   }
 ]

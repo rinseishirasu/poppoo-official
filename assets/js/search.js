@@ -40,7 +40,7 @@ function buildIndex(sets,today){
  ["ぽっぽーについて","REALITYで活動する配信者の交流コミュニティ","about.html#about-us",[text(settings.aboutLead),"架空事務所 ぽっぽー Vライバー 個性 専属 マネジメント"]],
  ["名前の由来","ぽっぽーに込めた想い","about.html#about-name",["汽車 汽笛"]],
  ["活動方針","個性・交流・自分のペースを大切に","about.html#about-community",[text(settings.communityPolicy),"休止 退所 活動方針"]],
- ["コミュニティ概要・運営者","設立・代表者・活動拠点","about.html#about-overview",[text(settings.operator)||"ぽっぽー運営",text(settings.representative)||"いつみん",text(settings.chair)||"ユージーン・ペコリーノ",text(settings.founded)||"2026年11月23日",text(settings.base)||"日本国内 オンライン"]],
+ ["コミュニティ概要・運営者","設立・代表者・活動拠点","about.html#about-overview",[text(settings.operator)||"ぽっぽー運営",text(settings.representative)||"いつみん",text(settings.chair)||"ユージーン・ペコリーノ",text(settings.founded)||"2026年11月25日",text(settings.base)||"日本国内 オンライン"]],
  ["募集対象・参加条件","REALITYで活動したい方へ","audition.html#join-requirements",[text(settings.requirements),text(settings.joinIntro),"応募 参加 審査 年齢"]],
  ["費用・配信収益","参加費・月額費用は無料。収益は原則本人に帰属","audition.html#join-cost",["所属 事務所 契約 お金"]],
  ["応募窓口","参加申込み・受付方法","audition.html#join-application",["応募 申込み 参加 審査"]],

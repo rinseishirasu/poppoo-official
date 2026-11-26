@@ -217,7 +217,7 @@ function anniversaryRecords(talents,settings){
  if(!extra.length)add(t.anniversary,"other","活動記念日",t.name,t.id);
  }
  const config=(Array.isArray(settings)?settings:[]).find(x=>x?.published===true);
- add(typeof config?.founded==="string"&&config.founded.trim()?config.founded:"2026年11月23日","community","設立記念日","ぽっぽー","");
+ add(typeof config?.founded==="string"&&config.founded.trim()?config.founded:"2026年11月25日","community","設立記念日","ぽっぽー","");
  return records;
 }
 function anniversaryOccurrence(record,year){
