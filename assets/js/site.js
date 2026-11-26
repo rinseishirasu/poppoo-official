@@ -65,12 +65,12 @@ function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","
  set(".about-lead","aboutLead");
  document.querySelectorAll(".pop-brand-panel").forEach(el=>{if(el.querySelector(".pop-kicker")?.textContent==="COMMUNITY"&&s.communityPolicy?.trim()){const p=el.querySelector("p");if(p){p.textContent=s.communityPolicy;p.style.whiteSpace="pre-line"}}});
  }
- const url=key=>{try{const u=new URL(s[key]);return u.protocol==="https:"?u.href:""}catch{return ""}};
+ const url=key=>{try{const u=new URL(s[key]);return u.protocol==="https:"&&!u.username&&!u.password?u.href:""}catch{return ""}};
  const link=(el,href,label)=>{const a=document.createElement("a");a.className="pop-link";a.href=href;a.target="_blank";a.rel="noopener noreferrer";a.textContent=label;el.append(a)};
  if(current==="audition.html"){
  set(".audition-lead p","joinIntro");
  const list=document.querySelector(".audition-checklist");if(list&&s.requirements?.trim()){list.replaceChildren(...s.requirements.split(/\r?\n/).filter(v=>v.trim()).map(v=>{const li=document.createElement("li");li.textContent=v;return li}))}
- const href=url("applicationUrl"),box=document.querySelector(".audition-status");if(href&&box){const p=document.createElement("p");p.textContent="参加申込みは下記の外部窓口からご確認ください。";box.replaceChildren(p);link(box,href,"応募窓口へ");const faq=document.querySelector(".pop-faq details:last-child p");if(faq)faq.textContent="参加申込みの詳細は下記の応募窓口をご確認ください。";const intro=document.querySelector(".audition-application>p");if(intro)intro.textContent="募集の詳細・応募手順は応募窓口をご確認ください。"}
+ const href=url("applicationUrl"),box=document.querySelector(".audition-status");if(href&&box){const p=document.createElement("p");p.textContent="参加申込みは下記の外部窓口からご確認ください。";box.replaceChildren(p);link(box,href,"応募窓口へ");const faq=document.querySelector("#join-application-faq p");if(faq)faq.textContent="参加申込みの詳細は下記の応募窓口をご確認ください。";const intro=document.querySelector(".audition-application>p");if(intro)intro.textContent="募集の詳細・応募手順は応募窓口をご確認ください。"}
  }
  if(current==="contact.html"){const href=url("contactUrl"),box=document.querySelector(".contact-status");if(href&&box){const p=document.createElement("p");p.textContent="お問い合わせは下記の外部窓口をご利用ください。";box.replaceChildren(p);link(box,href,"お問い合わせ窓口へ");const intro=document.querySelector(".contact-intro p");if(intro)intro.textContent="コミュニティへのお問い合わせは、受付窓口をご利用ください。";const caution=document.querySelector(".contact-caution p");if(caution)caution.textContent="個人情報や非公開情報を公開投稿などに送らないようご注意ください。"}}
  set(".pop-footer .footer-grid>div:first-child p","footerText");
