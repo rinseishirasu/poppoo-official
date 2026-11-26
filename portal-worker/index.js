@@ -66,16 +66,18 @@ function page(mode,message="",status=200,content=""){
  return new Response('<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">*{box-sizing:border-box}body{margin:0;background:#edf5fc;color:#142f56;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}main{background:white;border:1px solid #dbe8f4;border-radius:20px;padding:32px;width:min(100%,'+(mode==="admin"?"840px":home||["profile","avatars","schedule","activity","notices","applications","operations","reviews","account","audit"].includes(mode)?"1000px":"440px")+')}h1{font-size:1.3rem}h2{font-size:1.1rem}label{display:grid;gap:6px;margin:18px 0}input,select,textarea,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #b8cde1;width:100%}button{background:#176bb2;color:white;border:0;cursor:pointer;font-weight:600}button:hover{background:#10578f}input[type=checkbox]{width:auto;justify-self:start}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #176bb2;outline-offset:3px}summary{cursor:pointer}main{box-shadow:0 10px 36px #142f5610}h1{letter-spacing:.02em}label{overflow-wrap:anywhere}p{line-height:1.7}small{color:#536b83}article{border-top:1px solid #dbe8f4;padding:12px 0;overflow-wrap:anywhere}article form{margin-top:8px}a{color:#176bb2}textarea{resize:vertical;min-height:90px}.avatar-preview{display:block;width:100%;max-width:220px;aspect-ratio:1;object-fit:contain;background:#eff6fd;border-radius:12px;margin:10px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere} .portal-hero{background:#142f56;color:white;padding:24px;border-radius:14px;margin:16px 0}.portal-hero h2{font-size:1.6rem;margin:8px 0}.portal-hero small{color:#c9e3ff}.portal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.portal-tile{padding:18px;border:1px solid #dbe8f4;border-radius:12px;overflow-wrap:anywhere}.portal-tile h2,.portal-tile h3{margin:4px 0 10px;font-size:1.05rem}.portal-tile p{margin:6px 0}.portal-tag{display:inline-block;padding:4px 10px;background:#e6f2ff;color:#174d80;border-radius:20px;font-size:.8rem;margin:3px 4px 3px 0}.portal-section{margin:22px 0}.portal-notice{background:#eff6fd;border-radius:10px;padding:12px}.portal-link{display:inline-block;padding:8px 0;font-weight:600}@media(max-width:600px){main{padding:20px}.portal-grid{grid-template-columns:1fr}.portal-hero{padding:18px}}</style><main><small>POPPŌ MEMBER PORTAL</small><h1>'+(setup?"初期管理者登録":mode==="admin"?"アカウント管理":mode==="activate"?"初回パスワード設定":mode==="profile"?"プロフィール変更申請":mode==="avatars"?"アバター画像管理":mode==="schedule"?"配信スケジュール":mode==="activity"?"活動記録・記念日":mode==="notices"?"運営からのお知らせ":mode==="applications"?"各種申請":mode==="operations"?"運営連絡・申請管理":mode==="reviews"?"プロフィール・画像審査":mode==="account"?"アカウント設定":mode==="audit"?"監査履歴":home?"ダッシュボード":"ログイン")+'</h1><p role="status">'+message+'</p>'+form.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</main></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-async function publishedMembers(){
+async function publishedMembers(env){
+ if(env&&publicationReady(env)){const {data}=await githubDataset(env,"talents");return data.filter(t=>t?.published===true&&typeof t.id==="string"&&/^[A-Za-z0-9_-]{1,100}$/.test(t.id)&&typeof t.name==="string");}
  const response=await fetch("https://rinseishirasu.github.io/poppoo-official/data/talents.json",{headers:{"Accept":"application/json"},cache:"no-store"});
  if(!response.ok)throw Error("Member registry unavailable");
  const data=await response.json();if(!Array.isArray(data))throw Error("Member registry invalid");
  return data.filter(t=>t&&t.published===true&&typeof t.id==="string"&&/^[A-Za-z0-9_-]{1,100}$/.test(t.id)&&typeof t.name==="string");
 }
-async function memberDashboard(db,session){
+async function memberDashboard(env,session){
+ const db=env.DB;
  const base="https://rinseishirasu.github.io/poppoo-official/";
  let member=null,registryError=false,requests=null,unread=null,applications=null;
- try{member=(await publishedMembers()).find(m=>m.id===session.member_id)||null;}catch{registryError=true;}
+ try{member=(await publishedMembers(env)).find(m=>m.id===session.member_id)||null;}catch{registryError=true;}
  try{requests=(await db.prepare("SELECT status,COUNT(*) AS total FROM profile_requests WHERE account_id=? GROUP BY status").bind(session.id).all()).results;}catch{}
  try{unread=(await db.prepare("SELECT COUNT(*) AS total FROM portal_notices n WHERE n.published=1 AND NOT EXISTS(SELECT 1 FROM notice_reads r WHERE r.notice_id=n.id AND r.account_id=?)").bind(session.id).first())?.total??0;}catch{}
  try{applications=(await db.prepare("SELECT COUNT(*) AS total FROM member_applications WHERE account_id=? AND status='pending'").bind(session.id).first())?.total??0;}catch{}
@@ -91,8 +93,9 @@ const PROFILE_FIELDS=[["catchphrase","キャッチフレーズ",100],["bio","自
 const profileValues=m=>Object.fromEntries(PROFILE_FIELDS.map(([k])=>[k,typeof m[k]==="string"?m[k]:""]));
 const profileRevision=async m=>digest(JSON.stringify(profileValues(m)));
 const profileStatus={draft:"下書き",pending:"審査待ち",approved:"承認済み",returned:"差し戻し",withdrawn:"取り下げ"};
-async function profilePage(db,session,message="",status=200){
- const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+async function profilePage(env,session,message="",status=200){
+ const db=env.DB;
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return page("profile","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
  const base=profileValues(member),revision=await profileRevision(member);
  const rows=(await db.prepare("SELECT id,base_revision,patch_json,status,review_note,updated_at FROM profile_requests WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT 30").bind(session.id).all()).results;
@@ -109,8 +112,9 @@ async function profilePage(db,session,message="",status=200){
  }).join(""):"<p>申請履歴はまだありません。</p>";
  return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
 }
-async function saveProfile(db,session,form){
- const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+async function saveProfile(env,session,form){
+ const db=env.DB;
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return json({error:"Profile unavailable"},404);
  const revision=await profileRevision(member),base=profileValues(member),action=form.get("action");
  if(!["draft","pending"].includes(action)||form.get("revision")!==revision)return json({error:"Profile changed; reopen editor"},409);
@@ -119,7 +123,7 @@ async function saveProfile(db,session,form){
  const value=form.get(k);if(typeof value!=="string"||value.length>max)return json({error:"Invalid profile field"},400);
  const normalized=value.replace(/\r\n/g,"\n").trim();if(normalized!==base[k].replace(/\r\n/g,"\n").trim())patch[k]=normalized;
  }
- if(!Object.keys(patch).length)return profilePage(db,session,"変更された項目がありません。",400);
+ if(!Object.keys(patch).length)return profilePage(env,session,"変更された項目がありません。",400);
  const id=form.get("request_id")||"",payload=JSON.stringify(patch);
  let result;
  if(id){
@@ -202,8 +206,9 @@ function publicAvatar(path){
  if(typeof path!=="string"||!/^assets\/images\/talents\/[A-Za-z0-9_-]+\.(png|jpe?g|webp|gif)$/i.test(path))return "";
  return "https://rinseishirasu.github.io/poppoo-official/"+path;
 }
-async function avatarPage(db,session){
- const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+async function avatarPage(env,session){
+ const db=env.DB;
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return page("avatars","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
  let rows;
  try{rows=(await db.prepare("SELECT slot,id,created_at FROM avatar_requests WHERE account_id=?").bind(session.id).all()).results;}
@@ -219,21 +224,22 @@ async function avatarPage(db,session){
  const history=reviewed.map(j=>'<article><strong>'+(j.state==="published"?"公開済み":"差し戻し")+'</strong><p><small>'+esc(j.updated_at)+' UTC</small></p><pre>'+esc(j.note||"")+'</pre></article>').join("")||"<p>審査履歴はありません。</p>";
  return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。位置情報などのメタデータを除去し、静止画に書き出してから提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
 }
-async function uploadAvatar(db,session,form){
+async function uploadAvatar(env,session,form){
+ const db=env.DB;
  const slot=form.get("slot"),previous=form.get("previous")||"",file=form.get("image");
  if(!avatarSlot(slot)||typeof previous!=="string"||previous.length>36||!file||typeof file.arrayBuffer!=="function"||file.size<12||file.size>524288)return json({error:"Invalid image or size; maximum 512KiB"},400);
  const data=await file.arrayBuffer(),mime=imageMime(new Uint8Array(data));
  if(!mime||file.type!==mime)return json({error:"Unsupported image structure, metadata or dimensions"},400);
- const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return json({error:"Profile unavailable"},404);
  const id=crypto.randomUUID();
  const result=previous?await db.prepare("UPDATE avatar_requests SET id=?,mime=?,image_data=?,created_at=CURRENT_TIMESTAMP WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(id,mime,data,session.id,slot,previous,session.id).run():await db.prepare("INSERT INTO avatar_requests(account_id,slot,id,mime,image_data) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') ON CONFLICT(account_id,slot) DO NOTHING").bind(session.id,slot,id,mime,data,session.id).run();
  if(result.meta.changes!==1)return json({error:"Submission changed; reopen page"},409);
  return redirect("/avatars");
 }
-async function privateAvatar(db,session,slot){
- if(!avatarSlot(slot))return json({error:"Not found"},404);
- const row=await db.prepare("SELECT mime,image_data FROM avatar_requests WHERE account_id=? AND slot=?").bind(session.id,slot).first();
+async function privateAvatar(db,session,slot,version){
+ if(!avatarSlot(slot)||!safeId(version))return json({error:"Not found"},404);
+ const row=await db.prepare("SELECT mime,image_data FROM avatar_requests WHERE account_id=? AND slot=? AND id=?").bind(session.id,slot,version).first();
  if(!row)return json({error:"Not found"},404);
  const data=new Uint8Array(row.image_data);
  if(imageMime(data)!==row.mime)return json({error:"Invalid image"},415);
@@ -251,10 +257,10 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
 function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
 const publicationReady=env=>pepperReady(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
-const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json"}[kind]);
+const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json",news:"news.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
 async function githubDataset(env,kind,ref="main"){
- if(!["schedule","talents"].includes(kind)||!publicationReady(env))throw Error("Publication disabled");
+ if(!["schedule","talents","news"].includes(kind)||!publicationReady(env))throw Error("Publication disabled");
  const res=await fetch(githubDataUrl(kind)+"?ref="+encodeURIComponent(ref),{headers:githubHeaders(env),redirect:"error",cache:"no-store"});
  if(!res.ok)throw Error("GitHub dataset unavailable");
  const f=await res.json();
@@ -343,9 +349,10 @@ const getText=(form,k,max,required=false)=>{const v=form.get(k);if(typeof v!=="s
 function activityFields(row={}){
  return '<label>分類<select name="kind"><option value="activity"'+(row.kind!=="anniversary"?" selected":"")+'>活動記録</option><option value="anniversary"'+(row.kind==="anniversary"?" selected":"")+'>記念日</option></select></label><label>日付<input type="date" name="event_date" value="'+esc(row.event_date||"")+'" required></label>'+inputField("title","タイトル",150,row.title||"")+textField("description","詳細",1000,row.description||"");
 }
-async function activityPage(db,session){
+async function activityPage(env,session){
+ const db=env.DB;
  const rows=(await db.prepare("SELECT id,kind,event_date,title,description FROM member_activity WHERE account_id=? ORDER BY event_date DESC,id LIMIT 100").bind(session.id).all()).results;
- const member=(await publishedMembers()).find(m=>m.id===session.member_id);
+ const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  const dates=member?[["誕生日",member.birthday],["REALITYデビュー日",member.debutDate],["ぽっぽー加入日",member.joinDate],...(Array.isArray(member.anniversaries)?member.anniversaries.filter(x=>x&&typeof x==="object").map(x=>[x.title,x.date]):[["活動記念日",member.anniversary]])].filter(([,date])=>typeof date==="string"&&date):[];
  const official=dates.map(([label,date])=>'<p>'+esc(label||"記念日")+'：'+esc(date)+'</p>').join("")||"<p>公開記念日は未登録です。</p>";
  const list=rows.map(row=>'<article><strong>'+esc(row.event_date)+' '+esc(row.title)+'</strong><p>'+ (row.kind==="anniversary"?"記念日":"活動記録")+'</p><pre>'+esc(row.description)+'</pre><details><summary>編集する</summary><form method="post" action="/activity/save">'+hInput("id",row.id)+activityFields(row)+'<button>更新</button></form></details><form method="post" action="/activity/delete">'+hInput("id",row.id)+confirmDelete+'<button>削除</button></form></article>').join("");
@@ -418,8 +425,50 @@ function bytesBase64(bytes){let s="";for(let i=0;i<bytes.length;i+=8192)s+=Strin
 async function gitBlob(env,content){
  const b=await gitCall(env,"/git/blobs","POST",{content,encoding:"base64"});if(!shaValid(b.sha))throw Error("Invalid blob");return b.sha;
 }
-async function buildPublicationCommit(env,head,data,image){
- const entries=[{path:"data/talents.json",mode:"100644",type:"blob",sha:await gitBlob(env,encodeGitHubJson(data))}];
+// Inlined static metadata generator, kept identical to main assets/js/site.js for paste-ready Worker deployment.
+const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+// Static search metadata. Only published detail pages enter the sitemap.
+const SEO_PUBLIC_PAGES=["","about.html","talents.html","schedule.html","anniversary.html","activity.html","news.html","audition.html","contact.html","policy.html"];
+function sitemapXml(talents,news){
+ const paths=new Set(SEO_PUBLIC_PAGES);
+ for(const [kind,items] of [["talents",talents],["news",news]])for(const item of Array.isArray(items)?items:[]){
+ if(item?.published!==true||typeof (kind==="talents"?item.name:item.title)!=="string"||!(kind==="talents"?item.name:item.title).trim())continue;
+ const path=shareDetailPath(kind,item.id);if(path)paths.add(path);
+ }
+ return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+[...paths].map(p=>"<url><loc>"+SHARE_BASE+p+"</loc></url>").join("\n")+"\n</urlset>\n";
+}
+function jsonLd(value){return JSON.stringify(value).replace(/</g,"\\u003c").replace(/>/g,"\\u003e").replace(/&/g,"\\u0026")}
+function organizationSchema(){return {"@type":"Organization","@id":SHARE_BASE+"#community",name:"架空事務所 ぽっぽー",url:SHARE_BASE,logo:SHARE_BASE+"assets/image/poppoo-icon.png",description:"REALITYを中心に活動する配信者コミュニティ"}}
+function shareDetailPath(kind,id){
+ if(!["talents","news"].includes(kind)||typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))return "";
+ return "share-"+(kind==="talents"?"member":"news")+"-"+id+".html";
+}
+function sharePageHtml(kind,item){
+ const path=shareDetailPath(kind,item?.id);
+ if(!path||item.published!==true)return null;
+ const member=kind==="talents",name=String(member?item.name:item.title||"").trim();
+ if(!name)return null;
+ const title=name+" | 架空事務所 ぽっぽー",desc=String(member?(item.catchphrase||"架空事務所 ぽっぽーの参加メンバー、"+name+"のプロフィールです。"):(item.summary||"架空事務所 ぽっぽーからのお知らせです。")).replace(/\s+/g," ").trim().slice(0,180);
+ const hidden=Array.isArray(item.hiddenSections)&&item.hiddenSections.includes("gallery");
+ const avatars=Array.isArray(item.avatarImages)?item.avatarImages:[item.avatarImages];
+ const candidates=member?[...(!hidden?[...avatars,item.avatarImage]:[]),item.iconImage]:[item.thumbnailImage];
+ const imagePath=candidates.find(x=>typeof x==="string"&&/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(x)&&!x.split("/").includes(".."))||"assets/image/poppoo-icon.png";
+ const url=SHARE_BASE+path,image=SHARE_BASE+imagePath;
+ const e=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ const meta=(key,value,property=false)=>'<meta '+(property?"property":"name")+'="'+key+'" content="'+e(value)+'">';
+ const heading=member?"MEMBERS":"NEWS",list=member?"talents.html":"news.html",detail=member?"talent-profile":"news-detail",klass=member?"pop-profile":"pop-info pop-news-detail";
+ const person={"@type":"Person",name,identifier:item.id,url,...(imagePath!=="assets/image/poppoo-icon.png"?{image}:{}),...(item.catchphrase?{description:String(item.catchphrase)}:{})};
+ const schema=member?{"@context":"https://schema.org","@type":"ProfilePage",url,mainEntity:person,inLanguage:"ja"}:{"@context":"https://schema.org","@type":"Article",headline:name,description:desc,url,mainEntityOfPage:url,publisher:organizationSchema(),...(imagePath!=="assets/image/poppoo-icon.png"?{image}:{}),...(typeof item.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&Number.isFinite(Date.parse(item.date))&&new Date(item.date).toISOString().slice(0,10)===item.date?{datePublished:item.date}:{}),inLanguage:"ja"};
+ const structured='<script type="application/ld+json">'+jsonLd(schema)+'</script>';
+ const tags=[meta("description",desc),meta("og:title",title,true),meta("og:description",desc,true),meta("og:type",member?"website":"article",true),meta("og:url",url,true),meta("og:image",image,true),meta("og:image:alt",imagePath==="assets/image/poppoo-icon.png"?"ぽっぽー公式アイコン":name+"の掲載画像",true),meta("og:site_name","架空事務所 ぽっぽー",true),meta("og:locale","ja_JP",true),meta("twitter:card",member?"summary":"summary_large_image"),meta("twitter:title",title),meta("twitter:description",desc),meta("twitter:image",image)].join("\n");
+ return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f7fc"><title>'+e(title)+'</title>\n'+tags+'\n'+structured+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><article class="detail-article"><h1>'+e(name)+'</h1><p>'+e(desc)+'</p><p class="small">詳細情報を読み込み中...</p><noscript><p>詳しい情報を表示するにはJavaScriptを有効にしてください。</p></noscript></article></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
+}
+
+async function buildPublicationCommit(env,head,data,image,updatedMember){
+ const page=sharePageHtml("talents",updatedMember);
+ if(!page)throw Error("Member share metadata invalid");
+ const news=await githubDataset(env,"news",head.sha);
+ const entries=[{path:"data/talents.json",mode:"100644",type:"blob",sha:await gitBlob(env,encodeGitHubJson(data))},{path:page.path,mode:"100644",type:"blob",sha:await gitBlob(env,bytesBase64(encoder.encode(page.content)))},{path:"sitemap.xml",mode:"100644",type:"blob",sha:await gitBlob(env,bytesBase64(encoder.encode(sitemapXml(data,news.data))))}];
  if(image)entries.push({path:image.path,mode:"100644",type:"blob",sha:await gitBlob(env,bytesBase64(image.bytes))});
  const tree=await gitCall(env,"/git/trees","POST",{base_tree:head.tree,tree:entries});
  if(!shaValid(tree.sha))throw Error("Invalid tree");
@@ -506,7 +555,7 @@ async function reviewSubmission(env,session,form){
  const data=dataset.data.map(m=>m===member?updated:m);
  const active=await db.prepare("SELECT id FROM accounts WHERE id=? AND status='active' AND role='member'").bind(row.account_id).first();
  if(!active)throw Error("Member inactive");
- const sha=await buildPublicationCommit(env,head,data,image);
+ const sha=await buildPublicationCommit(env,head,data,image,updated);
  const saved=await db.prepare("UPDATE publication_jobs SET commit_sha=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND commit_sha IS NULL").bind(sha,id).run();
  if(saved.meta.changes!==1)throw Error("Job changed");
  commitSha=sha;
@@ -576,7 +625,7 @@ export default {async fetch(request,env){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
  const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
  const schemaReady=tables.every(t=>found.includes(t));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-candidate-v15",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v16",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -584,10 +633,10 @@ export default {async fetch(request,env){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
  }
- if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&env.PORTAL_TEST_MODE==="true"?await memberDashboard(db,session):page("login");}
+ if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&env.PORTAL_TEST_MODE==="true"?await memberDashboard(env,session):page("login");}
  if(request.method==="GET"&&["/activity","/notices","/applications"].includes(path)){
  const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
- return path==="/activity"?await activityPage(db,session):path==="/notices"?await noticesPage(db,session):await applicationsPage(db,session);
+ return path==="/activity"?await activityPage(env,session):path==="/notices"?await noticesPage(db,session):await applicationsPage(db,session);
  }
  if(request.method==="GET"&&["/admin/reviews","/admin/review-image"].includes(path)){
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
@@ -595,10 +644,10 @@ export default {async fetch(request,env){
  }
  if(request.method==="GET"&&path==="/admin/operations"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await operationsPage(db);}
  if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await schedulePage(env,session,false);}
- if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(db,session);}
+ if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(env,session);}
  if(request.method==="GET"&&(path==="/avatars"||path==="/avatars/image")){
  const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
- return path==="/avatars"?await avatarPage(db,session):await privateAvatar(db,session,url.searchParams.get("slot"));
+ return path==="/avatars"?await avatarPage(env,session):await privateAvatar(db,session,url.searchParams.get("slot"),url.searchParams.get("v"));
  }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
@@ -621,7 +670,7 @@ export default {async fetch(request,env){
  if(path==="/account/password"){const session=await readSession(db,cookie(request));if(!session||(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true"))return json({error:"Forbidden"},403);return await changePassword(env,session,form);}
  if(path.startsWith("/avatars/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
- if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(db,session,form);}
+ if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(env,session,form);}
  const slot=form.get("slot"),id=form.get("id");if(!avatarSlot(slot)||typeof id!=="string")return json({error:"Invalid submission"},400);
  const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(session.id,slot,id,session.id).run();
  if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
@@ -651,7 +700,7 @@ export default {async fetch(request,env){
  }
  if(path.startsWith("/profile/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
- if(path==="/profile/save")return await saveProfile(db,session,form);
+ if(path==="/profile/save")return await saveProfile(env,session,form);
  const result=await db.prepare("UPDATE profile_requests SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status IN ('draft','pending','returned') AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=profile_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(form.get("id")||"",session.id,session.id).run();
  if(result.meta.changes!==1)return json({error:"Request unavailable"},409);
  return redirect("/profile");
@@ -675,7 +724,7 @@ export default {async fetch(request,env){
  if(["/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return await mutateOperations(db,session,form,path);
  if(path==="/admin/accounts"){
  const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,env.PORTAL_TEST_MODE==="true");
- const members=await publishedMembers();if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
+ const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
  const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING").bind(id,email,memberId).run();if(result.meta.changes!==1)return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,env.PORTAL_TEST_MODE==="true");
  return redirect("/admin");
  }
@@ -714,5 +763,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-candidate-v15"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v16"},503);}
 }};
