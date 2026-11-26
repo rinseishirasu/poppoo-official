@@ -147,3 +147,12 @@
  .admin-page .cms-media-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr))}
 }
 @media(max-width:350px){.admin-page .cms-metrics,.admin-page .cms-sidebar .admin-tabs,.admin-page .cms-sidebar-links{grid-template-columns:minmax(0,1fr)}}
+
+/* Ordered management membership editor */
+[data-management-list]{display:grid;gap:8px;margin:12px 0}
+.admin-management-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid #dbe8f4;border-radius:8px;background:#f5faff}
+.admin-management-row>span{min-width:0;overflow-wrap:anywhere;font-weight:700;color:#142f56}
+.admin-management-controls{display:flex;flex-wrap:wrap;gap:6px}
+.admin-management-controls button,[data-management-add],[data-management-default]{min-height:40px}
+[data-management-select]{width:100%;margin-bottom:8px}
+@media(max-width:760px){.admin-management-row{align-items:flex-start;flex-direction:column}.admin-management-controls{width:100%}}
