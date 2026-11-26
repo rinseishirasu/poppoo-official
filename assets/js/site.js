@@ -1,6 +1,6 @@
 const navItems = [
   ["TOP","index.html"],["ABOUT","about.html"],["MEMBERS","talents.html"],
-  ["SCHEDULE","schedule.html"],["ANNIVERSARY","anniversary.html"],["NEWS","news.html"],
+  ["SCHEDULE","schedule.html"],["ANNIVERSARY","anniversary.html"],["ACTIVITY","activity.html"],["NEWS","news.html"],
   ["JOIN","audition.html"],["CONTACT","contact.html"]
 ];
 const pageFile=location.pathname.split("/").pop()||"index.html";
@@ -24,7 +24,7 @@ if (header) {
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
   nav.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("open")){setMenu(false);btn.focus()}});
-  const desktop=matchMedia("(min-width:1301px)");
+  const desktop=matchMedia("(min-width:1401px)");
   desktop.addEventListener("change",e=>{if(e.matches)setMenu(false)});
   document.addEventListener("pointerdown",e=>{if(!header.contains(e.target)&&nav.classList.contains("open"))setMenu(false)});
   header.addEventListener("focusout",e=>{if(e.relatedTarget&&!header.contains(e.relatedTarget))setMenu(false)});
@@ -32,7 +32,7 @@ if (header) {
   window.addEventListener("scroll",updateHeader,{passive:true});updateHeader();
 }
 const footer = document.querySelector("#site-footer");
-if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>「好き」を配信に。「個性」を輝きに。<br>一人ひとりの個性と、自分らしい配信活動を応援します。</p></div><div><strong>CONTENTS</strong><div class="footer-links"><a href="about.html">コミュニティについて</a><a href="talents.html">参加メンバー</a><a href="schedule.html">配信スケジュール</a><a href="anniversary.html">記念日カレンダー</a><a href="news.html">お知らせ</a></div></div><div><strong>INFORMATION</strong><div class="footer-links"><a href="audition.html">コミュニティ参加について</a><a href="contact.html">お問い合わせ</a><a href="search.html">サイト内検索</a><a href="policy.html">プライバシー・サイトポリシー</a></div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">ページ上部へ <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
+if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>「好き」を配信に。「個性」を輝きに。<br>一人ひとりの個性と、自分らしい配信活動を応援します。</p></div><div><strong>CONTENTS</strong><div class="footer-links"><a href="about.html">コミュニティについて</a><a href="talents.html">参加メンバー</a><a href="schedule.html">配信スケジュール</a><a href="anniversary.html">記念日カレンダー</a><a href="activity.html">メンバーの活動実績</a><a href="news.html">お知らせ</a></div></div><div><strong>INFORMATION</strong><div class="footer-links"><a href="audition.html">コミュニティ参加について</a><a href="contact.html">お問い合わせ</a><a href="search.html">サイト内検索</a><a href="policy.html">プライバシー・サイトポリシー</a></div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">ページ上部へ <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
 
 if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
 
@@ -78,7 +78,7 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  if(!target)return;
  // Do not expose draft titles or activate copy/share in preview or embedded pages.
  if(window.parent!==window||new URLSearchParams(location.search).has("cmsPreview")){target.hidden=true;return}
- const allowed=["index.html","talents.html","talent.html","news.html","news-detail.html","schedule.html","anniversary.html","about.html","audition.html"];
+ const allowed=["index.html","talents.html","talent.html","news.html","news-detail.html","schedule.html","anniversary.html","activity.html","about.html","audition.html"];
  if(!allowed.includes(page))return;
  const url=new URL(page,"https://rinseishirasu.github.io/poppoo-official/");
  if(page==="index.html")url.pathname="/poppoo-official/";
@@ -101,7 +101,7 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  target.replaceChildren(titleEl,buttons,status,fallback);
 }
 // Consistent share controls on the main public landing and listing pages.
-const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","anniversary.html":"記念日カレンダー | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
+const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","anniversary.html":"記念日カレンダー | 架空事務所 ぽっぽー","activity.html":"メンバーの活動実績 | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
 if(sharePageTitles[current]&&mainContent&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview")){
  const section=document.createElement("section");section.className="container pop-page-share-wrap";
  const target=document.createElement("div");section.append(target);mainContent.append(section);
@@ -138,6 +138,27 @@ function nextAnniversaryEvents(records,today){
  const start=Number(today.slice(0,4)),out=[];
  for(const record of records)for(let year=Math.max(start,record.year||start);year<=Math.max(start,record.year||start)+8&&year<10000;year++){const event=anniversaryOccurrence(record,year);if(event&&event.date>=today){out.push(event);break}}
  return out.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name,"ja"));
+}
+// Shared public activity records: preserve existing CMS fields and visibility.
+function activityDateKey(value){
+ const raw=typeof value==="string"?value.trim():"",m=raw.match(/^(\d{4})(?:[-/](\d{1,2})(?:[-/](\d{1,2}))?)?$/);
+ if(!m)return "";
+ const y=Number(m[1]),month=m[2]?Number(m[2]):1,day=m[3]?Number(m[3]):1;
+ if(y<1900||y>9998||month<1||month>12||day<1)return "";
+ const d=new Date(Date.UTC(y,month-1,day));if(d.getUTCMonth()!==month-1||d.getUTCDate()!==day)return "";
+ return m[1]+(m[2]?"-"+String(month).padStart(2,"0"):"-00")+(m[3]?"-"+String(day).padStart(2,"0"):"-00");
+}
+function publicActivityRecords(talents){
+ const rows=[];
+ for(const t of Array.isArray(talents)?talents:[]){
+ if(!t||t.published!==true||typeof t.id!=="string"||!/^[A-Za-z0-9_-]+$/.test(t.id)||typeof t.name!=="string"||!t.name.trim()||t.hiddenSections?.includes?.("achievements"))continue;
+ for(const a of Array.isArray(t.achievements)?t.achievements:[]){
+ if(!a||typeof a.title!=="string"||!a.title.trim())continue;
+ const date=typeof a.date==="string"?a.date.trim():"";
+ rows.push({memberId:t.id,name:t.name,title:a.title.trim(),description:typeof a.description==="string"?a.description.trim():"",date,dateKey:activityDateKey(date),href:"talent.html?id="+encodeURIComponent(t.id)+"#activity-achievements"});
+ }
+ }
+ return rows.sort((a,b)=>b.dateKey.localeCompare(a.dateKey)||a.name.localeCompare(b.name,"ja"));
 }
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
