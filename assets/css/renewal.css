@@ -359,3 +359,17 @@
 .news-linked-grid{display:flex;flex-wrap:wrap;gap:10px}
 .news-linked-grid a{padding:10px 14px;background:#edf6ff;color:#145b98;border-radius:8px;font-size:.88rem;font-weight:700;text-decoration:none;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box}
 @media(max-width:760px){.profile-related-news-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Community information navigation and policy highlights */
+.pop-info-index{display:flex;flex-wrap:wrap;gap:8px;padding:14px;background:#fff;border:1px solid #dbe8f4;border-radius:14px}
+.pop-info-index a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;box-sizing:border-box;border-radius:8px;background:#edf6ff;color:#145b98;text-decoration:none;font-weight:700;font-size:.88rem;line-height:1.45}
+.pop-info-index a:hover{background:#d9ecfc}
+.pop-info-index a:focus-visible{outline:3px solid #1978c8;outline-offset:3px}
+.pop-brand-content [id],.contact-content [id]{scroll-margin-top:120px}
+.pop-policy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}
+.pop-policy-grid article{min-width:0;padding:18px;background:#f4f9fe;border:1px solid #dbe8f4;border-radius:12px}
+.pop-policy-grid h3{margin:0 0 10px;font-size:1rem;color:#145b98;line-height:1.5}
+.pop-policy-grid p{font-size:.88rem;line-height:1.8;color:#456582}
+.pop-contact #contact-guide .pop-brand-cta{margin-top:18px}
+.pop-contact #contact-guide>p{line-height:1.85;color:#456582}
+@media(max-width:760px){.pop-info-index{padding:10px;gap:6px}.pop-info-index a{font-size:.8rem;padding:8px 10px}.pop-policy-grid{grid-template-columns:minmax(0,1fr);gap:10px}.pop-policy-grid article{padding:16px}}
