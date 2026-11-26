@@ -168,6 +168,25 @@ function managementMembers(talents,settings){
  const members=(Array.isArray(talents)?talents:[]).filter(t=>t?.published===true&&typeof t.id==="string"&&/^[A-Za-z0-9_-]+$/.test(t.id)&&typeof t.name==="string"&&t.name.trim());
  return [...new Set(ids)].map(id=>members.find(t=>t.id===id)).filter(Boolean);
 }
+// Member palette: retain the exact registered color for decoration; derive readable text.
+function memberPalette(value){
+ const base=typeof value==="string"&&/^#[0-9a-f]{6}$/i.test(value)?value.toLowerCase():"#1978c8";
+ const rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));
+ const hex=v=>"#"+v.map(n=>Math.round(n).toString(16).padStart(2,"0")).join("");
+ const mix=(target,f)=>rgb.map((n,i)=>Math.round(n*(1-f)+target[i]*f));
+ const luminance=v=>v.map(n=>{const s=n/255;return s<=.04045?s/12.92:((s+.055)/1.055)**2.4}).reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0);
+ const soft=mix([255,255,255],.88),surface=mix([255,255,255],.96),border=mix([255,255,255],.68);
+ // Use the darkest required variant across white and the most saturated text background.
+ const backgroundL=Math.min(luminance(soft),luminance(surface)),contrast=v=>(backgroundL+.05)/(luminance(v)+.05);
+ let ink=rgb.slice();
+ for(let i=1;contrast(ink)<4.5&&i<=20;i++)ink=mix([0,0,0],i/20);
+ return {base,soft:hex(soft),surface:hex(surface),border:hex(border),ink:hex(ink),strong:hex(mix([0,0,0],.18))};
+}
+function applyMemberPalette(el,value){
+ const p=memberPalette(value);
+ for(const [key,color] of Object.entries(p))el.style.setProperty("--member-"+(key==="base"?"color":key),color);
+ return p;
+}
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
 async function loadData(file){
