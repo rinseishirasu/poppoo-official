@@ -40,6 +40,37 @@ const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(loca
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#142f56;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
 const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+// Static search metadata. Only published detail pages enter the sitemap.
+const SEO_PUBLIC_PAGES=["","about.html","talents.html","schedule.html","anniversary.html","activity.html","news.html","audition.html","contact.html","policy.html"];
+function sitemapXml(talents,news){
+ const paths=new Set(SEO_PUBLIC_PAGES);
+ for(const [kind,items] of [["talents",talents],["news",news]])for(const item of Array.isArray(items)?items:[]){
+ if(item?.published!==true||typeof (kind==="talents"?item.name:item.title)!=="string"||!(kind==="talents"?item.name:item.title).trim())continue;
+ const path=shareDetailPath(kind,item.id);if(path)paths.add(path);
+ }
+ return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+[...paths].map(p=>"<url><loc>"+SHARE_BASE+p+"</loc></url>").join("\n")+"\n</urlset>\n";
+}
+function jsonLd(value){return JSON.stringify(value).replace(/</g,"\\u003c").replace(/>/g,"\\u003e").replace(/&/g,"\\u0026")}
+function organizationSchema(){return {"@type":"Organization","@id":SHARE_BASE+"#community",name:"架空事務所 ぽっぽー",url:SHARE_BASE,logo:SHARE_BASE+"assets/image/poppoo-icon.png",description:"REALITYを中心に活動する配信者コミュニティ"}}
+function homepageSeo(html,settings){
+ const s=(Array.isArray(settings)?settings:[]).find(x=>x?.published===true)||{};
+ const text=(v,defaultValue,max)=>typeof v==="string"&&v.trim()?v.trim().replace(/\s+/g," ").slice(0,max):defaultValue;
+ const title=text(s.seoTitle,"架空事務所 ぽっぽー | REALITY配信者コミュニティ公式サイト",100),desc=text(s.seoDescription,"架空事務所 ぽっぽーは、REALITYを中心に活動する配信者コミュニティです。参加メンバー、配信予定、活動実績、記念日、お知らせを掲載しています。",180);
+ const image=typeof s.seoImage==="string"&&/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(s.seoImage)&&!s.seoImage.split("/").includes("..")?SHARE_BASE+s.seoImage:SHARE_BASE+"assets/image/poppoo-icon.png";
+ const e=v=>String(v).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ let out=html.replace(/<title>[\s\S]*?<\/title>/i,()=>"<title>"+e(title)+"</title>");
+ for(const [key,value] of [["description",desc],["og:title",title],["og:description",desc],["og:image",image],["twitter:title",title],["twitter:description",desc],["twitter:image",image]]){
+ const re=new RegExp('<meta\\s+(?:name|property)="'+key+'"\\s+content="[^"]*"\\s*/?>',"i");
+ if(!re.test(out))throw Error("TOPのSEOタグが見つかりません: "+key);
+ out=out.replace(re,()=>'<meta '+(key.startsWith("og:")?"property":"name")+'="'+key+'" content="'+e(value)+'">');
+ }
+ const schema='<script type="application/ld+json" id="pop-home-schema">'+jsonLd({"@context":"https://schema.org","@graph":[organizationSchema(),{"@type":"WebSite","@id":SHARE_BASE+"#website",name:"架空事務所 ぽっぽー",url:SHARE_BASE,publisher:{"@id":SHARE_BASE+"#community"},inLanguage:"ja"}]})+'</script>';
+ return /<script type="application\/ld\+json" id="pop-home-schema">[\s\S]*?<\/script>/.test(out)?out.replace(/<script type="application\/ld\+json" id="pop-home-schema">[\s\S]*?<\/script>/,()=>schema):out.replace("</head>",()=>schema+"\n</head>");
+}
+function setDetailCanonical(kind,id){
+ const path=shareDetailPath(kind,id);if(!path||previewData)return;
+ let tag=document.querySelector('link[rel="canonical"]');if(!tag){tag=document.createElement("link");tag.rel="canonical";document.head.append(tag)}tag.href=SHARE_BASE+path;
+}
 function shareDetailPath(kind,id){
  if(!["talents","news"].includes(kind)||typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))return "";
  return "share-"+(kind==="talents"?"member":"news")+"-"+id+".html";
@@ -58,8 +89,11 @@ function sharePageHtml(kind,item){
  const e=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  const meta=(key,value,property=false)=>'<meta '+(property?"property":"name")+'="'+key+'" content="'+e(value)+'">';
  const heading=member?"MEMBERS":"NEWS",list=member?"talents.html":"news.html",detail=member?"talent-profile":"news-detail",klass=member?"pop-profile":"pop-info pop-news-detail";
+ const person={"@type":"Person",name,identifier:item.id,url,...(imagePath!=="assets/image/poppoo-icon.png"?{image}:{}),...(item.catchphrase?{description:String(item.catchphrase)}:{})};
+ const schema=member?{"@context":"https://schema.org","@type":"ProfilePage",url,mainEntity:person,inLanguage:"ja"}:{"@context":"https://schema.org","@type":"Article",headline:name,description:desc,url,mainEntityOfPage:url,publisher:organizationSchema(),...(imagePath!=="assets/image/poppoo-icon.png"?{image}:{}),...(typeof item.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&Number.isFinite(Date.parse(item.date))&&new Date(item.date).toISOString().slice(0,10)===item.date?{datePublished:item.date}:{}),inLanguage:"ja"};
+ const structured='<script type="application/ld+json">'+jsonLd(schema)+'</script>';
  const tags=[meta("description",desc),meta("og:title",title,true),meta("og:description",desc,true),meta("og:type",member?"website":"article",true),meta("og:url",url,true),meta("og:image",image,true),meta("og:image:alt",imagePath==="assets/image/poppoo-icon.png"?"ぽっぽー公式アイコン":name+"の掲載画像",true),meta("og:site_name","架空事務所 ぽっぽー",true),meta("og:locale","ja_JP",true),meta("twitter:card",member?"summary":"summary_large_image"),meta("twitter:title",title),meta("twitter:description",desc),meta("twitter:image",image)].join("\n");
- return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f7fc"><title>'+e(title)+'</title>\n'+tags+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><div class="empty-state">'+heading+'を読み込み中...</div><noscript><p>'+e(name)+'</p><p>'+e(desc)+'</p><p>詳細を表示するにはJavaScriptを有効にしてください。</p></noscript></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
+ return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f7fc"><title>'+e(title)+'</title>\n'+tags+'\n'+structured+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><article class="detail-article"><h1>'+e(name)+'</h1><p>'+e(desc)+'</p><p class="small">詳細情報を読み込み中...</p><noscript><p>詳しい情報を表示するにはJavaScriptを有効にしてください。</p></noscript></article></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
 }
 // Share public URLs only; no third-party widgets or tracking scripts.
 function publicShareLinks(url,title){
