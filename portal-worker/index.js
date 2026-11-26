@@ -257,12 +257,12 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  const eligible=members.filter(m=>!rows.some(a=>a.member_id===m.id));
  const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
  const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(testEnabled&&a.role==="member"&&a.status!=="invited"?'<form method="post" action="/admin/reset-account"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>本人確認済み・旧パスワードと全セッションを無効にする</label><button>'+(a.status==="suspended"?"利用再開・再招待":"パスワード再設定・再招待")+'</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
- const form=eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
+ const form=!testEnabled?"<p>アカウント発行は検証モードでのみ利用できます。</p>":eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
  return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a>　<a class="portal-link" href="/account">アカウント設定</a>　<a class="portal-link" href="/admin/audit">監査履歴</a></p>'+"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
 function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
-const publicationReady=env=>pepperReady(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
+const publicationReady=env=>pepperReady(env)&&kdfConfigValid(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json",news:"news.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
 async function githubDataset(env,kind,ref="main"){
@@ -676,7 +676,7 @@ async function accountPage(env,session,message="",status=200){
 }
 async function changePassword(env,session,form){
  const db=env.DB,old=form.get("current"),password=form.get("password");
- if(!pepperReady(env))return json({error:"Password setup unavailable"},503);
+ if(!pepperReady(env)||!kdfConfigValid(env))return json({error:"Password setup unavailable"},503);
  if(!passwordValid(password)||password!==form.get("confirm")||password===old||typeof old!=="string"||encoder.encode(old).length>1024)return accountPage(env,session,"入力内容を確認してください。",400);
  if(!await limit(db,"password-change:"+session.id,5))return json({error:"Too many attempts"},429);
  const a=await db.prepare("SELECT password_hash FROM accounts WHERE id=? AND status='active'").bind(session.id).first();
@@ -687,7 +687,7 @@ async function changePassword(env,session,form){
  return redirect("/",clearSessionCookie());
 }
 async function resetMemberAccount(env,session,form){
- if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
+ if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
  const db=env.DB,id=form.get("id"),token=randomToken(),hash=await digest(token);
  // Insert a fresh unique token only if the reset is eligible, then use it as the batch guard.
  const result=await db.batch([
@@ -798,7 +798,7 @@ export default {async fetch(request,env){
  return redirect("/profile");
  }
  if(path==="/activate"){
-  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env))return json({error:"Activation disabled"},404);
+  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Activation disabled"},404);
   const token=(form.get("token")||"").trim();if(!/^[a-f0-9]{64}$/.test(token)||!passwordValid(password)||encoder.encode(password).length>1024||password!==form.get("confirm"))return activationPage("入力内容を確認してください。",400);
   const tokenHash=await digest(token);
   const target=await db.prepare("SELECT a.id FROM activation_tokens t JOIN accounts a ON a.id=t.account_id WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>? AND a.role='member' AND a.status='invited'").bind(tokenHash,now()).first();
@@ -823,7 +823,7 @@ export default {async fetch(request,env){
  }
  const id=form.get("id")||"";if(!/^[a-f0-9-]{36}$/.test(id))return json({error:"Invalid account"},400);
  if(path==="/admin/invite"){
-  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env))return json({error:"Invitation disabled"},403);
+  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Invitation disabled"},403);
   const token=randomToken(),tokenHash=await digest(token);
   const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited'").bind(tokenHash,now()+86400,id)]);
   if(result[1].meta.changes!==1)return json({error:"Account not eligible"},409);
@@ -834,7 +834,7 @@ export default {async fetch(request,env){
  }
  if(!validEmail(email)||encoder.encode(password).length>1024)return page(path==="/setup"?"setup":"login","入力内容を確認してください。",400);
  if(path==="/setup"){
-  if(!pepperReady(env))return json({error:"Password setup unavailable"},503);
+  if(!pepperReady(env)||!kdfConfigValid(env))return json({error:"Password setup unavailable"},503);
   if(await db.prepare("SELECT id FROM accounts WHERE role=\'admin\' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   if(!await equalSecret(form.get("secret"),env.BOOTSTRAP_SECRET))return page("setup","登録できませんでした。",403);
   if(!passwordValid(password))return page("setup","パスワードは20文字以上にしてください。",400);
