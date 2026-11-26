@@ -41,6 +41,22 @@ const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(loca
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
 const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+// A summary is optional: derive excerpts for listings/SEO, not extra text for the article.
+function newsCategory(value){
+ const s=typeof value==="string"?value.trim():"";
+ return !s||/^(information|news|お知らせ)$/i.test(s)?"お知らせ":s;
+}
+function newsExcerpt(item,max=100){
+ const text=String(item?.summary||"").trim()||String(item?.body||"").trim();
+ const compact=text.replace(/\s+/g," ").trim(),chars=Array.from(compact);
+ return chars.length>max?chars.slice(0,max-1).join("")+"…":compact;
+}
+function newsLead(item){
+ const summary=String(item?.summary||"").trim(),body=String(item?.body||"").trim();
+ const normalize=s=>s.replace(/\s+/g,"").trim();
+ return summary&&!normalize(body).startsWith(normalize(summary))?summary:"";
+}
+
 // Participation is independent of editing ownership. Legacy schedules remain readable.
 function scheduleParticipantIds(s,members=[]){
  const ids=Array.isArray(s?.memberIds)?s.memberIds:s?.memberId?[s.memberId]:[];
@@ -122,7 +138,7 @@ function sharePageHtml(kind,item){
  if(!path||item.published!==true)return null;
  const member=kind==="talents",name=String(member?item.name:item.title||"").trim();
  if(!name)return null;
- const title=name+" | 架空事務所 ぽっぽー",description=member?item.catchphrase:item.summary,defaultDesc=member?"架空事務所 ぽっぽーの参加メンバー、"+name+"のプロフィールです。":"架空事務所 ぽっぽーからのお知らせです。",desc=(typeof description==="string"&&description.trim()?description:defaultDesc).replace(/\s+/g," ").trim().slice(0,180);
+ const title=name+" | 架空事務所 ぽっぽー",description=member?item.catchphrase:newsExcerpt(item,180),defaultDesc=member?"架空事務所 ぽっぽーの参加メンバー、"+name+"のプロフィールです。":"架空事務所 ぽっぽーからのお知らせです。",desc=(typeof description==="string"&&description.trim()?description:defaultDesc).replace(/\s+/g," ").trim().slice(0,180);
  const hidden=Array.isArray(item.hiddenSections)&&item.hiddenSections.includes("gallery");
  const avatars=member?normalizedMemberProfile(item).avatarImages:[];
  const candidates=member?[...(!hidden?avatars:[]),item.iconImage]:[item.thumbnailImage];

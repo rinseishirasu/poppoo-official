@@ -27,7 +27,7 @@ function buildIndex(sets,today){
  }
  for(const n of published(sets.news).filter(x=>validId(x.id)&&text(x.title))){
  const linked=(Array.isArray(n.memberIds)?n.memberIds:[]).map(id=>names.get(id)).filter(Boolean);
- add("news",n.title,[text(n.date),text(n.category),text(n.summary)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...linked],text(n.date));
+ add("news",n.title,[text(n.date),newsCategory(n.category),newsExcerpt(n)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...linked],text(n.date));
  }
  for(const s of published(sets.schedule).filter(x=>scheduleIsPublic(x,sets.talents)&&validDate(x.date)&&x.date>=today)){
  const people=scheduleParticipants(s,sets.talents),name=people.map(p=>p.name).join("・")||"参加メンバー",platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";

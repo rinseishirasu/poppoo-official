@@ -49,7 +49,7 @@
  const newsMemberIds=n=>Array.isArray(n.memberIds)?n.memberIds.filter(id=>typeof id==="string"&&id):[];
  const relatedNews=(items,id)=>published(items).filter(n=>newsMemberIds(n).includes(id)).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
  const newsImage=n=>/^assets\/images\/news\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(n.thumbnailImage||"")?n.thumbnailImage:"";
- const newsCard=n=>`<article class="card article-card news-card">${newsImage(n)?`<a class="pop-news-image" href="news-detail.html?id=${encodeURIComponent(n.id)}" aria-label="${escapeHtml(n.title)}"><img src="${escapeHtml(newsImage(n))}" alt="" loading="lazy"></a>`:""}<div class="card-body"><div class="news-meta"><time class="small" datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time><span class="pill">${escapeHtml(n.category||"INFORMATION")}</span></div><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.summary||"")}</p><p class="card-action"><a class="text-link" href="news-detail.html?id=${encodeURIComponent(n.id)}">記事を読む →</a></p></div></article>`;
+ const newsCard=n=>`<article class="card article-card news-card">${newsImage(n)?`<a class="pop-news-image" href="news-detail.html?id=${encodeURIComponent(n.id)}" aria-label="${escapeHtml(n.title)}"><img src="${escapeHtml(newsImage(n))}" alt="" loading="lazy"></a>`:""}<div class="card-body"><div class="news-meta"><time class="small" datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time><span class="pill">${escapeHtml(newsCategory(n.category))}</span></div><h3>${escapeHtml(n.title)}</h3>${newsExcerpt(n)?`<p>${escapeHtml(newsExcerpt(n))}</p>`:""}<p class="card-action"><a class="text-link" href="news-detail.html?id=${encodeURIComponent(n.id)}">記事を読む →</a></p></div></article>`;
  const heroColors=document.querySelector("#home-member-colors");
  if(heroColors){const colors=[...new Set(published(talents).map(t=>typeof t.imageColor==="string"&&/^#[0-9a-f]{6}$/i.test(t.imageColor)?t.imageColor.toLowerCase():"").filter(Boolean))];heroColors.replaceChildren(...colors.map(color=>{const span=document.createElement("span");span.style.setProperty("--identity-color",color);return span}));heroColors.hidden=!colors.length;}
  const featured=document.querySelector("#home-featured"),heroMemberIds=new Set();
@@ -100,12 +100,12 @@
  const isHome=Boolean(document.querySelector(".renewal-home")),pageSize=9;let limit=isHome?3:pageSize;
  const memberFilter=document.querySelector("#news-member"),params=new URLSearchParams(location.search),requested=params.get("member");
  const linkedMembers=published(talents).filter(t=>all.some(n=>newsMemberIds(n).includes(t.id))||t.id===requested);
- if(memberFilter){for(const t of linkedMembers){const o=document.createElement("option");o.value=t.id;o.textContent=t.name;memberFilter.append(o)}if(linkedMembers.some(t=>t.id===requested))memberFilter.value=requested;}
+ if(memberFilter){for(const t of linkedMembers){const o=document.createElement("option");o.value=t.id;o.textContent=t.name;memberFilter.append(o)}if(linkedMembers.some(t=>t.id===requested)){memberFilter.value=requested;const advanced=document.querySelector("#news-advanced");if(advanced)advanced.open=true;}}
  const yearOf=n=>/^\d{4}-\d{2}-\d{2}$/.test(n.date||"")?n.date.slice(0,4):"";
- fillOptions(cat,all.map(n=>n.category||"INFORMATION"));fillOptions(year,all.map(yearOf));
+ fillOptions(cat,all.map(n=>newsCategory(n.category)));fillOptions(year,all.map(yearOf));
  const render=()=>{
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
- const list=all.filter(n=>(!memberFilter?.value||newsMemberIds(n).includes(memberFilter.value))&&(!cat?.value||(n.category||"INFORMATION")===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,n.category].join(" ")).includes(term)));
+ const list=all.filter(n=>(!memberFilter?.value||newsMemberIds(n).includes(memberFilter.value))&&(!cat?.value||newsCategory(n.category)===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,newsCategory(n.category)].join(" ")).includes(term)));
  if(sort?.value==="old")list.reverse();
  if(count)count.textContent=list.length+"件中 "+Math.min(limit,list.length)+"件を表示";
  nl.innerHTML=list.length?list.slice(0,limit).map(n=>isHome?'<a class="home-news-row" href="news-detail.html?id='+encodeURIComponent(n.id)+'"><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time><strong>'+escapeHtml(n.title||"お知らせ")+'</strong><span aria-hidden="true">→</span></a>':newsCard(n)).join(""):'<div class="empty-state">'+(all.length?"条件に一致するお知らせはありません。":"現在、お知らせはありません。")+'</div>';
@@ -225,13 +225,13 @@
  if(n){
  setDetailCanonical("news",n.id);
  document.title=n.title+" | NEWS | 架空事務所 ぽっぽー";
- const index=all.indexOf(n),newer=all[index-1],older=all[index+1],category=n.category||"INFORMATION";
- const related=all.filter(x=>x.id!==id&&(x.category||"INFORMATION")===category).slice(0,3);
+ const index=all.indexOf(n),newer=all[index-1],older=all[index+1],category=newsCategory(n.category);
+ const related=all.filter(x=>x.id!==id&&newsCategory(x.category)===category).slice(0,3);
  const linked=published(talents).filter(t=>newsMemberIds(n).includes(t.id));
  const linkedSection=linked.length?'<section class="news-linked-members"><h2>関連メンバー</h2><div class="news-linked-grid">'+linked.map(t=>'<a href="talent.html?id='+encodeURIComponent(t.id)+'">'+escapeHtml(t.name)+' →</a>').join("")+'</div></section>':"";
  const articleLink=(x,label)=>x?'<a href="news-detail.html?id='+encodeURIComponent(x.id)+'"><small>'+label+'</small><strong>'+escapeHtml(x.title)+'</strong></a>':'<span></span>';
  const body=String(n.body||"").split(/\r?\n/).map(line=>line?"<p>"+escapeHtml(line)+"</p>":"").join("");
- article.innerHTML='<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">'+escapeHtml(category)+'</span><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time></div><h1>'+escapeHtml(n.title)+'</h1>'+(newsImage(n)?'<img class="pop-news-cover" src="'+escapeHtml(newsImage(n))+'" alt="">':"")+(n.summary?'<p class="detail-summary">'+escapeHtml(n.summary)+'</p>':"")+'<div class="prose news-prose">'+body+'</div>'+linkedSection+'<div class="news-detail-footer"><div id="news-share"></div><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>'+(newer||older?'<nav class="news-neighbor-nav" aria-label="前後の記事">'+articleLink(newer,"← 新しい記事")+articleLink(older,"古い記事 →")+'</nav>':"")+(related.length?'<section class="news-related"><span class="eyebrow">RELATED NEWS</span><h2>同じカテゴリーのお知らせ</h2><div class="cards news-related-grid">'+related.map(newsCard).join("")+'</div></section>':"");
+ article.innerHTML='<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">'+escapeHtml(category)+'</span><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time></div><h1>'+escapeHtml(n.title)+'</h1>'+(newsImage(n)?'<img class="pop-news-cover" src="'+escapeHtml(newsImage(n))+'" alt="">':"")+(newsLead(n)?'<p class="detail-summary">'+escapeHtml(newsLead(n))+'</p>':"")+'<div class="prose news-prose">'+body+'</div>'+linkedSection+'<div class="news-detail-footer"><div id="news-share"></div><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>'+(newer||older?'<nav class="news-neighbor-nav" aria-label="前後の記事">'+articleLink(newer,"← 新しい記事")+articleLink(older,"古い記事 →")+'</nav>':"")+(related.length?'<section class="news-related"><h2>同じカテゴリーのお知らせ</h2><div class="cards news-related-grid">'+related.map(newsCard).join("")+'</div></section>':"");
  mountPublicShare(article.querySelector("#news-share"),{page:"news-detail.html",id:n.id,title:n.title+" | 架空事務所 ぽっぽー",label:"記事をシェア"});
  }else {const robots=document.createElement("meta");robots.name="robots";robots.content="noindex,follow";document.head.append(robots);article.innerHTML='<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>';}
  }
