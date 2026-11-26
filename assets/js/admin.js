@@ -111,6 +111,10 @@ function renderForm(item={}){
   else el.value=item[key]??"";
  }
  if(current==="schedule"){
+ const ownership=document.createElement("div");ownership.className="admin-field admin-field-wide";
+ const note=document.createElement("p");note.textContent=item.scheduleSource==="member"&&item.published===true?"本人管理の予定です。対象メンバーの変更・非公開化を行うと運営管理へ切り替わります。":"運営管理の予定です。メンバーポータルからは公開中の予定の閲覧のみ可能です。";ownership.append(note);
+ if(item.scheduleSource==="member"&&item.published===true){const label=document.createElement("label"),check=document.createElement("input");check.type="checkbox";check.name="scheduleTakeOver";label.append(check,document.createTextNode("この予定を運営管理に切り替える（本人の編集・削除を停止）"));ownership.append(label)}
+ fields.append(ownership);
  const select=form.elements.namedItem("memberId"),name=form.elements.namedItem("talent");
  const sync=()=>{const t=data.talents.find(t=>t?.id===select.value);if(t)name.value=t.name||"";name.readOnly=Boolean(t)};
  select.addEventListener("change",sync);sync();
@@ -166,11 +170,15 @@ function renderChanges(){
  const counts=Object.keys(FILES).map(k=>LABELS[k]+" "+changes(k).length+"件").join(" / ");
  panel.innerHTML='<p>'+esc(counts)+'</p><h3>'+esc(LABELS[current])+'：変更 '+list.length+'件</h3>'+ (list.length?list.map(d=>{const a=d.before||{},b=d.after||{},keys=[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>canonical(a[k])!==canonical(b[k]));return '<details class="cms-change-row"><summary>'+esc(d.type+"｜"+name(d.after||d.before))+'</summary>'+keys.map(k=>'<div class="cms-change-field"><strong>'+esc(SCHEMAS[current].find(f=>f[0]===k)?.[1]||k)+'</strong><div><small>変更前</small><pre>'+esc(a[k]===undefined?"（なし）":JSON.stringify(a[k],null,2))+'</pre></div><div><small>変更後</small><pre>'+esc(b[k]===undefined?"（なし）":JSON.stringify(b[k],null,2))+'</pre></div></div>').join("")+'</details>'}).join(""):'<p>保存済みの変更はありません。</p>');
 }
+// Missing/unknown ownership is administrative, never implicitly member-editable.
+function scheduleSourceForSave(previous,next,takeOver){
+ return previous?.scheduleSource==="member"&&previous.published===true&&next.published===true&&typeof previous.memberId==="string"&&previous.memberId&&previous.memberId===next.memberId&&!takeOver?"member":"admin";
+}
 function renderList(){
  renderChanges();
  renderDashboard();
  const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
- $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
+ $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span>${current==="schedule"?`<span class="admin-publish-state">${item.scheduleSource==="member"&&item.published===true?"本人管理":"運営管理"}</span>`:""}</div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
 }
 $("cms-search")?.addEventListener("input",renderList);
 $("cms-visibility")?.addEventListener("change",renderList);
@@ -221,6 +229,7 @@ function validateDataset(kind,items){
    ids.add(item.id);
   }
   if(kind==="news"&&item.memberIds!==undefined&&(!Array.isArray(item.memberIds)||item.memberIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))||new Set(item.memberIds).size!==item.memberIds.length))return (i+1)+"件目: 関連メンバーIDを確認してください。";
+  if(kind==="schedule"&&item.scheduleSource!==undefined&&(!["admin","member"].includes(item.scheduleSource)||item.scheduleSource==="member"&&(item.published!==true||typeof item.memberId!=="string"||!item.memberId||typeof item.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(item.id))))return (i+1)+"件目: 配信予定の管理区分を確認してください。";
   if(kind==="schedule"&&item.memberId&&(!/^[A-Za-z0-9_-]+$/.test(item.memberId)))return (i+1)+"件目: 対象メンバーIDを確認してください。";
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(kind==="news"&&item.thumbnailImage&&!/^assets\/images\/news\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(item.thumbnailImage))return "ニュース画像の保存先が正しくありません。";
@@ -295,7 +304,11 @@ $("form-fields").addEventListener("click",e=>{
 $("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
  e.preventDefault();if(!dataReady||publishing||imageBusy){status("読み込み・公開・画像処理中は保存できません。");return}const obj=formObject();
- if(current==="schedule")obj.id=editing>=0&&data.schedule[editing]?.id?data.schedule[editing].id:crypto.randomUUID();
+ if(current==="schedule"){
+ const previous=editing>=0?data.schedule[editing]:null;
+ obj.id=previous?.id||crypto.randomUUID();
+ obj.scheduleSource=scheduleSourceForSave(previous,obj,$("content-form").elements.namedItem("scheduleTakeOver")?.checked===true);
+ }
  if(current==="talents"&&editing>=0&&data.talents[editing]?.id!==obj.id){status("登録済みメンバーのIDは関連ニュース・配信予定との紐づけを保つため変更できません。");return}
  if(current==="talents"&&obj.anniversaries?.some(x=>{const m=x.date.match(/^(?:(\d{4})[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m||!x.title)return true;const d=new Date(Date.UTC(Number(m[1]||2000),Number(m[2])-1,Number(m[3])));return d.getUTCMonth()!==Number(m[2])-1||d.getUTCDate()!==Number(m[3])})){status("その他の記念日の日付・名称が不正です。");return}
  
@@ -432,6 +445,7 @@ function checkData(sets,paths=null){
  if(["talents","news"].includes(kind)){if(!/^[A-Za-z0-9_-]+$/.test(x.id||""))issue("error","ID形式が不正です");if(ids.has(x.id))issue("error","IDが重複しています");ids.add(x.id)}
  for(const key of ["date","debutDate","joinDate"])if((x[key]||key==="date"&&["news","schedule"].includes(kind))&&!validDate(x[key]))issue("error",key+"が実在する日付ではありません");
  if(kind==="news"&&Array.isArray(x.memberIds))for(const id of x.memberIds){const m=members.find(t=>t.id===id);if(!m)issue("warning","関連メンバーIDが見つかりません: "+id);else if(x.published===true&&m.published!==true)issue("warning","非公開メンバーへの関連付けがあります: "+id)}
+ if(kind==="schedule"&&x.scheduleSource!==undefined&&(!["admin","member"].includes(x.scheduleSource)||x.scheduleSource==="member"&&(x.published!==true||typeof x.memberId!=="string"||!x.memberId||typeof x.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(x.id))))issue("error","配信予定の管理区分が不正です");
  if(kind==="schedule"&&x.id){if(!/^[A-Za-z0-9_-]+$/.test(x.id))issue("error","配信予定IDが不正です");if(ids.has(x.id))issue("error","配信予定IDが重複しています");ids.add(x.id)}
  if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const matches=members.filter(t=>x.memberId?t.id===x.memberId:t.name===x.talent);if(!matches.length)issue("warning","登録メンバーに一致する名前がありません");else if(x.published===true&&!matches.some(t=>t.published===true))issue("warning","公開設定の配信予定が非公開メンバーを参照しています");if(matches.length>1)issue("warning","同名メンバーが複数存在します")}
  if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
