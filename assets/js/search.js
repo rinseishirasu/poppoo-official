@@ -10,18 +10,17 @@ const validId=id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id);
 const validDate=d=>typeof d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
 function buildIndex(sets,today){
  const rows=[],add=(kind,title,detail,href,keywords=[],date="")=>{if(!title)return;rows.push({kind,title,detail,href,date,hay:normalize([title,detail,labels[kind],...keywords].join(" ")),titleKey:normalize(title)})};
- const members=published(sets.talents).filter(t=>validId(t.id)&&text(t.name));
+ const members=published(sets.talents).filter(t=>validId(t.id)&&text(t.name)).map(normalizedMemberProfile);
  const names=new Map(members.map(t=>[t.id,t.name]));
  for(const t of members){
- const href="talent.html?id="+encodeURIComponent(t.id),cohorts=strings(t.cohort),roles=strings(t.roles),tags=strings(t.tags),keywords=[...cohorts,...roles,...tags,text(t.greeting)];
+ const href="talent.html?id="+encodeURIComponent(t.id),cohorts=strings(t.cohort),roles=strings(t.roles),tags=visible(t,"activity")?strings(t.tags):[],keywords=[...cohorts,...roles,...tags];
  if(visible(t,"bio"))keywords.push(text(t.bio));
- if(visible(t,"facts"))keywords.push(text(t.affiliationAgency),text(t.height),text(t.bloodType));
- if(visible(t,"personality"))for(const key of ["hobbies","skills","likes","dislikes","favoriteFood","favoriteWorks"])keywords.push(text(t[key]));
+ if(visible(t,"facts"))keywords.push(text(t.affiliationAgency));
+ if(visible(t,"personality"))keywords.push(text(t.likes));
  if(visible(t,"fan"))for(const key of ["fanName","oshiMark","streamTag","fanArtTag"])keywords.push(text(t[key]));
- if(visible(t,"activity"))for(const key of ["activityStatus","regularSchedule","activityGoal"])keywords.push(text(t[key]));
+ if(visible(t,"activity"))for(const key of ["activityStatus","regularSchedule"])keywords.push(text(t[key]));
  if(visible(t,"achievements"))for(const a of Array.isArray(t.achievements)?t.achievements:[])if(a)keywords.push(text(a.title),text(a.description));
- if(visible(t,"message"))keywords.push(text(t.message));
- if(visible(t,"credit"))keywords.push(text(t.illustrator),text(t.modeler));
+
  const detail=[...cohorts,...roles,text(t.catchphrase),visible(t,"bio")?text(t.bio).slice(0,140):""].filter(Boolean).join(" ・ ");
  add("member",t.name,detail||"参加メンバーのプロフィール",href,keywords);
 

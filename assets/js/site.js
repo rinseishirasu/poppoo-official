@@ -41,6 +41,20 @@ const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(loca
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
 const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+// Read old profiles without rewriting their saved data or exposing hidden legacy fields.
+function normalizedMemberProfile(t){
+ if(!t||typeof t!=="object")return t;
+ const hidden=new Set(Array.isArray(t.hiddenSections)?t.hiddenSections:[]);
+ const value=v=>typeof v==="string"?v.trim():"";
+ const combine=items=>{const seen=new Set();return items.filter(([v])=>{const s=value(v);if(!s||seen.has(s))return false;seen.add(s);return true}).map(([v,label])=>label?label+"："+value(v):value(v)).join("\n\n")};
+ const images=(Array.isArray(t.avatarImages)?t.avatarImages:[t.avatarImages]).filter(v=>typeof v==="string"&&v.trim());
+ const avatarImages=[...new Set(images.length||t.profileFormat===2?images:[value(t.avatarImage)].filter(Boolean))];
+ if(t.profileFormat===2)return {...t,avatarImages};
+ const bio=combine([[t.bio,""],[t.greeting,"配信の挨拶"],[hidden.has("message")?"":t.message,""],[hidden.has("activity")?"":t.activityGoal,"活動目標"],[hidden.has("personality")?"":t.skills,"特技"],[hidden.has("credit")?"":t.illustrator,"キャラクターデザイン"],[hidden.has("credit")?"":t.modeler,"Live2Dモデラー"]]);
+ const likes=combine([[t.likes,""],[t.hobbies,"趣味"],[t.favoriteFood,"好きな食べ物"],[t.favoriteWorks,"好きな作品"]]);
+ return {...t,bio,likes,avatarImages};
+}
+
 // Static search metadata. Only published detail pages enter the sitemap.
 const SEO_PUBLIC_PAGES=["","about.html","talents.html","schedule.html","anniversary.html","activity.html","news.html","audition.html","contact.html","policy.html"];
 function sitemapXml(talents,news){
@@ -83,8 +97,8 @@ function sharePageHtml(kind,item){
  if(!name)return null;
  const title=name+" | 架空事務所 ぽっぽー",description=member?item.catchphrase:item.summary,defaultDesc=member?"架空事務所 ぽっぽーの参加メンバー、"+name+"のプロフィールです。":"架空事務所 ぽっぽーからのお知らせです。",desc=(typeof description==="string"&&description.trim()?description:defaultDesc).replace(/\s+/g," ").trim().slice(0,180);
  const hidden=Array.isArray(item.hiddenSections)&&item.hiddenSections.includes("gallery");
- const avatars=Array.isArray(item.avatarImages)?item.avatarImages:[item.avatarImages];
- const candidates=member?[...(!hidden?[...avatars,item.avatarImage]:[]),item.iconImage]:[item.thumbnailImage];
+ const avatars=member?normalizedMemberProfile(item).avatarImages:[];
+ const candidates=member?[...(!hidden?avatars:[]),item.iconImage]:[item.thumbnailImage];
  const imagePath=candidates.find(x=>typeof x==="string"&&/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(x)&&!x.split("/").includes(".."))||"assets/image/poppoo-icon.png";
  const url=SHARE_BASE+path,image=SHARE_BASE+imagePath;
  const e=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -233,7 +247,7 @@ async function loadData(file){
  }catch{failedDatasets.add(file);return []}
 }
 function datasetFailed(file){return failedDatasets.has(file)}
-function cardTalent(t){return `<article class="card"><div class="talent-art">${t.emoji||"🐦"}</div><div class="card-body"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||t.bio||"プロフィール準備中です。")}</p><p style="margin-top:14px"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">プロフィールを見る →</a></p></div></article>`}
+function cardTalent(t){return `<article class="card"><div class="talent-art">${escapeHtml(t.name?.slice(0,1)||"P")}</div><div class="card-body"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||(!t.hiddenSections?.includes?.("bio")?normalizedMemberProfile(t).bio:"")||"プロフィール準備中です。")}</p><p style="margin-top:14px"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">プロフィールを見る →</a></p></div></article>`}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 /* Reveal only once, when a section enters the viewport. Never hide content. */
