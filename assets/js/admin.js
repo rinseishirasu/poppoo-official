@@ -339,13 +339,20 @@ async function publishWithSharePages(kind,file,snapshot){
  const remote=await git("contents/"+encoded+"?ref="+parent);
  const decoded=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(remote.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0))));
  if(canonical(decoded)!==canonical(baseline[kind]))throw Error("GitHub上のデータが変更されました。上書きを中止しました。公開データを再読込してください。");
- const generated=new Map();
- for(const item of JSON.parse(snapshot)){if(item.published!==true)continue;const entry=sharePageHtml(kind,item);if(!entry||generated.has(entry.path))throw Error("共有ページを生成できません。公開レコードのID・名称を確認してください。");generated.set(entry.path,entry.content)}
+ const generated=new Map(),snapshotItems=JSON.parse(snapshot);
+ for(const item of (kind==="settings"?[]:snapshotItems)){if(item.published!==true)continue;const entry=sharePageHtml(kind,item);if(!entry||generated.has(entry.path))throw Error("共有ページを生成できません。公開レコードのID・名称を確認してください。");generated.set(entry.path,entry.content)}
  const existing=await git("git/trees/"+treeSha);
  if(existing.truncated||!Array.isArray(existing.tree))throw Error("共有ページ一覧が不完全です。公開を中止しました。");
  const prefix=kind==="talents"?"share-member-":"share-news-",pattern=new RegExp("^"+prefix+"[A-Za-z0-9_-]+\\.html$");
  const entries=[{path:file,mode:"100644",type:"blob",content:snapshot},...[...generated].map(([path,content])=>({path,mode:"100644",type:"blob",content}))];
- for(const entry of existing.tree)if(entry.type==="blob"&&pattern.test(entry.path)&&!generated.has(entry.path))entries.push({path:entry.path,mode:"100644",type:"blob",sha:null});
+ for(const entry of existing.tree)if(kind!=="settings"&&entry.type==="blob"&&pattern.test(entry.path)&&!generated.has(entry.path))entries.push({path:entry.path,mode:"100644",type:"blob",sha:null});
+ const decodeFile=async path=>{const remote=await git("contents/"+path+"?ref="+parent);return new TextDecoder().decode(Uint8Array.from(atob(remote.content.replace(/\s/g,"")),ch=>ch.charCodeAt(0)))};
+ if(kind==="settings"){const html=await decodeFile("index.html");entries.push({path:"index.html",mode:"100644",type:"blob",content:homepageSeo(html,snapshotItems)})}
+ else{
+ const other=kind==="talents"?"news":"talents",otherItems=JSON.parse(await decodeFile("data/"+other+".json"));
+ if(!Array.isArray(otherItems))throw Error("サイトマップの公開データを確認できません。");
+ entries.push({path:"sitemap.xml",mode:"100644",type:"blob",content:sitemapXml(kind==="talents"?snapshotItems:otherItems,kind==="news"?snapshotItems:otherItems)});
+ }
  const tree=await git("git/trees","POST",{base_tree:treeSha,tree:entries});
  if(!/^[a-f0-9]{40}$/.test(tree.sha||""))throw Error("共有ページの保存を確認できません。");
  const next=await git("git/commits","POST",{message:"Update "+file+" and Open Graph pages via Poppoo Admin",tree:tree.sha,parents:[parent]});
@@ -371,7 +378,7 @@ async function publishCurrent(){
  button.disabled=true;button.textContent="公開中...";
  try{
   let result;
-  if(["talents","news"].includes(kind))result=await publishWithSharePages(kind,file,snapshot);
+  if(["talents","news","settings"].includes(kind))result=await publishWithSharePages(kind,file,snapshot);
   else{
   const encodedPath=file.split("/").map(encodeURIComponent).join("/");
   const get=await githubRequest("/repos/"+REPO+"/contents/"+encodedPath+"?ref="+encodeURIComponent(BRANCH));
