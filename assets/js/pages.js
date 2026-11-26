@@ -136,6 +136,7 @@
   const id=publicDetailId();
   const t=published(talents).find(x=>x.id===id);
   if(t){
+   setDetailCanonical("talents",t.id);
    const palette=applyMemberPalette(profile,t.imageColor);profile.classList.add("member-themed");document.title=t.name+" | MEMBERS | 架空事務所 ぽっぽー";
    const hidden=new Set(Array.isArray(t.hiddenSections)?t.hiddenSections:[]);
    const visible=(key,html)=>hidden.has(key)?"":html;
@@ -178,7 +179,7 @@
    if(location.hash==="#activity-achievements"){const target=profile.querySelector("#activity-achievements");if(target)requestAnimationFrame(()=>target.scrollIntoView({block:"start",behavior:"instant"}));}
    mountPublicShare(profile.querySelector("#profile-share"),{page:"talent.html",id:t.id,title:t.name+" | 架空事務所 ぽっぽー",label:"プロフィールをシェア"});
 
-  }else{profile.innerHTML='<div class="empty-state profile-empty"><span class="eyebrow">PROFILE</span><h1>プロフィールは準備中です</h1><p>お探しのプロフィールは、まだ公開されていないか、掲載を終了しています。</p><a class="btn secondary" href="talents.html">参加メンバー一覧へ戻る</a></div>'}
+  }else{const robots=document.createElement("meta");robots.name="robots";robots.content="noindex,follow";document.head.append(robots);profile.innerHTML='<div class="empty-state profile-empty"><span class="eyebrow">PROFILE</span><h1>プロフィールは準備中です</h1><p>お探しのプロフィールは、まだ公開されていないか、掲載を終了しています。</p><a class="btn secondary" href="talents.html">参加メンバー一覧へ戻る</a></div>'}
  }
  for(const [kind,ids] of [["talents",["cohort-filter","talent-search","role-filter","activity-filter","member-sort","member-reset"]],["news",["news-category","news-search","news-year","news-sort","news-reset","news-more","news-member"]],["schedule",["schedule-member","schedule-day","schedule-platform","schedule-search","schedule-reset"]]]){
  if(datasetFailed("data/"+kind+".json")){for(const id of ids){const el=document.getElementById(id);if(el)el.disabled=true;}if(kind==="schedule")document.querySelectorAll(".schedule-period button").forEach(b=>b.disabled=true);}
@@ -187,6 +188,7 @@
  if(article&&!markUnavailable(article,"news","記事","news.html")){
  const id=publicDetailId(),all=published(news).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))),n=all.find(x=>x.id===id);
  if(n){
+ setDetailCanonical("news",n.id);
  document.title=n.title+" | NEWS | 架空事務所 ぽっぽー";
  const index=all.indexOf(n),newer=all[index-1],older=all[index+1],category=n.category||"INFORMATION";
  const related=all.filter(x=>x.id!==id&&(x.category||"INFORMATION")===category).slice(0,3);
@@ -196,6 +198,6 @@
  const body=String(n.body||"").split(/\r?\n/).map(line=>line?"<p>"+escapeHtml(line)+"</p>":"").join("");
  article.innerHTML='<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">'+escapeHtml(category)+'</span><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time></div><h1>'+escapeHtml(n.title)+'</h1>'+(newsImage(n)?'<img class="pop-news-cover" src="'+escapeHtml(newsImage(n))+'" alt="">':"")+(n.summary?'<p class="detail-summary">'+escapeHtml(n.summary)+'</p>':"")+'<div class="prose news-prose">'+body+'</div>'+linkedSection+'<div class="news-detail-footer"><div id="news-share"></div><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>'+(newer||older?'<nav class="news-neighbor-nav" aria-label="前後の記事">'+articleLink(newer,"← 新しい記事")+articleLink(older,"古い記事 →")+'</nav>':"")+(related.length?'<section class="news-related"><span class="eyebrow">RELATED NEWS</span><h2>同じカテゴリーのお知らせ</h2><div class="cards news-related-grid">'+related.map(newsCard).join("")+'</div></section>':"");
  mountPublicShare(article.querySelector("#news-share"),{page:"news-detail.html",id:n.id,title:n.title+" | 架空事務所 ぽっぽー",label:"記事をシェア"});
- }else article.innerHTML='<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>';
+ }else {const robots=document.createElement("meta");robots.name="robots";robots.content="noindex,follow";document.head.append(robots);article.innerHTML='<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>';}
  }
 })();
