@@ -74,6 +74,13 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  if(typeof navigator.share==="function"){const native=document.createElement("button");native.type="button";native.className="pop-share-button pop-share-native";native.textContent="その他の共有";native.addEventListener("click",async()=>{try{await navigator.share({title:heading,url:href});status.textContent="共有操作が完了しました。"}catch(e){if(e.name!=="AbortError"){status.textContent="共有できませんでした。URLコピーをご利用ください。"}}});buttons.append(native)}
  target.replaceChildren(titleEl,buttons,status,fallback);
 }
+// Consistent share controls on the main public landing and listing pages.
+const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
+if(sharePageTitles[current]&&mainContent&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview")){
+ const section=document.createElement("section");section.className="container pop-page-share-wrap";
+ const target=document.createElement("div");section.append(target);mainContent.append(section);
+ mountPublicShare(target,{page:current,title:sharePageTitles[current]});
+}
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
 async function loadData(file){
