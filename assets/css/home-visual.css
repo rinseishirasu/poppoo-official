@@ -241,3 +241,62 @@
  .renewal-home .pop-section{padding:26px 0}
  .renewal-home .pop-heading{margin-bottom:12px}
 }
+
+/* Final TOP polish: compact member showcase and two independent update panels. */
+.renewal-home .pop-hero-expanded{background:#f8f8f8;padding:clamp(24px,4vw,48px) 0;border-bottom:1px solid #e8e8e8}
+.renewal-home .pop-hero-grid{align-items:center;gap:clamp(20px,4vw,48px)}
+.renewal-home .pop-hero-copy .pop-kicker{font-size:.82rem;font-weight:750;letter-spacing:.035em;color:#555}
+.renewal-home .pop-hero-copy p{max-width:34em;font-size:1rem;line-height:1.85}
+.renewal-home .pop-stage{align-items:stretch}
+.renewal-home .home-stage-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.renewal-home .home-stage-heading h2{margin:0;font-size:1rem;line-height:1.5;color:#333}
+.renewal-home #home-featured-count{font-size:.8rem;color:#555;font-variant-numeric:tabular-nums}
+.renewal-home #home-featured-count[hidden]{display:none!important}
+.renewal-home .home-mosaic-grid{gap:12px}
+.renewal-home .home-mosaic-grid .home-mosaic-member .pop-member-art{aspect-ratio:5/4;overflow:hidden;position:relative;min-height:0}
+.renewal-home .home-mosaic-grid .home-mosaic-member img{width:100%;height:100%;max-height:none;min-height:0;object-fit:contain}
+.renewal-home .home-mosaic-grid .home-mosaic-member strong{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-height:42px;box-sizing:border-box;font-size:.9rem;padding:10px}
+.renewal-home .home-mosaic-grid .home-mosaic-member strong span{flex:none;font-size:.78rem;color:#777}
+.renewal-home .pop-spotlight-controls{gap:12px}
+.renewal-home .home-updates{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr));align-items:start;gap:clamp(16px,3vw,28px);padding-block:clamp(24px,4vw,44px)}
+.renewal-home .home-updates>.pop-section{padding:0;background:transparent;min-width:0}
+.renewal-home .home-updates:not(:has(>.pop-section:not([style*="display: none"]))){display:none}
+.renewal-home .home-update-panel{border:1px solid #e1e1e1;border-radius:12px;background:#fff;padding:clamp(14px,2vw,22px);min-width:0;box-sizing:border-box}
+.renewal-home .home-update-panel .pop-heading{margin:0 0 8px;gap:10px}
+.renewal-home .home-update-panel .pop-heading h2{font-size:clamp(1.18rem,2vw,1.6rem)}
+.renewal-home .home-update-panel .empty-state{border:0;box-shadow:none;background:transparent;padding:16px 0 8px;text-align:left;font-size:.88rem;line-height:1.7;color:#555}
+.renewal-home .home-update-panel .schedule-board{border:0;box-shadow:none;overflow:visible;border-radius:0}
+.renewal-home .home-update-panel .schedule-list{padding:0}
+.renewal-home .home-update-panel .home-news-row{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:11px 0;min-height:0}
+.renewal-home .home-update-panel .home-news-row time{grid-column:1;grid-row:1}
+.renewal-home .home-update-panel .home-news-row strong{grid-column:1;grid-row:2}
+.renewal-home .home-update-panel .home-news-row>span{grid-column:2;grid-row:1/3}
+.renewal-home .home-update-panel .home-news-row:last-child{border-bottom:0}
+.renewal-home .home-update-panel .home-schedule-day h3{padding:9px 10px;border-radius:6px;font-size:.86rem}
+.renewal-home .home-update-panel .home-schedule-day .schedule-item{grid-template-columns:minmax(58px,76px) minmax(0,1fr);gap:6px 10px;padding:10px 4px 10px 9px}
+.renewal-home .home-update-panel .schedule-date{grid-column:1;grid-row:1;align-self:start}
+.renewal-home .home-update-panel .schedule-program{grid-column:2;grid-row:1}
+.renewal-home .home-update-panel .schedule-link{grid-column:2;grid-row:2;justify-self:start;min-height:44px;display:inline-flex;align-items:center;white-space:normal;text-align:left}
+.renewal-home .home-update-panel .schedule-time{font-size:1.05rem}
+.renewal-home .home-update-panel .schedule-title{font-size:.94rem}
+.renewal-home .pop-about{border-top:1px solid #e9e9e9}
+.renewal-home .pop-about-grid h2,.renewal-home .pop-join h2{margin:0 0 8px;letter-spacing:0}
+.renewal-home .pop-about-grid p{margin:0 0 12px;line-height:1.8}
+.renewal-home .pop-join .pop-link{background:#fff;color:#282828;margin-top:0}
+.renewal-home .pop-join .pop-link:hover{background:#e9e9e9}
+@media(max-width:760px){
+ .renewal-home .pop-hero-expanded{padding:22px 0}
+ .renewal-home .pop-hero h1{font-size:clamp(1.7rem,6.8vw,2.5rem);margin:8px 0}
+ .renewal-home .pop-hero-copy p{font-size:.92rem;line-height:1.75;margin:8px 0 14px}
+ .renewal-home .pop-hero-grid{gap:20px}
+ .renewal-home .pop-hero-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .renewal-home .pop-hero-actions .pop-link{padding:9px 10px;white-space:normal;font-size:.8rem;gap:5px}
+ .renewal-home .home-mosaic-grid{gap:8px}
+ .renewal-home .home-mosaic-grid .home-mosaic-member .pop-member-art{aspect-ratio:5/4}
+ .renewal-home .home-mosaic-grid .home-mosaic-member strong{font-size:.84rem;min-height:40px;padding:8px}
+ .renewal-home .home-mosaic-grid .pop-member-placeholder{font-size:2.4rem}
+ .renewal-home .home-updates{gap:12px;padding-block:20px}
+ .renewal-home .home-update-panel{padding:12px}
+ .renewal-home .pop-about-grid{gap:4px}
+}
+@media(max-width:320px){.renewal-home .pop-hero-actions{grid-template-columns:1fr}}
