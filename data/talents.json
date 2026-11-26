@@ -156,7 +156,7 @@
     "birthday": "",
     "debutDate": "",
     "anniversary": "",
-    "activityStatus": "",
+    "activityStatus": "活動中",
     "regularSchedule": "",
     "activityGoal": "",
     "favoriteWorks": "",
@@ -180,7 +180,9 @@
     "achievements": [],
     "hiddenSections": [],
     "tags": [],
-    "links": []
+    "links": [],
+    "joinDate": "",
+    "anniversaries": []
   },
   {
     "id": "yu_hinsun",
@@ -240,7 +242,7 @@
     "birthday": "",
     "debutDate": "",
     "anniversary": "",
-    "activityStatus": "",
+    "activityStatus": "活動中",
     "regularSchedule": "",
     "activityGoal": "",
     "favoriteWorks": "",
