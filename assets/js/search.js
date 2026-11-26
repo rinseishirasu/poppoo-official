@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const labels={member:"メンバー",news:"ニュース",schedule:"配信予定",anniversary:"記念日",info:"基本情報"};
+const labels={member:"メンバー",news:"ニュース",schedule:"配信予定",anniversary:"記念日",activity:"活動実績",info:"基本情報"};
 const normalize=value=>String(value??"").normalize("NFKC").toLocaleLowerCase("ja-JP").replace(/[ァ-ヶ]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-96)).trim();
 const text=value=>typeof value==="string"?value.trim():"";
 const strings=value=>Array.isArray(value)?value.filter(x=>typeof x==="string"):typeof value==="string"?[value]:[];
@@ -36,6 +36,7 @@ function buildIndex(sets,today){
  const href="schedule.html"+(t?"?member="+encodeURIComponent(t.id):"");
  add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform].join(" ・ "),href,[name,platform],s.date);
  }
+ for(const r of publicActivityRecords(sets.talents))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
  const settings=published(sets.settings)[0]||{};
  const basic=[
  ["コミュニティ概要","REALITYを中心とした配信者コミュニティ","about.html#about-us",[text(settings.aboutLead),"架空事務所 ぽっぽー Vライバー 個性"]],
@@ -59,7 +60,7 @@ function buildIndex(sets,today){
 }
 function findResults(index,query,kind){
  const terms=normalize(query).split(/\s+/).filter(Boolean);
- return index.filter(x=>(kind==="all"||x.kind===kind)&&terms.every(q=>x.hay.includes(q))).map((x,i)=>({x,i,score:terms.reduce((s,q)=>s+(x.titleKey===q?10:x.titleKey.includes(q)?4:1),0)})).sort((a,b)=>b.score-a.score||(a.x.kind===b.x.kind&&a.x.date&&b.x.date?(a.x.kind==="news"?b.x.date.localeCompare(a.x.date):a.x.date.localeCompare(b.x.date)):0)||a.i-b.i).map(v=>v.x);
+ return index.filter(x=>(kind==="all"||x.kind===kind)&&terms.every(q=>x.hay.includes(q))).map((x,i)=>({x,i,score:terms.reduce((s,q)=>s+(x.titleKey===q?10:x.titleKey.includes(q)?4:1),0)})).sort((a,b)=>b.score-a.score||(a.x.kind===b.x.kind&&a.x.date&&b.x.date?(["news","activity"].includes(a.x.kind)?b.x.date.localeCompare(a.x.date):a.x.date.localeCompare(b.x.date)):0)||a.i-b.i).map(v=>v.x);
 }
 async function start(){
  const form=document.getElementById("site-search-form");if(!form)return;
