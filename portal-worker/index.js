@@ -1,6 +1,9 @@
 // Portal authentication: initial administrator and login.
 const encoder = new TextEncoder();
 const ITERATIONS = 100000; // Compatibility test only; review before production.
+const STRONG_ITERATIONS=600000;
+const configuredIterations=env=>env.PASSWORD_KDF_ITERATIONS==="600000"?STRONG_ITERATIONS:ITERATIONS;
+const kdfConfigValid=env=>env.PASSWORD_KDF_ITERATIONS===undefined||["100000","600000"].includes(env.PASSWORD_KDF_ITERATIONS);
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,"0")).join("");
 function randomToken(){return hex(crypto.getRandomValues(new Uint8Array(32)));}
 async function digest(value){return hex(await crypto.subtle.digest("SHA-256",encoder.encode(value)));}
@@ -12,21 +15,23 @@ async function prehash(password,env){
  const key=await crypto.subtle.importKey("raw",Uint8Array.from(env.PASSWORD_PEPPER.match(/../g),v=>parseInt(v,16)),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
  return hex(await crypto.subtle.sign("HMAC",key,encoder.encode(password)));
 }
-async function derive(password,salt){
+async function derive(password,salt,iterations=ITERATIONS){
  const key=await crypto.subtle.importKey("raw",encoder.encode(password),"PBKDF2",false,["deriveBits"]);
- return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:encoder.encode(salt),iterations:ITERATIONS},key,256));
+ return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:encoder.encode(salt),iterations},key,256));
 }
 const passwordValid=p=>typeof p==="string"&&p.length>=20&&encoder.encode(p).length<=1024;
 export async function hashPassword(password,env){
  if(!passwordValid(password))throw Error("Invalid password length");
- const salt=randomToken();
- return "pbkdf2-sha256-hmac-v1$"+ITERATIONS+"$"+salt+"$"+await derive(await prehash(password,env),salt);
+ if(!kdfConfigValid(env))throw Error("Invalid KDF configuration");
+ const salt=randomToken(),iterations=configuredIterations(env);
+ return "pbkdf2-sha256-hmac-v1$"+iterations+"$"+salt+"$"+await derive(await prehash(password,env),salt,iterations);
 }
 export async function verifyPassword(password,stored,env){
  if(typeof password!=="string"||encoder.encode(password).length>1024||typeof stored!=="string")return false;
  const [algorithm,iterations,salt,expected,...extra]=stored.split("$");
- if(extra.length||!["pbkdf2-sha256","pbkdf2-sha256-hmac-v1"].includes(algorithm)||iterations!==String(ITERATIONS)||!/^[a-f0-9]{64}$/.test(salt||"")||!/^[a-f0-9]{64}$/.test(expected||""))return false;
- const actual=await derive(algorithm==="pbkdf2-sha256-hmac-v1"?await prehash(password,env):password,salt);
+ if(extra.length||!["pbkdf2-sha256","pbkdf2-sha256-hmac-v1"].includes(algorithm)||(![String(ITERATIONS),String(STRONG_ITERATIONS)].includes(iterations)||algorithm==="pbkdf2-sha256"&&iterations!==String(ITERATIONS))||!/^[a-f0-9]{64}$/.test(salt||"")||!/^[a-f0-9]{64}$/.test(expected||""))return false;
+ if(algorithm==="pbkdf2-sha256-hmac-v1"&&!pepperReady(env))return false;
+ const actual=await derive(algorithm==="pbkdf2-sha256-hmac-v1"?await prehash(password,env):password,salt,Number(iterations));
  const bytes=s=>Uint8Array.from(s.match(/../g),v=>parseInt(v,16));
  return crypto.subtle.timingSafeEqual(bytes(actual),bytes(expected));
 }
@@ -546,10 +551,13 @@ async function buildPublicationCommit(env,head,data,image,updatedMember){
  if(!shaValid(commit.sha))throw Error("Invalid commit");return commit.sha;
 }
 async function finishPublication(db,job){
+ if(!["profile","avatar"].includes(job.kind)||!shaValid(job.commit_sha))throw Error("Invalid job");
+ const source=job.kind==="profile"?"profile_requests p WHERE p.id=publication_jobs.request_id AND p.account_id=publication_jobs.account_id AND p.status='pending'":"avatar_requests p WHERE p.id=publication_jobs.request_id AND p.account_id=publication_jobs.account_id";
+ const guard=" AND EXISTS(SELECT 1 FROM publication_jobs WHERE request_id=? AND account_id=? AND state='published' AND commit_sha=?)";
  const sql=job.kind==="profile"?"UPDATE profile_requests SET status='approved',review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending'":"DELETE FROM avatar_requests WHERE id=? AND account_id=?";
- const stmt=job.kind==="profile"?db.prepare(sql).bind(job.note,job.actor_id,job.request_id,job.account_id):db.prepare(sql).bind(job.request_id,job.account_id);
- const result=await db.batch([stmt,db.prepare("UPDATE publication_jobs SET state='published',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND commit_sha=?").bind(job.request_id,job.commit_sha)]);
- if(result[1].meta.changes!==1)throw Error("Job changed");
+ const stmt=job.kind==="profile"?db.prepare(sql+guard).bind(job.note,job.actor_id,job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha):db.prepare(sql+guard).bind(job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha);
+ const result=await db.batch([db.prepare("UPDATE publication_jobs SET state='published',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND account_id=? AND kind=? AND state='processing' AND commit_sha=? AND EXISTS(SELECT 1 FROM "+source+")").bind(job.request_id,job.account_id,job.kind,job.commit_sha),stmt]);
+ if(result[0].meta.changes!==1||result[1].meta.changes!==1)throw Error("Job or source changed");
 }
 async function reviewPage(env){
  const db=env.DB,enabled=publicationReady(env);
@@ -598,7 +606,7 @@ async function reviewSubmission(env,session,form){
  await db.batch([stmt,db.prepare("UPDATE publication_jobs SET state='returned',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing'").bind(id)]);
  return redirect("/admin/reviews");
  }
- let commitSha="";
+ let commitSha="",refAttempted=false;
  try{
  const head=await gitHead(env),dataset=await githubDataset(env,"talents",head.sha);
  if(dataset.sha!==form.get("revision"))throw Error("Public profile changed");
@@ -639,13 +647,17 @@ async function reviewSubmission(env,session,form){
  commitSha=sha;
  // Non-forced update rejects concurrent changes to main.
  const current=await gitHead(env);if(current.sha!==head.sha)throw Error("Branch head changed before publish");
+ const stillActive=await db.prepare("SELECT id FROM accounts WHERE id=? AND status='active' AND role='member'").bind(row.account_id).first();
+ const actor=await db.prepare("SELECT id FROM accounts WHERE id=? AND status='active' AND role='admin'").bind(session.id).first();
+ if(!stillActive||!actor)throw Error("Account inactive before publish");
+ refAttempted=true;
  const ref=await gitCall(env,"/git/refs/heads/main","PATCH",{sha:commitSha,force:false});
  if(ref.object?.sha!==commitSha)throw Error("Unconfirmed ref update");
  await finishPublication(db,{kind,request_id:id,account_id:row.account_id,actor_id:session.id,note,commit_sha:commitSha});
  return redirect("/admin/reviews");
  }catch(error){
- if(!commitSha)await db.prepare("UPDATE publication_jobs SET state='failed',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND commit_sha IS NULL").bind(id).run();
- return json({error:commitSha?"Publication result unconfirmed; reconcile in review console":"Publication stopped; review current data before retry"},409);
+ if(!refAttempted)await db.prepare("UPDATE publication_jobs SET state='failed',commit_sha=NULL,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND (commit_sha IS NULL OR commit_sha=?)").bind(id,commitSha).run();
+ return json({error:refAttempted?"Publication result unconfirmed; reconcile in review console":"Publication stopped before ref update; review current data before retry"},409);
  }
 }
 async function reconcilePublication(env,form){
@@ -659,7 +671,7 @@ async function reconcilePublication(env,form){
 async function accountPage(env,session,message="",status=200){
  const a=await env.DB.prepare("SELECT email,password_hash FROM accounts WHERE id=? AND status='active'").bind(session.id).first();
  if(!a)return redirect("/");
- const legacy=String(a.password_hash).startsWith("pbkdf2-sha256$");
+ const legacy=String(a.password_hash).startsWith("pbkdf2-sha256$")||String(a.password_hash).startsWith("pbkdf2-sha256-hmac-v1$100000$")&&configuredIterations(env)===STRONG_ITERATIONS;
  return page("account",message,status,(session.role==="admin"?adminBack:memberBack)+'<p>登録メールアドレス：'+esc(a.email)+'</p>'+(legacy?'<p class="portal-notice">旧方式のパスワードです。新方式へ変更してください。</p>':"")+(!pepperReady(env)?'<p>新方式の設定が完了していません。</p>':'<form method="post" action="/account/password"><label>現在のパスワード<input type="password" name="current" autocomplete="current-password" required maxlength="1024"></label><label>新しいパスワード（20文字以上、長いランダムな文字列を推奨）<input type="password" name="password" autocomplete="new-password" required minlength="20" maxlength="1024"></label><label>再入力<input type="password" name="confirm" autocomplete="new-password" required minlength="20" maxlength="1024"></label><button>変更して全端末からログアウト</button></form>'));
 }
 async function changePassword(env,session,form){
@@ -677,13 +689,14 @@ async function changePassword(env,session,form){
 async function resetMemberAccount(env,session,form){
  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
  const db=env.DB,id=form.get("id"),token=randomToken(),hash=await digest(token);
+ // Insert a fresh unique token only if the reset is eligible, then use it as the batch guard.
  const result=await db.batch([
- db.prepare("UPDATE accounts SET status='invited',password_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status IN ('active','suspended') AND NOT EXISTS(SELECT 1 FROM publication_jobs WHERE account_id=accounts.id AND state='processing')").bind(id),
- db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id,id),
- db.prepare("DELETE FROM activation_tokens WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id,id),
- db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited'").bind(hash,now()+86400,id)
+ db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status IN ('active','suspended') AND NOT EXISTS(SELECT 1 FROM publication_jobs WHERE account_id=accounts.id AND state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(hash,now()+86400,id,session.id),
+ db.prepare("UPDATE accounts SET status='invited',password_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status IN ('active','suspended') AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id)").bind(id,hash),
+ db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=?)").bind(id,hash,id),
+ db.prepare("DELETE FROM activation_tokens WHERE account_id=? AND token_hash<>? AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=?)").bind(id,hash,hash,id)
  ]);
- if(result[3].meta.changes!==1)return json({error:"Reset unavailable"},409);
+ if(result[0].meta.changes!==1||result[1].meta.changes!==1)return json({error:"Reset unavailable; refresh account list"},409);
  return adminPage(db,"再設定用コードを発行しました。本人にのみ安全に渡してください。",200,true,token);
 }
 async function auditPage(db){
@@ -703,7 +716,7 @@ export default {async fetch(request,env){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
  const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
  const schemaReady=tables.every(t=>found.includes(t));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-integration-v18",schemaReady,passwordPepperConfigured:pepperReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-security-v19",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -731,7 +744,7 @@ export default {async fetch(request,env){
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
  if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
- if((origin&&origin!=="null"&&origin!==url.origin)||request.headers.get("Sec-Fetch-Site")==="cross-site")return json({error:"Cross-origin request rejected"},403);
+ if(origin!==url.origin||["cross-site","same-site"].includes(request.headers.get("Sec-Fetch-Site")))return json({error:"Cross-origin request rejected"},403);
 
  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
  if(["/login","/activate","/setup","/account/password"].includes(path)&&!await limit(db,"auth-ip:"+ip,20))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
@@ -802,6 +815,7 @@ export default {async fetch(request,env){
  if(path==="/admin/reconcile")return await reconcilePublication(env,form);
  if(["/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return await mutateOperations(db,session,form,path);
  if(path==="/admin/accounts"){
+ if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Account issuance disabled"},403);
  const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,env.PORTAL_TEST_MODE==="true");
  const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
  const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING").bind(id,email,memberId).run();if(result.meta.changes!==1)return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,env.PORTAL_TEST_MODE==="true");
@@ -833,7 +847,7 @@ export default {async fetch(request,env){
  }
  if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
  const account=await db.prepare("SELECT id,status,password_hash,role FROM accounts WHERE email=?").bind(email).first();
- const dummy=(pepperReady(env)?"pbkdf2-sha256-hmac-v1$":"pbkdf2-sha256$")+ITERATIONS+"$"+"0".repeat(64)+"$"+"0".repeat(64);
+ const dummy=(pepperReady(env)?"pbkdf2-sha256-hmac-v1$":"pbkdf2-sha256$")+(pepperReady(env)?configuredIterations(env):ITERATIONS)+"$"+"0".repeat(64)+"$"+"0".repeat(64);
  step="password-verify";
  const valid=await verifyPassword(password,account?.password_hash||dummy,env);
  if(!valid||account?.status!=="active"||(account.role==="member"&&env.PORTAL_TEST_MODE!=="true"))return page("login","メールアドレスまたはパスワードを確認してください。",401);
@@ -842,5 +856,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-integration-v18"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-security-v19"},503);}
 }};
