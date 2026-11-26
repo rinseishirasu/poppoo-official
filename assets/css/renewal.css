@@ -588,3 +588,6 @@
 
 /* Make the available contact channel the first visible information. */
 .pop-contact .contact-content{gap:16px}.pop-contact .contact-status h3{margin-top:0}.pop-contact .contact-types{grid-template-columns:repeat(3,minmax(0,1fr))}.pop-contact .contact-type h3{margin:0 0 8px}.pop-contact .contact-type a,.pop-contact .contact-privacy-note{overflow-wrap:anywhere}.pop-contact .contact-privacy-note{padding:12px 14px;background:#f7f7f7;border-left:3px solid #777;border-radius:5px}.policy-footer-note p{line-height:1.7}@media(max-width:760px){.pop-contact .contact-types{grid-template-columns:minmax(0,1fr)}.pop-contact .contact-content{gap:12px}}
+
+/* Consistent collapsed sharing on detail pages. */
+.news-detail-footer .news-share-disclosure{width:100%;min-width:0}.news-detail-footer .news-share-disclosure[hidden]{display:none!important}
