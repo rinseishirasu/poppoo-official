@@ -101,7 +101,9 @@
     "cohort": [
       "1期生"
     ],
-    "roles": [],
+    "roles": [
+      "副代表"
+    ],
     "iconImage": "assets/images/talents/kakao_choco-icon.png",
     "avatarImage": "",
     "avatarImages": [],
@@ -135,7 +137,9 @@
     "achievements": [],
     "hiddenSections": [],
     "tags": [],
-    "links": []
+    "links": [],
+    "joinDate": "",
+    "anniversaries": []
   },
   {
     "id": "yu_zi_n_pecorino",
