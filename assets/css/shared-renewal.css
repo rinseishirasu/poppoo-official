@@ -59,3 +59,35 @@
 @media(max-width:1100px){#site-header .pop-header{min-height:64px;gap:12px}#site-header .nav{border-radius:0 0 14px 14px;padding:8px 16px}#site-header .nav a{min-height:48px;padding:12px 14px}#site-header .nav a[aria-current=page]{background:#edf6ff;border-radius:6px;color:#145b98}}
 @media(max-width:760px){#site-header .brand{gap:8px}#site-header .pop-brand-name{font-size:1.18rem}.pop-footer .footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.pop-footer .footer-grid>div:first-child{grid-column:1/-1}.pop-footer-bottom{flex-direction:row;align-items:center}.pop-footer .footer-links a{font-size:.8rem}}
 @media(max-width:350px){.pop-footer .footer-grid{grid-template-columns:1fr}}
+
+/* Final cross-page responsive and accessibility pass. */
+html{scroll-padding-top:88px}
+.pop-skip-link{position:fixed;left:12px;top:8px;z-index:1200;transform:translateY(-160%);background:#142f56;color:#fff;padding:10px 16px;border-radius:8px;font-weight:700}
+.pop-skip-link:focus{transform:none;outline:3px solid #78baf0;outline-offset:3px}
+#site-header .brand{min-width:0;flex-shrink:1}
+#site-header .brand-logo,.pop-footer .brand-logo{flex:none}
+#site-header .menu-toggle{flex:none}
+#site-header .pop-brand-name{min-width:0}
+#site-header .nav{overscroll-behavior:contain}
+.pop-footer-bottom>*{min-width:0;max-width:100%}
+.pop-footer .footer-links a{min-height:32px}
+.pop-back-top{min-height:44px}
+main:not(.admin-page main) .pop-link{white-space:normal;overflow-wrap:anywhere}
+main:not(.admin-page main) .empty-state{min-width:0;overflow-wrap:anywhere}
+main:not(.admin-page main) :is(input,select,textarea){max-width:100%;min-width:0}
+main:not(.admin-page main) :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid #1978c8;outline-offset:3px}
+@media(max-width:760px){
+ html{scroll-padding-top:76px}
+ #site-header .pop-header{gap:8px}
+ #site-header .nav{max-height:calc(100vh - 72px);max-height:calc(100dvh - 72px)}
+ .pop-footer-bottom{align-items:flex-start}
+ .pop-footer .footer-links a{min-height:40px;display:flex;align-items:center}
+ main:not(.admin-page main) :is(input,select,textarea){font-size:16px}
+ main:not(.admin-page main) .page-heading h1{font-size:clamp(2rem,9vw,3rem)}
+}
+@media(max-width:350px){
+ #site-header .pop-brand-name{font-size:1.04rem}
+ #site-header .pop-brand-name small{font-size:.47rem}
+ #site-header .brand-logo{width:34px;height:34px}
+ .pop-footer-bottom{flex-direction:column}
+}
