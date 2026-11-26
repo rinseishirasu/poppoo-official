@@ -90,11 +90,59 @@
  const homeT=document.querySelector("#home-talents");if(homeT&&!markUnavailable(homeT,"talents","参加メンバー情報")){const list=published(talents);homeT.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">参加メンバー情報は準備中です。公開準備が整い次第、こちらでご紹介します。</div>'}
  if(homeT)homeT.querySelectorAll(".pop-member-art img").forEach(img=>{const fallback=()=>{const node=document.createElement("span");node.className="pop-member-placeholder";node.setAttribute("aria-hidden","true");node.textContent=img.alt?.slice(0,1)||"P";img.replaceWith(node)};img.addEventListener("error",fallback,{once:true});if(img.complete&&!img.naturalWidth)fallback()});
  const rail=document.querySelector("#home-talents");if(rail&&!datasetFailed("data/talents.json")){const controls=document.querySelector("#home-member-controls");if(controls){const buttons=controls.querySelectorAll("button");const move=dir=>rail.scrollBy({left:dir*rail.clientWidth*.8,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});buttons[0].onclick=()=>move(-1);buttons[1].onclick=()=>move(1);const update=()=>{buttons[0].disabled=rail.scrollLeft<2;buttons[1].disabled=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-2};rail.addEventListener("scroll",update,{passive:true});window.addEventListener("resize",update);update()}}
- const fillOptions=(el,values)=>{if(el)[...new Set(values.filter(Boolean))].sort().forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
+ const fillOptions=(el,values)=>{if(el)[...new Set(values.filter(v=>typeof v==="string"&&v.trim()))].sort((a,b)=>a.localeCompare(b,"ja")).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
  const nl=document.querySelector("#news-list");
- if(nl&&!markUnavailable(nl,"news","お知らせ")){const all=published(news).sort((a,b)=>(b.date||"").localeCompare(a.date||"")),cat=document.querySelector("#news-category"),q=document.querySelector("#news-search"),count=document.querySelector("#news-count");fillOptions(cat,all.map(n=>n.category||"INFORMATION"));const render=()=>{const term=(q?.value||"").trim().toLowerCase(),list=all.filter(n=>(!cat?.value||(n.category||"INFORMATION")===cat.value)&&[n.title,n.summary,n.body].join(" ").toLowerCase().includes(term));if(count)count.textContent=list.length+" 件";nl.innerHTML=list.length?list.slice(0,document.querySelector(".renewal-home")?3:list.length).map(newsCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するお知らせはありません。":"現在、お知らせはありません。")+'</div>'};cat?.addEventListener("change",render);q?.addEventListener("input",render);render()}
+ if(nl&&!markUnavailable(nl,"news","お知らせ")){
+ const all=published(news).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))),cat=document.querySelector("#news-category"),q=document.querySelector("#news-search"),year=document.querySelector("#news-year"),sort=document.querySelector("#news-sort"),count=document.querySelector("#news-count"),more=document.querySelector("#news-more"),pagination=document.querySelector("#news-pagination"),reset=document.querySelector("#news-reset");
+ const isHome=Boolean(document.querySelector(".renewal-home")),pageSize=9;let limit=isHome?3:pageSize;
+ const yearOf=n=>/^\d{4}-\d{2}-\d{2}$/.test(n.date||"")?n.date.slice(0,4):"";
+ fillOptions(cat,all.map(n=>n.category||"INFORMATION"));fillOptions(year,all.map(yearOf));
+ const render=()=>{
+ const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
+ const list=all.filter(n=>(!cat?.value||(n.category||"INFORMATION")===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,n.category].join(" ")).includes(term)));
+ if(sort?.value==="old")list.reverse();
+ if(count)count.textContent=list.length+"件中 "+Math.min(limit,list.length)+"件を表示";
+ nl.innerHTML=list.length?list.slice(0,limit).map(newsCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するお知らせはありません。":"現在、お知らせはありません。")+'</div>';
+ if(pagination)pagination.hidden=list.length<=limit;
+ };
+ const changed=()=>{limit=isHome?3:pageSize;render()};
+ [cat,year,sort].forEach(el=>el?.addEventListener("change",changed));q?.addEventListener("input",changed);
+ reset?.addEventListener("click",()=>{[cat,q,year].forEach(el=>{if(el)el.value=""});if(sort)sort.value="new";changed();q?.focus()});
+ more?.addEventListener("click",()=>{limit+=pageSize;render()});render();
+ }
  const sl=document.querySelector("#schedule-list");
- if(sl&&!markUnavailable(sl,"schedule","配信予定")){const all=published(schedule).filter(s=>s.date>=todayJST).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||"")),member=document.querySelector("#schedule-member"),day=document.querySelector("#schedule-day"),count=document.querySelector("#schedule-count");fillOptions(member,all.map(s=>s.talent));fillOptions(day,all.map(s=>s.date));const row=s=>{const url=safeExternalLink(s.url||"");return '<article class="schedule-item"><div class="schedule-date">'+(!day?'<time datetime="'+escapeHtml(s.date)+'">'+dateLabel(s.date)+'</time>':"")+'<span class="schedule-time">'+escapeHtml(s.time||"時間未定")+'</span></div><div class="schedule-program"><div class="schedule-title">'+escapeHtml(s.title||"配信")+'</div><div class="schedule-meta">'+escapeHtml(s.talent||"参加メンバー")+' ・ '+escapeHtml(s.platform||"REALITY")+'</div></div>'+(url?'<a class="schedule-link" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">配信ページを見る ↗</a>':'<span class="schedule-link-pending">配信先リンク未登録</span>')+'</article>'};const render=()=>{const list=all.filter(s=>(!member?.value||s.talent===member.value)&&(!day?.value||s.date===day.value));if(count)count.textContent=list.length+" 件";if(!list.length){sl.innerHTML='<div class="empty-state">'+(all.length?"条件に一致する配信予定はありません。":"現在、掲載中の配信予定はありません。")+'</div>';return}if(!day){sl.innerHTML=list.slice(0,5).map(row).join("");return}const dates=[...new Set(list.map(s=>s.date))];sl.innerHTML=dates.map(d=>'<section class="pop-day-group"><h3><time datetime="'+escapeHtml(d)+'">'+dateLabel(d)+'</time>'+(d===todayJST?' <span> 本日</span>':'')+'</h3>'+list.filter(s=>s.date===d).map(row).join("")+'</section>').join("")};member?.addEventListener("change",render);day?.addEventListener("change",render);render()}
+ const validDay=d=>{if(typeof d!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const parsed=new Date(d+"T00:00:00Z");return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===d};
+ const scheduleMember=s=>{
+ const all=published(talents);
+ if(s.memberId)return all.find(t=>t.id===s.memberId)||null;
+ const matches=all.filter(t=>t.name===s.talent);return matches.length===1?matches[0]:null;
+ };
+ if(sl&&!markUnavailable(sl,"schedule","配信予定")){
+ const all=published(schedule).filter(s=>validDay(s.date)&&s.date>=todayJST).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||"").localeCompare(String(b.time||"")));
+ const member=document.querySelector("#schedule-member"),day=document.querySelector("#schedule-day"),platform=document.querySelector("#schedule-platform"),q=document.querySelector("#schedule-search"),count=document.querySelector("#schedule-count"),reset=document.querySelector("#schedule-reset"),buttons=[...document.querySelectorAll(".schedule-period [data-period]")];let period="all";
+ const name=s=>scheduleMember(s)?.name||s.talent||"参加メンバー";
+ const memberKey=s=>s.memberId?"id:"+s.memberId:(scheduleMember(s)?"id:"+scheduleMember(s).id:"name:"+name(s));
+ const media=s=>s.platform||"REALITY";
+ const options=new Map(all.map(s=>[memberKey(s),name(s)]));
+ if(member){[...options.entries()].sort((a,b)=>a[1].localeCompare(b[1],"ja")).forEach(([key,label])=>{const o=document.createElement("option");o.value=key;o.textContent=label;member.append(o)});}
+ fillOptions(day,all.map(s=>s.date));fillOptions(platform,all.map(media));
+ const params=new URLSearchParams(location.search),selected=params.get("member");if(member&&selected&&options.has("id:"+selected))member.value="id:"+selected;
+ const endDay=new Date(Date.parse(todayJST+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
+ const dayTitle=d=>dateLabel(d)+"（"+"日月火水木金土"[new Date(d+"T00:00:00Z").getUTCDay()]+"）";
+ const row=s=>{const url=safeExternalLink(s.url||""),t=scheduleMember(s);return '<article class="schedule-item"><div class="schedule-date">'+(!day?'<time datetime="'+escapeHtml(s.date)+'">'+dayTitle(s.date)+'</time>':"")+'<span class="schedule-time">'+escapeHtml(s.time||"時間未定")+'</span></div><div class="schedule-program"><div class="schedule-title">'+escapeHtml(s.title||"配信")+'</div><div class="schedule-meta">'+(t?'<a href="talent.html?id='+encodeURIComponent(t.id)+'">'+escapeHtml(name(s))+'</a>':escapeHtml(name(s)))+' ・ '+escapeHtml(media(s))+'</div></div>'+(url?'<a class="schedule-link" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">配信ページを見る ↗</a>':'<span class="schedule-link-pending">配信先リンク未登録</span>')+'</article>'};
+ const render=()=>{
+ const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
+ const list=all.filter(s=>(period==="all"||period==="today"&&s.date===todayJST||period==="week"&&s.date<=endDay)&&(!member?.value||memberKey(s)===member.value)&&(!day?.value||s.date===day.value)&&(!platform?.value||media(s)===platform.value)&&terms.every(term=>searchText([s.title,name(s),media(s)].join(" ")).includes(term)));
+ if(count)count.textContent=list.length+"件";
+ buttons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.period===period)));
+ if(!list.length){sl.innerHTML='<div class="empty-state">'+(all.length?"条件に一致する配信予定はありません。":"現在、掲載中の配信予定はありません。")+'</div>';return}
+ if(!day){sl.innerHTML=list.slice(0,5).map(row).join("");return}
+ sl.innerHTML=[...new Set(list.map(s=>s.date))].map(d=>'<section class="pop-day-group"><h3><time datetime="'+escapeHtml(d)+'">'+dayTitle(d)+'</time>'+(d===todayJST?' <span>本日</span>':'')+'</h3>'+list.filter(s=>s.date===d).map(row).join("")+'</section>').join("");
+ };
+ buttons.forEach(b=>b.addEventListener("click",()=>{period=b.dataset.period;if(day)day.value="";render()}));
+ [member,day,platform].forEach(el=>el?.addEventListener("change",()=>{if(el===day&&day.value)period="all";render()}));q?.addEventListener("input",render);
+ reset?.addEventListener("click",()=>{period="all";[member,day,platform,q].forEach(el=>{if(el)el.value=""});render()});render();
+ }
  const profile=document.querySelector("#talent-profile");
  if(profile&&!markUnavailable(profile,"talents","プロフィール","talents.html")){
   const id=new URLSearchParams(location.search).get("id");
@@ -120,7 +168,7 @@
    const achievementSection=achievements.length?'<section class="profile-section"><span class="eyebrow">ACHIEVEMENTS</span><h2>活動実績</h2><div class="profile-achievements">'+achievements.map(x=>'<article class="profile-achievement">'+(x.date?'<time>'+escapeHtml(x.date)+'</time>':"")+'<h3>'+escapeHtml(x.title)+'</h3>'+(x.description?'<p>'+escapeHtml(x.description)+'</p>':"")+'</article>').join("")+'</div></section>':"";
    const uniqueName=published(talents).filter(m=>m.name===t.name).length===1;
    const talentSchedule=published(schedule).filter(s=>(s.memberId?s.memberId===t.id:uniqueName&&s.talent===t.name)&&s.date>=todayJST).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||"")).slice(0,6);
-   const scheduleSection=datasetFailed("data/schedule.json")?'<section class="profile-section profile-schedule"><span class="eyebrow">SCHEDULE</span><h2>配信スケジュール</h2><p>配信予定を取得できませんでした。</p><a class="text-link" href="schedule.html">配信予定一覧へ →</a></section>':talentSchedule.length?'<section class="profile-section profile-schedule"><span class="eyebrow">SCHEDULE</span><h2>配信スケジュール</h2><div class="profile-schedule-list">'+talentSchedule.map(s=>{const url=safeExternalLink(s.url||"");return '<article class="profile-schedule-item"><time>'+dateLabel(s.date)+'</time><strong>'+escapeHtml(s.time||"時間未定")+'</strong><span>'+escapeHtml(s.title||"配信")+'</span>'+(url?'<a href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">配信を見る ↗</a>':"")+'</article>'}).join("")+'</div><a class="text-link" href="schedule.html">全体スケジュールを見る →</a></section>':"";
+   const scheduleSection=datasetFailed("data/schedule.json")?'<section class="profile-section profile-schedule"><span class="eyebrow">SCHEDULE</span><h2>配信スケジュール</h2><p>配信予定を取得できませんでした。</p><a class="text-link" href="schedule.html">配信予定一覧へ →</a></section>':talentSchedule.length?'<section class="profile-section profile-schedule"><span class="eyebrow">SCHEDULE</span><h2>配信スケジュール</h2><div class="profile-schedule-list">'+talentSchedule.map(s=>{const url=safeExternalLink(s.url||"");return '<article class="profile-schedule-item"><time>'+dateLabel(s.date)+'</time><strong>'+escapeHtml(s.time||"時間未定")+'</strong><span>'+escapeHtml(s.title||"配信")+'</span>'+(url?'<a href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">配信を見る ↗</a>':"")+'</article>'}).join("")+'</div><a class="text-link" href="schedule.html?member='+encodeURIComponent(t.id)+'">このメンバーの配信予定を見る →</a></section>':"";
    const credit=[["キャラクターデザイン",t.illustrator],["Live2Dモデラー",t.modeler]].filter(x=>x[1]);
    const lookbook=avatarList.length>0?'<section class="profile-section avatar-lookbook"><span class="eyebrow">AVATAR LOOKBOOK</span><h2>アバターギャラリー</h2><p class="lookbook-intro">衣装やビジュアルのバリエーションをご紹介します。</p><div class="avatar-lookbook-grid">'+avatarList.map((src,i)=>'<a class="avatar-lookbook-item" href="'+escapeHtml(src)+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(t.name)+'のアバター画像 '+(i+1)+' を大きく表示"><img src="'+escapeHtml(src)+'" alt="'+escapeHtml(t.name)+' アバター '+(i+1)+'" loading="lazy"><span>LOOK '+String(i+1).padStart(2,"0")+'</span></a>').join("")+'</div></section>':"";
    const publishedMembers=published(talents),memberIndex=publishedMembers.findIndex(x=>x.id===t.id);
@@ -140,7 +188,7 @@
 
   }else{profile.innerHTML='<div class="empty-state profile-empty"><span class="eyebrow">PROFILE</span><h1>プロフィールは準備中です</h1><p>お探しのプロフィールは、まだ公開されていないか、掲載を終了しています。</p><a class="btn secondary" href="talents.html">参加メンバー一覧へ戻る</a></div>'}
  }
- for(const [kind,ids] of [["talents",["cohort-filter","talent-search","role-filter","activity-filter","member-sort","member-reset"]],["news",["news-category","news-search"]],["schedule",["schedule-member","schedule-day"]]]){
+ for(const [kind,ids] of [["talents",["cohort-filter","talent-search","role-filter","activity-filter","member-sort","member-reset"]],["news",["news-category","news-search","news-year","news-sort","news-reset","news-more"]],["schedule",["schedule-member","schedule-day","schedule-platform","schedule-search","schedule-reset"]]]){
  if(datasetFailed("data/"+kind+".json"))for(const id of ids){const el=document.getElementById(id);if(el)el.disabled=true;}
  }
  const article=document.querySelector("#news-detail");if(article&&!markUnavailable(article,"news","記事","news.html")){const id=new URLSearchParams(location.search).get("id");const n=published(news).find(x=>x.id===id);if(n)document.title=n.title+" | NEWS | 架空事務所 ぽっぽー";article.innerHTML=n?`<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">${escapeHtml(n.category||"INFORMATION")}</span><time datetime="${escapeHtml(n.date||"")}">${dateLabel(n.date)}</time></div><h1>${escapeHtml(n.title)}</h1>${newsImage(n)?`<img class="pop-news-cover" src="${escapeHtml(newsImage(n))}" alt="">`:""}${n.summary?`<p class="detail-summary">${escapeHtml(n.summary)}</p>`:""}<div class="prose news-prose">${(n.body||"").split(/\r?\n/).map(line=>line?`<p>${escapeHtml(line)}</p>`:"").join("")}</div><div class="news-detail-footer"><a class="text-link" href="news.html">← お知らせ一覧へ戻る</a></div></article>`:'<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>記事が見つかりませんでした</h1><p>記事が公開されていないか、掲載を終了している可能性があります。</p><a class="btn secondary" href="news.html">お知らせ一覧へ戻る</a></div>'}
