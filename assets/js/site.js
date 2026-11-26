@@ -35,6 +35,45 @@ if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>w
 
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#142f56;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
+// Share public URLs only; no third-party widgets or tracking scripts.
+function publicShareLinks(url,title){
+ const q=encodeURIComponent, text=title+"\n"+url;
+ return [
+ ["X","x","https://twitter.com/intent/tweet?text="+q(title)+"&url="+q(url)],
+ ["LINE","line","https://social-plugins.line.me/lineit/share?url="+q(url)+"&text="+q(title)],
+ ["Threads","threads","https://www.threads.com/intent/post?text="+q(text)],
+ ["Facebook","facebook","https://www.facebook.com/sharer/sharer.php?u="+q(url)],
+ ["Bluesky","bluesky","https://bsky.app/intent/compose?text="+q(text)],
+ ["WhatsApp","whatsapp","https://wa.me/?text="+q(text)],
+ ["Telegram","telegram","https://t.me/share/url?url="+q(url)+"&text="+q(title)]
+ ];
+}
+function mountPublicShare(target,{page,id,member,title,label="このページをシェア"}){
+ if(!target)return;
+ // Do not expose draft titles or activate copy/share in preview or embedded pages.
+ if(window.parent!==window||new URLSearchParams(location.search).has("cmsPreview")){target.hidden=true;return}
+ const allowed=["index.html","talents.html","talent.html","news.html","news-detail.html","schedule.html","about.html","audition.html"];
+ if(!allowed.includes(page))return;
+ const url=new URL(page,"https://rinseishirasu.github.io/poppoo-official/");
+ if(page==="index.html")url.pathname="/poppoo-official/";
+ if(id&&["talent.html","news-detail.html"].includes(page))url.searchParams.set("id",id);
+ if(member&&["news.html","schedule.html"].includes(page))url.searchParams.set("member",member);
+ const href=url.href,heading=String(title||"架空事務所 ぽっぽー").trim();
+ target.classList.add("pop-share-panel");target.setAttribute("role","group");target.setAttribute("aria-label",label);
+ const titleEl=document.createElement("strong");titleEl.className="pop-share-heading";titleEl.textContent=label;
+ const buttons=document.createElement("div");buttons.className="pop-share-buttons";
+ for(const [name,kind,link] of publicShareLinks(href,heading)){
+  const a=document.createElement("a");a.className="pop-share-button pop-share-"+kind;a.href=link;a.target="_blank";a.rel="noopener noreferrer";a.referrerPolicy="no-referrer";a.textContent=name;a.setAttribute("aria-label",name+"で共有（新しい画面）");buttons.append(a);
+ }
+ const status=document.createElement("p");status.className="pop-share-status";status.setAttribute("role","status");
+ const fallback=document.createElement("input");fallback.className="pop-share-url";fallback.type="text";fallback.readOnly=true;fallback.value=href;fallback.hidden=true;fallback.setAttribute("aria-label","共有用URL");
+ const showFallback=()=>{fallback.hidden=false;fallback.focus();fallback.select();status.textContent="表示されたURLをコピーしてください。"};
+ const copy=document.createElement("button");copy.type="button";copy.className="pop-share-button pop-share-copy";copy.textContent="URLコピー";
+ copy.addEventListener("click",async()=>{try{if(!navigator.clipboard?.writeText){showFallback();return}await navigator.clipboard.writeText(href);status.textContent="URLをコピーしました。"}catch{showFallback()}});
+ buttons.append(copy);
+ if(typeof navigator.share==="function"){const native=document.createElement("button");native.type="button";native.className="pop-share-button pop-share-native";native.textContent="その他の共有";native.addEventListener("click",async()=>{try{await navigator.share({title:heading,url:href});status.textContent="共有操作が完了しました。"}catch(e){if(e.name!=="AbortError"){status.textContent="共有できませんでした。URLコピーをご利用ください。"}}});buttons.append(native)}
+ target.replaceChildren(titleEl,buttons,status,fallback);
+}
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
 async function loadData(file){
