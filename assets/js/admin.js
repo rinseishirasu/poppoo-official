@@ -125,7 +125,7 @@ function renderForm(item={}){
  const select=i=>{fields.querySelectorAll("[data-profile-group]").forEach((p,j)=>p.hidden=i!==j);Array.from(tabs.children).forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)))};
  groups.forEach(([label],i)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=()=>select(i);tabs.append(b)});select(0);
  }else fields.innerHTML=SCHEMAS[current].map(fieldHtml).join("");
- form.oninvalid=e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()};
+ if(form._profileInvalidHandler)form.removeEventListener("invalid",form._profileInvalidHandler,true);form._profileInvalidHandler=e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()};form.addEventListener("invalid",form._profileInvalidHandler,true);
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el&&!["memberSelect","newsMembers"].includes(type))continue;
   if(type==="managementOrder"){
