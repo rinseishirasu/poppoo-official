@@ -617,6 +617,7 @@ async function reviewPage(env){
  ]);
  const member=id=>members.data.find(m=>m.id===id&&m.published===true);
  const form=(row,kind)=>{
+ if(env.PORTAL_MAINTENANCE==="true")return '<p>保守モード中は承認・差し戻しを停止しています。</p>';
  const busy=jobs.results.some(j=>j.request_id===row.id&&j.state==="processing");
  if(busy)return '<p>公開処理中または結果確認待ちです。</p>';
  return '<form method="post" action="/admin/review">'+hInput("id",row.id)+hInput("kind",kind)+hInput("revision",members.sha)+textField("note","運営コメント（差し戻し時は必須）",1000)+(enabled&&row.account_status==="active"&&member(row.member_id)?'<label><input type="checkbox" name="confirm" value="yes">内容・権利・公開範囲を確認しました</label><button name="decision" value="approve">承認して公式サイトに公開</button><p></p>':"")+'<button name="decision" value="return">差し戻す</button></form>';
@@ -629,7 +630,7 @@ async function reviewPage(env){
  }).join("");
  const a=avatars.results.map(row=>'<article><h3>'+esc(member(row.member_id)?.name||row.member_id)+' / '+esc(AVATAR_SLOTS.find(([k])=>k===row.slot)?.[1]||row.slot)+'</h3><img class="avatar-preview" src="/admin/review-image?id='+encodeURIComponent(row.id)+'" alt="審査対象画像">'+form(row,"avatar")+'</article>').join("");
  const history=jobs.results.map(j=>'<article><strong>'+esc(j.kind)+' / '+esc(j.state)+'</strong><p>'+esc(j.request_id)+'</p><small>'+esc(j.updated_at)+' UTC</small>'+(j.commit_sha?'<p>Git commit: '+esc(j.commit_sha)+'</p>':"")+(j.note?'<pre>'+esc(j.note)+'</pre>':"")+(j.state==="processing"&&j.commit_sha&&(enabled||reconciliationReady(env))?'<form method="post" action="/admin/reconcile">'+hInput("id",j.request_id)+'<button>GitHubの反映結果を確認</button></form>':"")+'</article>').join("");
- return page("reviews","",200,adminBack+'<p class="portal-notice">'+(enabled?"承認すると公開GitHubへ反映します。":"公開処理は停止中です。差し戻しのみ可能です。")+'</p><h2>プロフィール変更申請</h2>'+(p||"<p>審査待ちはありません。</p>")+'<h2>画像提出</h2>'+(a||"<p>審査待ちはありません。</p>")+'<h2>公開・審査履歴（最新100件）</h2>'+(history||"<p>履歴はありません。</p>"));
+ return page("reviews","",200,adminBack+'<p class="portal-notice">'+(enabled?"承認すると公開GitHubへ反映します。":env.PORTAL_MAINTENANCE==="true"?"保守モード：新規公開・差し戻しは停止中です。照合のみ実施できます。":"公開処理は停止中です。差し戻しのみ可能です。")+'</p><h2>プロフィール変更申請</h2>'+(p||"<p>審査待ちはありません。</p>")+'<h2>画像提出</h2>'+(a||"<p>審査待ちはありません。</p>")+'<h2>公開・審査履歴（最新100件）</h2>'+(history||"<p>履歴はありません。</p>"));
 }
 async function adminReviewImage(db,id){
  if(!safeId(id))return json({error:"Not found"},404);
@@ -762,8 +763,9 @@ export default {async fetch(request,env){
  try{
  if(request.method==="GET"&&path==="/health"){
  const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs"];
- const found=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(x=>x.name);
- const schemaReady=tables.every(t=>found.includes(t));
+ const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status"];
+ const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
+ const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
  return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v21",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
