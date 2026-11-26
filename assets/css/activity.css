@@ -1,0 +1,22 @@
+/* Member activity timeline */
+.activity-content{max-width:1020px;display:grid;gap:18px}
+.activity-intro{padding:22px;background:#f2f8ff;border:1px solid #dbe8f4;border-radius:14px}
+.activity-intro h2{font-size:1.25rem;margin:6px 0;color:#142f56}
+.activity-intro p{margin:0;color:#456582}
+.activity-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+.activity-filters label{flex:1 1 155px;min-width:0}
+.activity-filters input,.activity-filters select{width:100%;min-height:44px}
+#activity-status{color:#456582;font-size:.85rem}
+.activity-timeline,.activity-year-group,#home-activity-list{display:grid;gap:12px}
+.activity-year-heading{font-size:1.2rem;margin:8px 0 0;color:#142f56;border-bottom:2px solid #dbe8f4;padding-bottom:8px}
+.activity-record{display:grid;grid-template-columns:minmax(100px,140px) minmax(0,1fr);gap:18px;padding:18px;background:#fff;border:1px solid #dbe8f4;border-radius:12px;min-width:0}
+.activity-record-date{color:#145b98;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.activity-record-body{min-width:0;overflow-wrap:anywhere;border-left:2px solid #dceafa;padding-left:18px}
+.activity-member-label{display:inline-block;font-size:.75rem;font-weight:750;color:#145b98;background:#edf6ff;padding:4px 9px;border-radius:5px}
+.activity-record h3{font-size:1.1rem;color:#142f56;margin:8px 0}
+.activity-record p{margin:0 0 8px;color:#536b83;white-space:pre-wrap;line-height:1.75}
+.activity-record .text-link{display:inline-flex;align-items:center;min-height:44px}
+#activity-more-wrap{text-align:center;margin:20px 0}
+#activity-more-wrap[hidden]{display:none}
+#activity-achievements{scroll-margin-top:12px}
+@media(max-width:760px){.activity-record{grid-template-columns:minmax(0,1fr);gap:8px;padding:14px}.activity-record-body{border-left:0;padding-left:0}.activity-record h3{font-size:1rem}.activity-filters input,.activity-filters select{font-size:16px}}
