@@ -28,7 +28,17 @@ if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>w
 
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#142f56;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{if(e.target.closest("a"))e.preventDefault()},true)}
-async function loadData(file){if(previewData&&Object.prototype.hasOwnProperty.call(previewData,file)&&Array.isArray(previewData[file]))return previewData[file];try{const r=await fetch(file,{cache:"no-cache"});if(!r.ok)throw new Error("data");const data=await r.json();return Array.isArray(data)?data:[]}catch(e){return []}}
+// Keep the array return contract for static defaults and CMS preview.
+const failedDatasets=new Set();
+async function loadData(file){
+ if(previewData&&Object.prototype.hasOwnProperty.call(previewData,file)&&Array.isArray(previewData[file])){failedDatasets.delete(file);return previewData[file]}
+ try{
+  const r=await fetch(file,{cache:"no-cache"});if(!r.ok)throw new Error("data");
+  const data=await r.json();if(!Array.isArray(data))throw new Error("Invalid dataset");
+  failedDatasets.delete(file);return data;
+ }catch{failedDatasets.add(file);return []}
+}
+function datasetFailed(file){return failedDatasets.has(file)}
 function cardTalent(t){return `<article class="card"><div class="talent-art">${t.emoji||"🐦"}</div><div class="card-body"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||t.bio||"プロフィール準備中です。")}</p><p style="margin-top:14px"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">プロフィールを見る →</a></p></div></article>`}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
