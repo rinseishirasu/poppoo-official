@@ -64,7 +64,7 @@ function scheduleParticipantIds(s,members=[]){
  if(valid.length||Array.isArray(s?.memberIds)||s?.memberId)return valid;
  const matches=members.filter(t=>t?.id&&t.name===s?.talent);return matches.length===1?[matches[0].id]:[];
 }
-function scheduleGuestUrl(value){try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)&&!u.username&&!u.password?u.href:""}catch{return ""}}
+function scheduleGuestUrl(value){if(typeof value!=="string"||!/^https?:\/\/[^/\s\\]/i.test(value)||/[\s\\]/.test(value))return "";try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)&&!u.username&&!u.password?u.href:""}catch{return ""}}
 function scheduleGuests(s){return (Array.isArray(s?.guests)?s.guests:[]).filter(g=>g&&typeof g.name==="string"&&g.name.trim()).map(g=>({name:g.name.trim(),url:scheduleGuestUrl(g.url)}))}
 function scheduleFormat(s){return s?.format==="collab"||scheduleParticipantIds(s).length+scheduleGuests(s).length>1?"collab":"solo"}
 function scheduleParticipants(s,members=[],publicOnly=true){
