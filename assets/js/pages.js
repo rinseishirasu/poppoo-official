@@ -175,6 +175,7 @@
    const closeLightbox=()=>{lightbox.hidden=true;lightboxImage.removeAttribute("src");document.body.classList.remove("lightbox-open");lastFocus?.focus();lastFocus=null};
    profile.addEventListener("click",e=>{const trigger=e.target.closest("[data-lightbox-src]");if(trigger)openLightbox(trigger.dataset.lightboxSrc);const gallery=e.target.closest(".avatar-lookbook-item");if(gallery){e.preventDefault();openLightbox(gallery.href)}if(e.target.closest(".profile-lightbox-close")||e.target===lightbox)closeLightbox()});
    document.addEventListener("keydown",e=>{if(lightbox.hidden)return;if(e.key==="Escape"){e.preventDefault();closeLightbox()}else if(e.key==="Tab"){e.preventDefault();lightbox.querySelector("button").focus()}});
+   if(location.hash==="#activity-achievements"){const target=profile.querySelector("#activity-achievements");if(target)requestAnimationFrame(()=>target.scrollIntoView({block:"start",behavior:"instant"}));}
    mountPublicShare(profile.querySelector("#profile-share"),{page:"talent.html",id:t.id,title:t.name+" | 架空事務所 ぽっぽー",label:"プロフィールをシェア"});
 
   }else{profile.innerHTML='<div class="empty-state profile-empty"><span class="eyebrow">PROFILE</span><h1>プロフィールは準備中です</h1><p>お探しのプロフィールは、まだ公開されていないか、掲載を終了しています。</p><a class="btn secondary" href="talents.html">参加メンバー一覧へ戻る</a></div>'}
