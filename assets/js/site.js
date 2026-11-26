@@ -1,6 +1,6 @@
 const navItems = [
   ["TOP","index.html"],["ABOUT","about.html"],["MEMBERS","talents.html"],
-  ["SCHEDULE","schedule.html"],["NEWS","news.html"],
+  ["SCHEDULE","schedule.html"],["ANNIVERSARY","anniversary.html"],["NEWS","news.html"],
   ["JOIN","audition.html"],["CONTACT","contact.html"]
 ];
 const pageFile=location.pathname.split("/").pop()||"index.html";
@@ -24,7 +24,7 @@ if (header) {
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
   nav.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("open")){setMenu(false);btn.focus()}});
-  const desktop=matchMedia("(min-width:1101px)");
+  const desktop=matchMedia("(min-width:1301px)");
   desktop.addEventListener("change",e=>{if(e.matches)setMenu(false)});
   document.addEventListener("pointerdown",e=>{if(!header.contains(e.target)&&nav.classList.contains("open"))setMenu(false)});
   header.addEventListener("focusout",e=>{if(e.relatedTarget&&!header.contains(e.relatedTarget))setMenu(false)});
@@ -32,7 +32,7 @@ if (header) {
   window.addEventListener("scroll",updateHeader,{passive:true});updateHeader();
 }
 const footer = document.querySelector("#site-footer");
-if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>「好き」を配信に。「個性」を輝きに。<br>一人ひとりの個性と、自分らしい配信活動を応援します。</p></div><div><strong>CONTENTS</strong><div class="footer-links"><a href="about.html">コミュニティについて</a><a href="talents.html">参加メンバー</a><a href="schedule.html">配信スケジュール</a><a href="news.html">お知らせ</a></div></div><div><strong>INFORMATION</strong><div class="footer-links"><a href="audition.html">コミュニティ参加について</a><a href="contact.html">お問い合わせ</a><a href="search.html">サイト内検索</a><a href="policy.html">プライバシー・サイトポリシー</a></div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">ページ上部へ <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
+if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>「好き」を配信に。「個性」を輝きに。<br>一人ひとりの個性と、自分らしい配信活動を応援します。</p></div><div><strong>CONTENTS</strong><div class="footer-links"><a href="about.html">コミュニティについて</a><a href="talents.html">参加メンバー</a><a href="schedule.html">配信スケジュール</a><a href="anniversary.html">記念日カレンダー</a><a href="news.html">お知らせ</a></div></div><div><strong>INFORMATION</strong><div class="footer-links"><a href="audition.html">コミュニティ参加について</a><a href="contact.html">お問い合わせ</a><a href="search.html">サイト内検索</a><a href="policy.html">プライバシー・サイトポリシー</a></div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">ページ上部へ <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
 
 if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
 
@@ -78,7 +78,7 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  if(!target)return;
  // Do not expose draft titles or activate copy/share in preview or embedded pages.
  if(window.parent!==window||new URLSearchParams(location.search).has("cmsPreview")){target.hidden=true;return}
- const allowed=["index.html","talents.html","talent.html","news.html","news-detail.html","schedule.html","about.html","audition.html"];
+ const allowed=["index.html","talents.html","talent.html","news.html","news-detail.html","schedule.html","anniversary.html","about.html","audition.html"];
  if(!allowed.includes(page))return;
  const url=new URL(page,"https://rinseishirasu.github.io/poppoo-official/");
  if(page==="index.html")url.pathname="/poppoo-official/";
@@ -101,11 +101,43 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  target.replaceChildren(titleEl,buttons,status,fallback);
 }
 // Consistent share controls on the main public landing and listing pages.
-const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
+const sharePageTitles={"index.html":"架空事務所 ぽっぽー 公式サイト","talents.html":"参加メンバー | 架空事務所 ぽっぽー","news.html":"お知らせ | 架空事務所 ぽっぽー","schedule.html":"配信スケジュール | 架空事務所 ぽっぽー","anniversary.html":"記念日カレンダー | 架空事務所 ぽっぽー","about.html":"コミュニティについて | 架空事務所 ぽっぽー","audition.html":"参加案内 | 架空事務所 ぽっぽー"};
 if(sharePageTitles[current]&&mainContent&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview")){
  const section=document.createElement("section");section.className="container pop-page-share-wrap";
  const target=document.createElement("div");section.append(target);mainContent.append(section);
  mountPublicShare(target,{page:current,title:sharePageTitles[current]});
+}
+// Annual dates from visible public profile fields and published site settings.
+function anniversaryRecords(talents,settings){
+ const records=[],seen=new Set();
+ const add=(value,kind,label,name,id)=>{
+ if(typeof value!=="string"||typeof label!=="string"||!label.trim())return;
+ const m=value.trim().match(/^(?:(\d{4})(?:年|[-/]))?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m)return;
+ const year=m[1]?Number(m[1]):null,month=Number(m[2]),day=Number(m[3]),check=new Date(Date.UTC(year||2000,month-1,day));
+ if(month<1||month>12||day<1||check.getUTCMonth()!==month-1||check.getUTCDate()!==day||year!==null&&(year<1900||year>9998))return;
+ const key=[id,kind,month,day,label].join("|");if(seen.has(key))return;seen.add(key);
+ records.push({kind,label,name,id,month,day,year:kind==="birthday"?null:year,href:id?"talent.html?id="+encodeURIComponent(id):"about.html#about-overview"});
+ };
+ for(const t of Array.isArray(talents)?talents:[]){
+ if(!t||t.published!==true||typeof t.id!=="string"||!/^[A-Za-z0-9_-]+$/.test(t.id)||typeof t.name!=="string"||!t.name.trim()||(Array.isArray(t.hiddenSections)&&t.hiddenSections.includes("facts")))continue;
+ add(t.birthday,"birthday","誕生日",t.name,t.id);add(t.debutDate,"debut","デビュー周年",t.name,t.id);add(t.joinDate,"join","加入周年",t.name,t.id);
+ const extra=Array.isArray(t.anniversaries)?t.anniversaries:[];for(const a of extra)if(a)add(a.date,"other",a.title,t.name,t.id);
+ if(!extra.length)add(t.anniversary,"other","活動記念日",t.name,t.id);
+ }
+ const config=(Array.isArray(settings)?settings:[]).find(x=>x?.published===true);
+ add(typeof config?.founded==="string"&&config.founded.trim()?config.founded:"2026年11月23日","community","設立記念日","ぽっぽー","");
+ return records;
+}
+function anniversaryOccurrence(record,year){
+ if(record.year!==null&&year<record.year+Number(["debut","join","community"].includes(record.kind)))return null;
+ const d=new Date(Date.UTC(year,record.month-1,record.day));
+ if(d.getUTCMonth()!==record.month-1||d.getUTCDate()!==record.day)return null;
+ return {...record,date:d.toISOString().slice(0,10),title:record.name+"の"+(record.year!==null&&["debut","join","community"].includes(record.kind)?(record.kind==="debut"?"デビュー":record.kind==="join"?"加入":"設立")+(year-record.year)+"周年":record.label)};
+}
+function nextAnniversaryEvents(records,today){
+ const start=Number(today.slice(0,4)),out=[];
+ for(const record of records)for(let year=Math.max(start,record.year||start);year<=Math.max(start,record.year||start)+8&&year<10000;year++){const event=anniversaryOccurrence(record,year);if(event&&event.date>=today){out.push(event);break}}
+ return out.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name,"ja"));
 }
 // Keep the array return contract for static defaults and CMS preview.
 const failedDatasets=new Set();
