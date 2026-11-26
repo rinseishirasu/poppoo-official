@@ -8,17 +8,6 @@ const visible=(t,key)=>!Array.isArray(t.hiddenSections)||!t.hiddenSections.inclu
 const published=items=>(Array.isArray(items)?items:[]).filter(x=>x&&x.published===true);
 const validId=id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id);
 const validDate=d=>typeof d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
-function nextAnniversary(value,today){
- const match=text(value).match(/^(?:\d{4}[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);
- if(!match)return null;
- const m=Number(match[1]),d=Number(match[2]),year=Number(today.slice(0,4));
- if(m<1||m>12||d<1||d>31)return null;
- for(let y=year;y<year+9;y++){
- const date=new Date(Date.UTC(y,m-1,d));if(date.getUTCMonth()!==m-1||date.getUTCDate()!==d)continue;
- const iso=date.toISOString().slice(0,10);if(iso>=today)return {date:iso,display:m+"月"+d+"日"};
- }
- return null;
-}
 function buildIndex(sets,today){
  const rows=[],add=(kind,title,detail,href,keywords=[],date="")=>{if(!title)return;rows.push({kind,title,detail,href,date,hay:normalize([title,detail,labels[kind],...keywords].join(" ")),titleKey:normalize(title)})};
  const members=published(sets.talents).filter(t=>validId(t.id)&&text(t.name));
@@ -35,10 +24,7 @@ function buildIndex(sets,today){
  if(visible(t,"credit"))keywords.push(text(t.illustrator),text(t.modeler));
  const detail=[...cohorts,...roles,text(t.catchphrase),visible(t,"bio")?text(t.bio).slice(0,140):""].filter(Boolean).join(" ・ ");
  add("member",t.name,detail||"参加メンバーのプロフィール",href,keywords);
- if(visible(t,"facts")){
- const dates=[[t.birthday,"誕生日"],[t.debutDate,"REALITYデビュー周年"],[t.joinDate,"ぽっぽー加入周年"],...(Array.isArray(t.anniversaries)?t.anniversaries.filter(Boolean).map(a=>[a.date,a.title]):t.anniversary?[[t.anniversary,"活動記念日"]]:[])];
- for(const [value,label] of dates){const a=nextAnniversary(value,today);if(a&&text(label))add("anniversary",t.name+"の"+label,a.display+" ・ 次回 "+a.date,href,[text(value),"誕生日 記念日 周年"],a.date)}
- }
+
  }
  for(const n of published(sets.news).filter(x=>validId(x.id)&&text(x.title))){
  const linked=(Array.isArray(n.memberIds)?n.memberIds:[]).map(id=>names.get(id)).filter(Boolean);
@@ -63,8 +49,12 @@ function buildIndex(sets,today){
  ["プライバシー・サイトポリシー","個人情報・著作権・利用について","policy.html",["アクセス情報 外部サービス 禁止事項 免責"]]
  ];
  for(const [title,detail,href,keywords] of basic)add("info",title,detail,href,keywords);
- const founded=text(settings.founded)||"2026年11月23日",a=nextAnniversary(founded.replace(/^(\d{4})年/,"$1-"),today);
- if(a)add("anniversary","ぽっぽー設立記念日",a.display+" ・ 次回 "+a.date,"about.html#about-overview",["コミュニティ 設立 周年",founded],a.date);
+ for(const e of nextAnniversaryEvents(anniversaryRecords(sets.talents,sets.settings),today)){
+ const title=e.name+"の"+e.label;
+ const url="anniversary.html?month="+e.date.slice(0,7)+(e.id?"&member="+encodeURIComponent(e.id):"");
+ add("anniversary",title,e.month+"月"+e.day+"日 ・ 次回 "+e.date,url,[e.title,"記念日 周年"],e.date);
+ }
+
  return rows;
 }
 function findResults(index,query,kind){
