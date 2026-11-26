@@ -123,3 +123,27 @@
 .admin-page .cms-main h2{font-size:1.2rem;letter-spacing:0}
 .admin-page .cms-main .small,.admin-page .cms-main small{color:var(--cms-muted)}
 @media(max-width:760px){.admin-page .cms-sidebar{max-height:none}.admin-page .cms-list-filters{grid-template-columns:1fr}.admin-page .cms-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-page .cms-topbar{height:auto;min-height:64px}.admin-page .admin-toolbar{position:static}}
+
+/* CMS narrow-screen safeguards */
+.admin-page .cms-top-brand,.admin-page .cms-top-actions,.admin-page .cms-top-brand>span{min-width:0;overflow-wrap:anywhere}
+.admin-page .cms-top-brand img,.admin-page .cms-sidebar-toggle{flex:none}
+.admin-page .cms-main .btn,.admin-page .cms-profile-tabs button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+.admin-page .admin-list-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-page .admin-list-actions button{min-height:40px}
+.admin-page .admin-field,.admin-page .admin-choice-group,.admin-page .admin-fields>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.admin-page .cms-main fieldset{min-inline-size:0}
+.admin-page .cms-main :is(input,textarea,select):focus-visible{outline:2px solid #2584d5;outline-offset:2px}
+.admin-page .cms-preview-scroll{max-width:100%;overscroll-behavior-x:contain}
+.admin-page .cms-main pre{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:760px){
+ .admin-page .cms-topbar{flex-wrap:wrap}
+ .admin-page .cms-top-actions{margin-left:auto;max-width:100%;gap:6px}
+ .admin-page .cms-main input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]),.admin-page .cms-main textarea,.admin-page .cms-main select{font-size:16px}
+ .admin-page .admin-form-actions{width:100%}
+ .admin-page .admin-toolbar-actions>.btn,.admin-page .admin-form-actions>.btn{flex:1 1 130px}
+ .admin-page .cms-preview-controls label{flex:1 1 100%}
+ .admin-page .cms-preview-controls label select{width:100%}
+ .admin-page .cms-change-field{grid-template-columns:minmax(0,1fr)}
+ .admin-page .cms-media-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr))}
+}
+@media(max-width:350px){.admin-page .cms-metrics,.admin-page .cms-sidebar .admin-tabs,.admin-page .cms-sidebar-links{grid-template-columns:minmax(0,1fr)}}
