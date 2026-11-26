@@ -10,6 +10,7 @@ const publicDetailId=()=>shareRoute?shareRoute[2]:new URLSearchParams(location.s
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
 const sharedStyle=document.createElement("link");sharedStyle.rel="stylesheet";sharedStyle.href="assets/css/shared-renewal.css";document.head.append(sharedStyle);
 const mainContent=document.querySelector("main");
+if(current!=="admin.html"){const theme=document.querySelector('meta[name="theme-color"]');if(theme)theme.content="#f6f6f6";}
 if(mainContent){
  if(!mainContent.id)mainContent.id="main-content";
  mainContent.setAttribute("tabindex","-1");
@@ -37,7 +38,7 @@ if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="fo
 if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
 
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
-if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#142f56;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
+if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
 const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
 // Static search metadata. Only published detail pages enter the sitemap.
@@ -93,7 +94,7 @@ function sharePageHtml(kind,item){
  const schema=member?{"@context":"https://schema.org","@type":"ProfilePage",url,mainEntity:person,inLanguage:"ja"}:{"@context":"https://schema.org","@type":"Article",headline:name,description:desc,url,mainEntityOfPage:url,publisher:organizationSchema(),...(imagePath!=="assets/image/poppoo-icon.png"?{image}:{}),...(typeof item.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&Number.isFinite(Date.parse(item.date))&&new Date(item.date).toISOString().slice(0,10)===item.date?{datePublished:item.date}:{}),inLanguage:"ja"};
  const structured='<script type="application/ld+json">'+jsonLd(schema)+'</script>';
  const tags=[meta("description",desc),meta("og:title",title,true),meta("og:description",desc,true),meta("og:type",member?"website":"article",true),meta("og:url",url,true),meta("og:image",image,true),meta("og:image:alt",imagePath==="assets/image/poppoo-icon.png"?"ぽっぽー公式アイコン":name+"の掲載画像",true),meta("og:site_name","架空事務所 ぽっぽー",true),meta("og:locale","ja_JP",true),meta("twitter:card",member?"summary":"summary_large_image"),meta("twitter:title",title),meta("twitter:description",desc),meta("twitter:image",image)].join("\n");
- return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f7fc"><title>'+e(title)+'</title>\n'+tags+'\n'+structured+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><article class="detail-article"><h1>'+e(name)+'</h1><p>'+e(desc)+'</p><p class="small">詳細情報を読み込み中...</p><noscript><p>詳しい情報を表示するにはJavaScriptを有効にしてください。</p></noscript></article></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
+ return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f6f6f6"><title>'+e(title)+'</title>\n'+tags+'\n'+structured+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><article class="detail-article"><h1>'+e(name)+'</h1><p>'+e(desc)+'</p><p class="small">詳細情報を読み込み中...</p><noscript><p>詳しい情報を表示するにはJavaScriptを有効にしてください。</p></noscript></article></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
 }
 // Share public URLs only; no third-party widgets or tracking scripts.
 function publicShareLinks(url,title){
@@ -204,7 +205,7 @@ function managementMembers(talents,settings){
 }
 // Member palette: retain the exact registered color for decoration; derive readable text.
 function memberPalette(value){
- const base=typeof value==="string"&&/^#[0-9a-f]{6}$/i.test(value)?value.toLowerCase():"#1978c8";
+ const base=typeof value==="string"&&/^#[0-9a-f]{6}$/i.test(value)?value.toLowerCase():"#666666";
  const rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));
  const hex=v=>"#"+v.map(n=>Math.round(n).toString(16).padStart(2,"0")).join("");
  const mix=(target,f)=>rgb.map((n,i)=>Math.round(n*(1-f)+target[i]*f));
