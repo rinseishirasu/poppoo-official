@@ -14,7 +14,7 @@ const SCHEMAS={
  settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["managementIds","ABOUT運営メンバー紹介","managementOrder"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"],["seoTitle","検索・SNS表示タイトル（トップページ）","text"],["seoDescription","検索・SNS表示説明文（トップページ）","textarea"],["seoImage","SNS共有画像パス（画像ライブラリからコピー）","text"]],
  home:[["published","設定を有効にする","checkbox"],["headline1","キャッチコピー1行目","text"],["headline2","キャッチコピー2行目","text"],["lead","紹介メッセージ","textarea"],["heroImage","メインビジュアル画像（任意）","image"],["featuredIds","ピックアップメンバー","memberSelect"],["notice","トップページのお知らせ（任意）","textarea"],["aboutText","コミュニティ紹介文","textarea"],["joinText","参加案内メッセージ","text"],...["News","Schedule","Members","About","Join"].map((v,i)=>["hide"+v,["最新情報","配信予定","メンバー","概要","参加案内"][i]+"を非表示","checkbox"])],
  talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["imageColor","イメージカラー（任意）","themeColor"],["cohort","期生","cohort"],["roles","コミュニティ内の役職（複数はカンマ区切り）","roles"],["affiliationAgency","所属事務所（任意）","agency"],["iconImage","プロフィールアイコン画像","image"],["avatarImages","アバター画像（先頭がメイン）","gallery"],["catchphrase","キャッチコピー","text"],["bio","自己紹介","textarea"],["achievements","活動実績（1行に「日付 | 内容 | 詳細」）","achievements"],["hiddenSections","公式サイトに表示しない項目","visibility"],["birthday","誕生日（例：1月1日）","text"],["debutDate","REALITYデビュー日","date"],["joinDate","ぽっぽー加入日","date"],["anniversaries","その他の記念日（1行に 日付 | 記念日名）","anniversaries"],["activityStatus","活動状況（例：活動中・休止中）","text"],["regularSchedule","定期配信（例：毎週金曜21:00）","text"],["fanName","ファンネーム","text"],["oshiMark","推しマーク","text"],["streamTag","配信タグ","text"],["fanArtTag","ファンアートタグ","text"],["likes","趣味・好きなもの","textarea"],["tags","主な配信ジャンル（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
- schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["memberId","対象メンバー（IDで紐づけ）","scheduleMember"],["talent","参加メンバー名（未選択時は手入力）","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
+ schedule:[["published","公開する","checkbox"],["memberId","参加メンバー","scheduleMember"],["talent","参加メンバー名","scheduleName",true],["date","配信日","date",true],["time","開始時刻","time",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
  news:[["id","ID","text",true],["published","公開する","checkbox"],["date","投稿日","date",true],["title","タイトル","text",true],["category","カテゴリ","text"],["memberIds","関連メンバー","newsMembers"],["thumbnailImage","サムネイル画像（任意）","image"],["summary","概要","textarea"],["body","本文","textarea",true]],
 };
 const data={talents:[],schedule:[],news:[],home:[],settings:[]};
@@ -40,7 +40,8 @@ function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"",mark=required?' <span class="admin-required-label">必須</span>':"";
  if(type==="managementOrder")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>掲載するメンバーを追加し、上下ボタンで表示順を設定できます。公開設定が有効なメンバーのみ公式HPに掲載されます。全員を除外すると掲載なしになります。</small><input type="hidden" name="${key}"><div data-management-list></div><label>追加するメンバー<select data-management-select><option value="">メンバーを選択</option></select></label><button type="button" class="admin-small-button" data-management-add>追加</button><button type="button" class="admin-small-button" data-management-default>初期の4名に戻す</button></fieldset>`;
  if(type==="newsMembers")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>選択したメンバーの個別プロフィールにこの記事を掲載します。未選択の場合は共通のお知らせとしてNEWSのみに掲載されます。</small><div class="admin-choice-grid" data-related-options>${data.talents.filter(t=>t?.id).map(t=>`<label><input type="checkbox" name="${key}" value="${esc(t.id)}"><span>${esc(t.name||t.id)}${t.published===true?"":"（非公開）"}</span></label>`).join("")}</div></fieldset>`;
- if(type==="scheduleMember")return `<label class="admin-field"><span>${label}</span><select name="${key}"><option value="">従来の名前指定・手入力</option>${data.talents.filter(t=>t?.id).map(t=>`<option value="${esc(t.id)}">${esc(t.name||t.id)}${t.published===true?"":"（非公開）"}</option>`).join("")}</select><small>メンバーを選択すると活動名が変わっても個別プロフィールに紐づきます。</small></label>`;
+ if(type==="scheduleName")return '<input type="hidden" name="talent">';
+ if(type==="scheduleMember")return '<fieldset class="admin-choice-group admin-field-wide schedule-participant-editor"><legend>配信形式・参加者</legend><label>配信形式<select name="scheduleFormat"><option value="solo">ソロ配信</option><option value="collab">コラボ配信</option></select></label><input type="hidden" name="memberId"><input type="hidden" name="scheduleMemberIds"><input type="hidden" name="scheduleGuests"><div class="schedule-member-picker"><label>ぽっぽーの参加メンバー<select data-schedule-member-select><option value="">メンバーを選択</option></select></label><button type="button" class="admin-small-button" data-schedule-member-add>追加</button></div><div data-schedule-members></div><div data-schedule-guest-panel hidden><h3>外部コラボ相手</h3><p class="small">掲載許諾を確認してください。公式リンクは任意です。</p><div data-schedule-guests></div><button type="button" class="admin-small-button" data-schedule-guest-add>＋ 外部コラボ相手を追加</button></div><p data-schedule-participant-count role="status"></p></fieldset>';
  if(type==="memberSelect")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>未選択の場合は公開メンバー全員を表示します。画像未設定のメンバーは代替アイコンで表示されます。</small>${data.talents.filter(t=>t.published===true).map(t=>`<label><input type="checkbox" name="${key}" value="${esc(t.id)}">${esc(t.name)}</label>`).join("")}</fieldset>`;
  if(type==="themeColor")return `<div class="admin-field admin-field-wide"><label>イメージカラー（任意）<input name="${key}" type="text" pattern="#[0-9a-fA-F]{6}" placeholder="#666666" maxlength="7"></label><label>カラーピッカー <input type="color" data-theme-picker value="#666666"></label><button type="button" class="admin-small-button" data-theme-clear>標準色に戻す</button><div class="admin-theme-preview" data-theme-preview><span class="admin-theme-swatch" aria-hidden="true"></span><div><strong>MEMBER PROFILE</strong><p>イメージカラーの表示見本</p><small data-theme-label></small></div></div><small>空欄の場合はニュートラルなグレーを使用します。本文・見出しは読みやすさを保つように自動調整します。</small></div>`;
  if(type==="checkbox")return `<label class="admin-check"><input name="${key}" type="checkbox"><span>${label}</span></label>`;
@@ -128,6 +129,24 @@ function updateProfileSummary(){
  box.querySelector("[data-profile-preview-score]").textContent=done+" / "+profileChecklist.length+" 項目入力済み（任意項目を含む目安）";
  box.querySelector("[data-profile-preview-missing]").textContent=profileChecklist.filter(([,check])=>!check(t)).map(([label])=>label).join("、")||"すべて入力済み";
 }
+function setupScheduleParticipants(form,item){
+ const kind=form.elements.namedItem("scheduleFormat"),idField=form.elements.namedItem("memberId"),nameField=form.elements.namedItem("talent"),idsField=form.elements.namedItem("scheduleMemberIds"),guestsField=form.elements.namedItem("scheduleGuests");
+ const picker=form.querySelector("[data-schedule-member-select]"),add=form.querySelector("[data-schedule-member-add]"),list=form.querySelector("[data-schedule-members]"),guestPanel=form.querySelector("[data-schedule-guest-panel]"),guestList=form.querySelector("[data-schedule-guests]"),count=form.querySelector("[data-schedule-participant-count]");
+ let ids=scheduleParticipantIds(item,data.talents),guests=Array.isArray(item.guests)?item.guests.map(g=>({name:String(g?.name||""),url:String(g?.url||"")})):[];
+ kind.value=scheduleFormat(item);
+ const dirty=()=>idsField.dispatchEvent(new Event("input",{bubbles:true}));
+ const sync=()=>{idsField.value=JSON.stringify(ids);guestsField.value=JSON.stringify(guests.filter(g=>g.name.trim()||g.url.trim()).map(g=>({name:g.name.trim(),url:g.url.trim()})));idField.value=ids[0]||"";nameField.value=data.talents.find(t=>t?.id===ids[0])?.name||"";count.textContent="ぽっぽー "+ids.length+"名 / 外部 "+guests.filter(g=>g.name.trim()).length+"名";guestPanel.hidden=kind.value!=="collab"};
+ const btn=(text,fn,disabled=false)=>{const b=document.createElement("button");b.type="button";b.className="admin-small-button";b.textContent=text;b.disabled=disabled;b.onclick=fn;return b};
+ const renderMembers=()=>{list.replaceChildren();picker.replaceChildren(new Option("メンバーを選択",""));for(const t of data.talents.filter(t=>t?.id&&!ids.includes(t.id))){picker.append(new Option((t.name||t.id)+(t.published===true?"":"（非公開）"),t.id))}add.disabled=kind.value==="solo"&&ids.length>0;
+ ids.forEach((id,i)=>{const row=document.createElement("div");row.className="admin-management-row";const label=document.createElement("span");const t=data.talents.find(t=>t?.id===id);label.textContent=(i+1)+". "+(t?.name||id)+(t?.published===true?"":t?"（非公開）":"（登録なし）");const actions=document.createElement("div");actions.className="admin-management-controls";actions.append(btn("上へ",()=>{[ids[i-1],ids[i]]=[ids[i],ids[i-1]];renderMembers();sync();dirty()},i===0),btn("下へ",()=>{[ids[i+1],ids[i]]=[ids[i],ids[i+1]];renderMembers();sync();dirty()},i===ids.length-1),btn("除外",()=>{ids.splice(i,1);renderMembers();sync();dirty()}));row.append(label,actions);list.append(row)})};
+ const renderGuests=()=>{guestList.replaceChildren();guests.forEach((g,i)=>{const row=document.createElement("div");row.className="schedule-guest-row";for(const [key,label,type] of [["name","活動名","text"],["url","公式リンク（任意）","url"]]){const l=document.createElement("label");l.textContent=label;const input=document.createElement("input");input.type=type;input.value=g[key];input.placeholder=key==="url"?"https://...":"コラボ相手の活動名";input.addEventListener("input",()=>{g[key]=input.value;sync();dirty()});l.append(input);row.append(l)}row.append(btn("除外",()=>{guests.splice(i,1);renderGuests();sync();dirty()}));guestList.append(row)})};
+ add.onclick=()=>{if(picker.value&&!ids.includes(picker.value)&&(kind.value==="collab"||!ids.length)){ids.push(picker.value);renderMembers();sync();dirty()}};
+ form.querySelector("[data-schedule-guest-add]").onclick=()=>{guests.push({name:"",url:""});renderGuests();sync();dirty()};
+ kind.addEventListener("change",()=>{if(kind.value==="solo"&&(ids.length>1||guests.length)){if(!confirm("ソロ配信に変更すると先頭のメンバー以外の参加者を除外します。よろしいですか？")){kind.value="collab";sync();return}ids=ids.slice(0,1);guests=[]}renderMembers();renderGuests();sync();dirty()});
+ if(!item.id&&!item.date&&!item.platform)form.elements.namedItem("platform").value="REALITY";
+ renderMembers();renderGuests();sync();
+}
+
 function renderForm(item={}){
  const form=$("content-form");form.reset();if(current==="talents")item=normalizedMemberProfile(item);const groups=[["基本情報","name id cohort roles affiliationAgency activityStatus"],["画像・カラー","iconImage avatarImages imageColor"],["自己紹介","catchphrase bio likes"],["記念日","birthday debutDate joinDate anniversaries"],["配信活動","tags regularSchedule achievements"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["公式リンク","links"],["公開設定","published hiddenSections"]];
  const fields=$("form-fields"),tabs=$("cms-profile-tabs");tabs.hidden=current!=="talents";tabs.replaceChildren();
@@ -146,10 +165,7 @@ function renderForm(item={}){
    for(const id of values)if(!data.talents.some(t=>t?.id===id)){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.name=key;input.value=id;label.append(input,document.createTextNode(id+"（登録なし）"));options.append(label)}
    form.querySelectorAll('input[name="memberIds"]').forEach(e=>e.checked=values.includes(e.value));
   }else if(type==="scheduleMember"){
-   const matches=data.talents.filter(t=>t?.name===item.talent);
-   const value=item.memberId||(matches.length===1?matches[0].id:"");
-   if(value&&![...el.options].some(o=>o.value===value)){const o=document.createElement("option");o.value=value;o.textContent=value+"（登録なし）";el.append(o)}
-   el.value=value;
+   el.value=item.memberId||"";
   }else if(type==="memberSelect")form.querySelectorAll('input[name="featuredIds"]').forEach(e=>e.checked=(item[key]||[]).includes(e.value));
   else if(type==="checkbox")el.checked=item[key]===true;
   else if(type==="visibility"){const values=Array.isArray(item[key])?item[key]:[];form.querySelectorAll('input[name="hiddenSections"]').forEach(input=>input.checked=values.includes(input.value))}
@@ -171,12 +187,10 @@ function renderForm(item={}){
  }
  if(current==="schedule"){
  const ownership=document.createElement("div");ownership.className="admin-field admin-field-wide";
- const note=document.createElement("p");note.textContent=item.scheduleSource==="member"&&item.published===true?"本人管理の予定です。対象メンバーの変更・非公開化を行うと運営管理へ切り替わります。":"運営管理の予定です。メンバーポータルからは公開中の予定の閲覧のみ可能です。";ownership.append(note);
+ const note=document.createElement("p");note.textContent=item.scheduleSource==="member"&&item.published===true?"本人管理の予定です。対象メンバーの変更・非公開化・コラボ配信への変更を行うと運営管理へ切り替わります。":"運営管理の予定です。メンバーポータルからは公開中の予定の閲覧のみ可能です。";ownership.append(note);
  if(item.scheduleSource==="member"&&item.published===true){const label=document.createElement("label"),check=document.createElement("input");check.type="checkbox";check.name="scheduleTakeOver";label.append(check,document.createTextNode("この予定を運営管理に切り替える（本人の編集・削除を停止）"));ownership.append(label)}
  fields.append(ownership);
- const select=form.elements.namedItem("memberId"),name=form.elements.namedItem("talent");
- const sync=()=>{const t=data.talents.find(t=>t?.id===select.value);if(t)name.value=t.name||"";name.readOnly=Boolean(t)};
- select.addEventListener("change",sync);sync();
+ setupScheduleParticipants(form,item);
  }
  const color=form.elements.namedItem("imageColor"),picker=form.querySelector("[data-theme-picker]");if(color&&picker){const preview=form.querySelector("[data-theme-preview]"),label=form.querySelector("[data-theme-label]");const sync=()=>{const p=applyMemberPalette(preview,color.value);picker.value=p.base;label.textContent=color.value&&!/^#[0-9a-f]{6}$/i.test(color.value)?"#RRGGBB 形式で入力してください":color.value?p.base.toUpperCase():"標準色 "+p.base.toUpperCase()};sync();color.addEventListener("input",sync);picker.addEventListener("input",()=>{color.value=picker.value;color.dispatchEvent(new Event("input",{bubbles:true}))});form.querySelector("[data-theme-clear]").onclick=()=>{color.value="";color.dispatchEvent(new Event("input",{bubbles:true}))}}
  document.getElementById("admin-live-profile")?.remove();
@@ -188,7 +202,7 @@ function renderForm(item={}){
 function summary(item){
  if(singleton(current))return LABELS[current];
  if(current==="talents")return [item.name].filter(Boolean).join(" / ");
- if(current==="schedule")return [item.date,item.time,item.talent,item.title].filter(Boolean).join("　");
+ if(current==="schedule")return [item.date,item.time,scheduleFormat(item)==="collab"?"コラボ配信":"",scheduleParticipants(item,data.talents,false).map(p=>p.name).join("・")||item.talent,item.title].filter(Boolean).join("　");
  return [item.date,item.title].filter(Boolean).join("　");
 }
 
@@ -210,7 +224,7 @@ function renderDashboard(){
  const rows=(items,fn,empty)=>items.length?items.slice(0,5).map(fn).join(""):'<p class="admin-empty">'+empty+'</p>';
  metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>{const total=data[k].length,pub=data[k].filter(x=>x?.published===true).length;return '<div class="cms-metric"><span>'+LABELS[k]+'</span><strong>'+total+'</strong><small>公開設定 '+pub+' 件 / 非公開 '+(total-pub)+' 件</small></div>'}).join("");
  const detail=$("cms-overview");if(!detail)return;
- detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>誕生日・周年・記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
+ detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(scheduleParticipants(s,data.talents,false).map(p=>p.name).join("・")||s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>誕生日・周年・記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
 }
 
 function canonical(v){return JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x)}
@@ -235,7 +249,7 @@ function renderChanges(){
 }
 // Missing/unknown ownership is administrative, never implicitly member-editable.
 function scheduleSourceForSave(previous,next,takeOver){
- return previous?.scheduleSource==="member"&&previous.published===true&&next.published===true&&typeof previous.memberId==="string"&&previous.memberId&&previous.memberId===next.memberId&&!takeOver?"member":"admin";
+ return previous?.scheduleSource==="member"&&previous.published===true&&next.published===true&&typeof previous.memberId==="string"&&previous.memberId&&previous.memberId===next.memberId&&scheduleFormat(next)==="solo"&&!takeOver?"member":"admin";
 }
 function renderList(){
  renderChanges();
@@ -277,7 +291,7 @@ function formObject(){
   else obj[key]=el.value.trim();
  }
  if(current==="talents"){obj.profileFormat=2;const old=data.talents[editing];if(old&&Array.isArray(old.hiddenSections))obj.hiddenSections=[...new Set([...obj.hiddenSections,...old.hiddenSections.filter(k=>["message","credit"].includes(k))])];}
- if(current==="schedule"&&obj.memberId){const t=data.talents.find(t=>t?.id===obj.memberId);if(t)obj.talent=t.name;}
+ if(current==="schedule"){const form=$("content-form");obj.memberIds=JSON.parse(form.elements.namedItem("scheduleMemberIds").value||"[]");obj.guests=JSON.parse(form.elements.namedItem("scheduleGuests").value||"[]");obj.format=form.elements.namedItem("scheduleFormat").value;obj.memberId=obj.memberIds[0]||"";obj.talent=data.talents.find(t=>t?.id===obj.memberId)?.name||"";}
  return obj;
 }
 function validateDataset(kind,items){
@@ -295,6 +309,7 @@ function validateDataset(kind,items){
   }
   if(kind==="news"&&item.memberIds!==undefined&&(!Array.isArray(item.memberIds)||item.memberIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))||new Set(item.memberIds).size!==item.memberIds.length))return (i+1)+"件目: 関連メンバーIDを確認してください。";
   if(kind==="schedule"&&item.scheduleSource!==undefined&&(!["admin","member"].includes(item.scheduleSource)||item.scheduleSource==="member"&&(item.published!==true||typeof item.memberId!=="string"||!item.memberId||typeof item.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(item.id))))return (i+1)+"件目: 配信予定の管理区分を確認してください。";
+  if(kind==="schedule"){const error=scheduleParticipantError(item);if(error)return (i+1)+"件目: "+error;}
   if(kind==="schedule"&&item.memberId&&(!/^[A-Za-z0-9_-]+$/.test(item.memberId)))return (i+1)+"件目: 対象メンバーIDを確認してください。";
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(kind==="news"&&item.thumbnailImage&&!/^assets\/images\/news\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(item.thumbnailImage))return "ニュース画像の保存先が正しくありません。";
@@ -372,8 +387,12 @@ $("content-form").addEventListener("submit",e=>{
  e.preventDefault();if(!dataReady||publishing||imageBusy){status("読み込み・公開・画像処理中は保存できません。");return}const obj=formObject();
  if(current==="schedule"){
  const previous=editing>=0?data.schedule[editing]:null;
+ const invalid=scheduleParticipantError(obj,data.talents);if(invalid){status("保存できません: "+invalid);return}
+ if(obj.published&&obj.memberIds.some(id=>!data.talents.some(t=>t?.id===id&&t.published===true))){status("公開する配信予定には公開メンバーのみ登録してください。");return}
  obj.id=previous?.id||crypto.randomUUID();
  obj.scheduleSource=scheduleSourceForSave(previous,obj,$("content-form").elements.namedItem("scheduleTakeOver")?.checked===true);
+ if(previous?.scheduleSource==="member"&&obj.scheduleSource==="admin"&&!confirm("この予定は運営管理へ切り替わり、本人の編集・削除が停止されます。よろしいですか？"))return;
+ if(obj.scheduleSource==="member"){delete obj.memberIds;delete obj.guests;delete obj.format;}
  }
  if(current==="talents"&&editing>=0&&data.talents[editing]?.id!==obj.id){status("登録済みメンバーのIDは関連ニュース・配信予定との紐づけを保つため変更できません。");return}
  if(current==="talents"&&obj.anniversaries?.some(x=>{const m=x.date.match(/^(?:(\d{4})[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m||!x.title)return true;const d=new Date(Date.UTC(Number(m[1]||2000),Number(m[2])-1,Number(m[3])));return d.getUTCMonth()!==Number(m[2])-1||d.getUTCDate()!==Number(m[3])})){status("その他の記念日の日付・名称が不正です。");return}
@@ -513,7 +532,7 @@ function checkData(sets,paths=null){
  if(kind==="news"&&Array.isArray(x.memberIds))for(const id of x.memberIds){const m=members.find(t=>t.id===id);if(!m)issue("warning","関連メンバーIDが見つかりません: "+id);else if(x.published===true&&m.published!==true)issue("warning","非公開メンバーへの関連付けがあります: "+id)}
  if(kind==="schedule"&&x.scheduleSource!==undefined&&(!["admin","member"].includes(x.scheduleSource)||x.scheduleSource==="member"&&(x.published!==true||typeof x.memberId!=="string"||!x.memberId||typeof x.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(x.id))))issue("error","配信予定の管理区分が不正です");
  if(kind==="schedule"&&x.id){if(!/^[A-Za-z0-9_-]+$/.test(x.id))issue("error","配信予定IDが不正です");if(ids.has(x.id))issue("error","配信予定IDが重複しています");ids.add(x.id)}
- if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const matches=members.filter(t=>x.memberId?t.id===x.memberId:t.name===x.talent);if(!matches.length)issue("warning","登録メンバーに一致する名前がありません");else if(x.published===true&&!matches.some(t=>t.published===true))issue("warning","公開設定の配信予定が非公開メンバーを参照しています");if(matches.length>1)issue("warning","同名メンバーが複数存在します")}
+ if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const error=scheduleParticipantError(x,members);if(error)issue("error",error);const ids=scheduleParticipantIds(x,members);if(!ids.length)issue("warning","登録メンバーに一致する名前がありません");for(const id of ids){const t=members.find(m=>m.id===id);if(!t)issue("warning","参加メンバーIDが見つかりません: "+id);else if(x.published===true&&t.published!==true)issue("warning","非公開メンバーへの関連付けがあります: "+id)}}
  if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
  if(kind==="settings"&&Array.isArray(x.managementIds))for(const id of x.managementIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しない運営メンバーID: "+id);
  if(kind==="home"&&Array.isArray(x.featuredIds))for(const id of x.featuredIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しないピックアップID: "+id);

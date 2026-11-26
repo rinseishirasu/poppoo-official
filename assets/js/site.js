@@ -41,6 +41,33 @@ const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(loca
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
 const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+// Participation is independent of editing ownership. Legacy schedules remain readable.
+function scheduleParticipantIds(s,members=[]){
+ const ids=Array.isArray(s?.memberIds)?s.memberIds:s?.memberId?[s.memberId]:[];
+ const valid=[...new Set(ids.filter(id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id)))];
+ if(valid.length||Array.isArray(s?.memberIds)||s?.memberId)return valid;
+ const matches=members.filter(t=>t?.id&&t.name===s?.talent);return matches.length===1?[matches[0].id]:[];
+}
+function scheduleGuestUrl(value){try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)&&!u.username&&!u.password?u.href:""}catch{return ""}}
+function scheduleGuests(s){return (Array.isArray(s?.guests)?s.guests:[]).filter(g=>g&&typeof g.name==="string"&&g.name.trim()).map(g=>({name:g.name.trim(),url:scheduleGuestUrl(g.url)}))}
+function scheduleFormat(s){return s?.format==="collab"||scheduleParticipantIds(s).length+scheduleGuests(s).length>1?"collab":"solo"}
+function scheduleParticipants(s,members=[],publicOnly=true){
+ const ids=scheduleParticipantIds(s,members),people=ids.map(id=>members.find(t=>t?.id===id)).filter(t=>t&&(!publicOnly||t.published===true)).map(t=>({id:t.id,name:t.name||t.id,url:""}));
+ if(!ids.length&&!s?.memberId&&!Array.isArray(s?.memberIds)&&typeof s?.talent==="string"&&s.talent.trim()&&!members.some(t=>t?.name===s.talent))people.push({id:"",name:s.talent.trim(),url:""});
+ return [...people,...scheduleGuests(s).map(g=>({...g,id:"",guest:true}))];
+}
+function scheduleIsPublic(s,members=[]){return s?.published===true&&scheduleParticipants(s,members).some(p=>!p.guest)}
+function scheduleParticipantError(s,members){
+ if(s.memberIds===undefined&&s.guests===undefined&&s.format===undefined)return "";
+ if(!Array.isArray(s.memberIds)||!s.memberIds.length||s.memberIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))||new Set(s.memberIds).size!==s.memberIds.length||s.memberId!==s.memberIds[0])return "参加メンバーを1名以上選択してください。";
+ if(members&&s.memberIds.some(id=>!members.some(t=>t?.id===id)))return "登録済みの参加メンバーを選択してください。";
+ if(!Array.isArray(s.guests)||s.guests.some(g=>!g||typeof g.name!=="string"||!g.name.trim()||typeof g.url!=="string"||g.url&&!scheduleGuestUrl(g.url)))return "外部コラボ相手の活動名・公式リンクを確認してください。";
+ const total=s.memberIds.length+s.guests.length;
+ if(!["solo","collab"].includes(s.format)||s.format==="solo"&&total!==1||s.format==="collab"&&total<2)return "ソロ配信は1名、コラボ配信は合計2名以上を登録してください。";
+ if(s.scheduleSource==="member"&&s.format==="collab")return "コラボ配信は運営管理で登録してください。";
+ return "";
+}
+
 // Read old profiles without rewriting their saved data or exposing hidden legacy fields.
 function normalizedMemberProfile(t){
  if(!t||typeof t!=="object")return t;

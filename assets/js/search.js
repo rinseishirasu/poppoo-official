@@ -29,11 +29,10 @@ function buildIndex(sets,today){
  const linked=(Array.isArray(n.memberIds)?n.memberIds:[]).map(id=>names.get(id)).filter(Boolean);
  add("news",n.title,[text(n.date),text(n.category),text(n.summary)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...linked],text(n.date));
  }
- for(const s of published(sets.schedule).filter(x=>validDate(x.date)&&x.date>=today)){
- const matches=s.memberId?members.filter(t=>t.id===s.memberId):members.filter(t=>t.name===s.talent),t=matches.length===1?matches[0]:null;
- const name=t?.name||text(s.talent)||"参加メンバー",platform=text(s.platform)||"REALITY";
- const href="schedule.html"+(t?"?member="+encodeURIComponent(t.id):"");
- add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform].join(" ・ "),href,[name,platform],s.date);
+ for(const s of published(sets.schedule).filter(x=>scheduleIsPublic(x,sets.talents)&&validDate(x.date)&&x.date>=today)){
+ const people=scheduleParticipants(s,sets.talents),name=people.map(p=>p.name).join("・")||"参加メンバー",platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";
+ const first=people.find(p=>p.id),href="schedule.html?day="+encodeURIComponent(s.date)+(first?"&member="+encodeURIComponent(first.id):"")+"&q="+encodeURIComponent(text(s.title));
+ add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform,format].join(" ・ "),href,[...people.map(p=>p.name),platform,format],s.date);
  }
  for(const r of publicActivityRecords(sets.talents))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
  const settings=published(sets.settings)[0]||{};
