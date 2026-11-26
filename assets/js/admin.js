@@ -277,6 +277,17 @@ function renderTabs(){
  document.querySelectorAll(".admin-tab").forEach(b=>{const active=b.dataset.kind===current;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});
  if(singleton(current)){editing=data[current].length?0:-1;renderForm(data[current][0]||{})}else renderForm();formDirty=false;editorMode(singleton(current));renderList();updateAuthUI();
 }
+// Keep malformed rows until validation so a typo cannot silently discard a link.
+function parseProfileLinks(value){
+ return String(value||"").split(/\r?\n/).filter(line=>line.trim()).map(line=>{const i=line.indexOf("|");return i<0?{label:line.trim(),url:""}:{label:line.slice(0,i).trim(),url:line.slice(i+1).trim()}});
+}
+function profileLinkError(links){
+ if(links===undefined)return "";
+ if(!Array.isArray(links))return "公式リンクの形式が不正です。";
+ for(let i=0;i<links.length;i++){const l=links[i];if(!l||typeof l.label!=="string"||!l.label.trim()||typeof l.url!=="string"||!scheduleGuestUrl(l.url))return "公式リンク "+(i+1)+"行目: 「表示名 | http:// または https:// で始まるURL」を確認してください。";}
+ return "";
+}
+
 function formObject(){
  const obj={};
  for(const [key,,type] of SCHEMAS[current]){
@@ -292,7 +303,7 @@ function formObject(){
   else if(type==="image")obj[key]=el.value;
   else if(type==="gallery"){try{obj[key]=JSON.parse(el.value||"[]")}catch{obj[key]=[]}}
   else if(type==="tags"||type==="roles")obj[key]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
-  else if(type==="links")obj[key]=el.value.split("\n").map(line=>{const i=line.indexOf("|");return i<0?null:{label:line.slice(0,i).trim(),url:line.slice(i+1).trim()}}).filter(x=>x&&x.label&&/^https?:\/\//i.test(x.url));
+  else if(type==="links")obj[key]=parseProfileLinks(el.value);
   else obj[key]=el.value.trim();
  }
  if(current==="talents"){obj.profileFormat=2;const old=data.talents[editing];if(old&&Array.isArray(old.hiddenSections))obj.hiddenSections=[...new Set([...obj.hiddenSections,...old.hiddenSections.filter(k=>["message","credit"].includes(k))])];}
@@ -326,7 +337,7 @@ function validateDataset(kind,items){
   if(kind==="talents"&&item.cohort!==undefined&&!Array.isArray(item.cohort))item.cohort=item.cohort?[item.cohort]:[];
   if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^(https:\/\/|assets\/images\/talents\/)/i.test(item[key]))return (i+1)+"件目: 画像の保存先が正しくありません。";
   if(kind==="talents"&&item.avatarImages!==undefined&&(!Array.isArray(item.avatarImages)||item.avatarImages.some(v=>typeof v!=="string"||!/^(https:\/\/|assets\/images\/talents\/)/i.test(v))))return (i+1)+"件目: アバターギャラリーの画像データを確認してください。";
-  if(Array.isArray(item.links)&&item.links.some(x=>!x||!x.label||!/^https?:\/\//i.test(x.url||"")))return (i+1)+"件目: 公式リンクの表示名またはURLを確認してください。";
+  if(kind==="talents"){const error=profileLinkError(item.links);if(error)return (i+1)+"件目: "+error;}
  }
  return "";
 }
@@ -399,6 +410,7 @@ $("content-form").addEventListener("submit",e=>{
  if(previous?.scheduleSource==="member"&&obj.scheduleSource==="admin"&&!confirm("この予定は運営管理へ切り替わり、本人の編集・削除が停止されます。よろしいですか？"))return;
  if(obj.scheduleSource==="member"){delete obj.memberIds;delete obj.guests;delete obj.format;}
  }
+ if(current==="talents"){const error=profileLinkError(obj.links);if(error){status("保存できません: "+error);const field=$("content-form").elements.namedItem("links"),group=field?.closest("[data-profile-group]");if(group&&group.hidden)$("cms-profile-tabs").children[Number(group.dataset.profileGroup)]?.click();field?.focus();return}}
  if(current==="talents"&&editing>=0&&data.talents[editing]?.id!==obj.id){status("登録済みメンバーのIDは関連ニュース・配信予定との紐づけを保つため変更できません。");return}
  if(current==="talents"&&obj.anniversaries?.some(x=>{const m=x.date.match(/^(?:(\d{4})[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m||!x.title)return true;const d=new Date(Date.UTC(Number(m[1]||2000),Number(m[2])-1,Number(m[3])));return d.getUTCMonth()!==Number(m[2])-1||d.getUTCDate()!==Number(m[3])})){status("その他の記念日の日付・名称が不正です。");return}
  
@@ -538,6 +550,7 @@ function checkData(sets,paths=null){
  if(kind==="schedule"&&x.scheduleSource!==undefined&&(!["admin","member"].includes(x.scheduleSource)||x.scheduleSource==="member"&&(x.published!==true||typeof x.memberId!=="string"||!x.memberId||typeof x.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(x.id))))issue("error","配信予定の管理区分が不正です");
  if(kind==="schedule"&&x.id){if(!/^[A-Za-z0-9_-]+$/.test(x.id))issue("error","配信予定IDが不正です");if(ids.has(x.id))issue("error","配信予定IDが重複しています");ids.add(x.id)}
  if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const error=scheduleParticipantError(x,members);if(error)issue("error",error);const ids=scheduleParticipantIds(x,members);if(!ids.length)issue("warning","登録メンバーに一致する名前がありません");for(const id of ids){const t=members.find(m=>m.id===id);if(!t)issue("warning","参加メンバーIDが見つかりません: "+id);else if(x.published===true&&t.published!==true)issue("warning","非公開メンバーへの関連付けがあります: "+id)}}
+ if(kind==="talents"){const error=profileLinkError(x.links);if(error)issue("error",error);}
  if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
  if(kind==="settings"&&Array.isArray(x.managementIds))for(const id of x.managementIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しない運営メンバーID: "+id);
  if(kind==="home"&&Array.isArray(x.featuredIds))for(const id of x.featuredIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しないピックアップID: "+id);
