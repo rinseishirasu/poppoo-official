@@ -67,3 +67,50 @@
 .renewal-home #home-talents .pop-member-more{margin-top:4px}
 @media(max-width:1000px){.renewal-home #home-talents{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.renewal-home #home-talents{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.renewal-home #home-talents .card-body{padding:10px}.renewal-home #home-talents .pop-member-placeholder{font-size:2.5rem}}
+
+/* TOP page editorial layout: original POPPO brand, no external artwork. */
+.renewal-home .pop-hero-expanded{background:linear-gradient(125deg,#fff 0%,#f2f9ff 45%,#c5e6fc 100%);padding:clamp(32px,4.8vw,72px) 0}
+.renewal-home .pop-hero-grid{min-height:clamp(360px,52vh,510px);gap:clamp(26px,5vw,68px);grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
+.renewal-home .pop-hero-copy .pop-kicker{display:inline-block;font-size:clamp(.67rem,1.15vw,.84rem);letter-spacing:.12em}
+.renewal-home .pop-hero h1{font-size:clamp(1.85rem,3.6vw,3.7rem);line-height:1.42;letter-spacing:-.045em}
+.renewal-home .pop-hero-description{max-width:38em;color:#355979}
+.renewal-home .pop-stage{position:relative;align-self:center;width:100%;min-width:0}
+.renewal-home .pop-stage:before{inset:-8% -5%;border-radius:50%;background:repeating-radial-gradient(circle,#fff9 0 1px,transparent 2px 46px)}
+.renewal-home .pop-spotlight-visual>a{height:auto;aspect-ratio:5/4;min-height:260px;max-height:460px;border-radius:22px;background:radial-gradient(circle at 50% 35%,white 0 25%,color-mix(in srgb,var(--member-color,#1978c8) 15%,white) 26% 52%,color-mix(in srgb,var(--member-color,#1978c8) 28%,white) 53%)}
+.renewal-home .pop-spotlight-visual img{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:contain;padding:16px 16px 86px}
+.renewal-home .pop-spotlight-name{padding:14px 18px;gap:7px;align-items:center}
+.renewal-home .pop-spotlight-name strong{flex:1 1 100%;font-size:clamp(1.1rem,2vw,1.5rem)}
+.renewal-home .pop-spotlight-name>span:last-child{margin-left:0}
+.renewal-home .pop-spotlight-name .pill{font-size:.7rem}
+.renewal-home .pop-spotlight-fallback{padding-bottom:64px;font-size:clamp(3rem,8vw,6rem)}
+.renewal-home .pop-home-summary{position:relative;padding:0;background:#fff;border-bottom:1px solid #dce9f3}
+.renewal-home .pop-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.renewal-home .pop-summary-item{min-width:0;padding:22px clamp(12px,2.6vw,30px);display:flex;flex-direction:column;gap:6px;color:#142f56;text-decoration:none;border-right:1px solid #dce9f3}
+.renewal-home .pop-summary-item:first-child{border-left:1px solid #dce9f3}
+.renewal-home .pop-summary-item small{font-size:.68rem;color:#386d99;font-weight:800;letter-spacing:.08em}
+.renewal-home .pop-summary-item strong{font-size:clamp(1rem,2vw,1.45rem);font-weight:850;overflow-wrap:anywhere}
+.renewal-home .pop-summary-item span{font-size:.78rem;color:#456582;line-height:1.5}
+.renewal-home .pop-summary-item:focus-visible{outline:3px solid #1978c8;outline-offset:-3px}
+@media(hover:hover){.renewal-home .pop-summary-item:hover{background:#eff7ff}}
+.renewal-home .pop-section .pop-section-lead{margin:-8px 0 24px;color:#456582;font-size:.93rem;line-height:1.7}
+.renewal-home #home-talents .pop-member-art img{object-fit:contain;padding:0}
+.renewal-home #home-talents .pop-member-card{min-width:0}
+.renewal-home .pop-members .pop-heading>div>span{color:#176bb2}
+.renewal-home .pop-about .pop-about-grid{align-items:center}
+.renewal-home .pop-join .pop-join-description{color:#e0efff;max-width:44em;margin:12px auto 20px;line-height:1.8}
+.renewal-home .pop-news .empty-state,.renewal-home #home-talents .empty-state{grid-column:1/-1;min-width:0}
+@media(max-width:760px){
+ .renewal-home .pop-hero-grid{grid-template-columns:minmax(0,1fr);min-height:0;gap:26px}
+ .renewal-home .pop-hero-expanded{padding:28px 0}
+ .renewal-home .pop-hero h1{font-size:clamp(1.72rem,6.8vw,2.7rem)}
+ .renewal-home .pop-stage{min-height:0}
+ .renewal-home .pop-spotlight-visual>a{aspect-ratio:5/4;min-height:0;max-height:340px}
+ .renewal-home .pop-spotlight-visual img{padding:12px 12px 78px}
+ .renewal-home .pop-spotlight-name{padding:10px 12px}
+ .renewal-home .pop-summary-item{padding:14px 8px;gap:5px}
+ .renewal-home .pop-summary-item small{font-size:.58rem}
+ .renewal-home .pop-summary-item strong{font-size:.95rem}
+ .renewal-home .pop-summary-item span{font-size:.68rem}
+ .renewal-home .pop-section .pop-section-lead{margin:0 0 18px;font-size:.85rem}
+}
+@media(max-width:360px){.renewal-home .pop-summary-grid{grid-template-columns:1fr}.renewal-home .pop-summary-item{border:0;border-bottom:1px solid #dce9f3;padding:12px 6px}.renewal-home .pop-summary-item:first-child{border-left:0}}

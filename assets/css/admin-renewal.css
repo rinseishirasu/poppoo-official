@@ -123,3 +123,44 @@
 .admin-page .cms-main h2{font-size:1.2rem;letter-spacing:0}
 .admin-page .cms-main .small,.admin-page .cms-main small{color:var(--cms-muted)}
 @media(max-width:760px){.admin-page .cms-sidebar{max-height:none}.admin-page .cms-list-filters{grid-template-columns:1fr}.admin-page .cms-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-page .cms-topbar{height:auto;min-height:64px}.admin-page .admin-toolbar{position:static}}
+
+/* CMS narrow-screen safeguards */
+.admin-page .cms-top-brand,.admin-page .cms-top-actions,.admin-page .cms-top-brand>span{min-width:0;overflow-wrap:anywhere}
+.admin-page .cms-top-brand img,.admin-page .cms-sidebar-toggle{flex:none}
+.admin-page .cms-main .btn,.admin-page .cms-profile-tabs button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+.admin-page .admin-list-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-page .admin-list-actions button{min-height:40px}
+.admin-page .admin-field,.admin-page .admin-choice-group,.admin-page .admin-fields>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.admin-page .cms-main fieldset{min-inline-size:0}
+.admin-page .cms-main :is(input,textarea,select):focus-visible{outline:2px solid #2584d5;outline-offset:2px}
+.admin-page .cms-preview-scroll{max-width:100%;overscroll-behavior-x:contain}
+.admin-page .cms-main pre{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:760px){
+ .admin-page .cms-topbar{flex-wrap:wrap}
+ .admin-page .cms-top-actions{margin-left:auto;max-width:100%;gap:6px}
+ .admin-page .cms-main input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]),.admin-page .cms-main textarea,.admin-page .cms-main select{font-size:16px}
+ .admin-page .admin-form-actions{width:100%}
+ .admin-page .admin-toolbar-actions>.btn,.admin-page .admin-form-actions>.btn{flex:1 1 130px}
+ .admin-page .cms-preview-controls label{flex:1 1 100%}
+ .admin-page .cms-preview-controls label select{width:100%}
+ .admin-page .cms-change-field{grid-template-columns:minmax(0,1fr)}
+ .admin-page .cms-media-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr))}
+}
+@media(max-width:350px){.admin-page .cms-metrics,.admin-page .cms-sidebar .admin-tabs,.admin-page .cms-sidebar-links{grid-template-columns:minmax(0,1fr)}}
+
+/* Ordered management membership editor */
+[data-management-list]{display:grid;gap:8px;margin:12px 0}
+.admin-management-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid #dbe8f4;border-radius:8px;background:#f5faff}
+.admin-management-row>span{min-width:0;overflow-wrap:anywhere;font-weight:700;color:#142f56}
+.admin-management-controls{display:flex;flex-wrap:wrap;gap:6px}
+.admin-management-controls button,[data-management-add],[data-management-default]{min-height:40px}
+[data-management-select]{width:100%;margin-bottom:8px}
+@media(max-width:760px){.admin-management-row{align-items:flex-start;flex-direction:column}.admin-management-controls{width:100%}}
+
+/* Live member color preview */
+.admin-theme-preview{display:flex;align-items:center;gap:14px;border:1px solid var(--member-border,#b5d4ed);border-top:5px solid var(--member-color,#1978c8);border-radius:12px;padding:16px;background:linear-gradient(125deg,var(--member-soft,#e3eff8),#fff);overflow-wrap:anywhere}
+.admin-theme-swatch{width:48px;height:48px;flex:none;border:2px solid var(--member-ink,#145b98);border-radius:12px;background:var(--member-color,#1978c8)}
+.admin-theme-preview strong{color:var(--member-ink,#145b98);font-size:.82rem;letter-spacing:.08em}
+.admin-theme-preview p{color:#142f56;font-weight:700;margin:5px 0}
+.admin-theme-preview [data-theme-label]{color:var(--member-ink,#145b98);font-variant-numeric:tabular-nums}
+[data-theme-clear]{min-height:40px;justify-self:start}
