@@ -373,3 +373,35 @@
 .pop-contact #contact-guide .pop-brand-cta{margin-top:18px}
 .pop-contact #contact-guide>p{line-height:1.85;color:#456582}
 @media(max-width:760px){.pop-info-index{padding:10px;gap:6px}.pop-info-index a{font-size:.8rem;padding:8px 10px}.pop-policy-grid{grid-template-columns:minmax(0,1fr);gap:10px}.pop-policy-grid article{padding:16px}}
+
+/* Small-screen content layouts: retain readable labels and touch targets. */
+.pop-info .page-heading,.pop-directory .page-heading{min-width:0}
+.pop-profile .profile-index a{min-height:44px;max-width:100%;overflow-wrap:anywhere}
+.pop-profile .profile-section,.pop-brand-content [id],.contact-content [id]{scroll-margin-top:12px}
+.pop-profile .profile-schedule-item{display:grid;grid-template-columns:minmax(78px,.75fr) minmax(55px,.5fr) minmax(0,2fr) auto;align-items:center;gap:12px}
+.pop-profile .profile-schedule-item>*{min-width:0;overflow-wrap:anywhere}
+.pop-profile .profile-schedule-item a{min-height:44px;display:flex;align-items:center}
+.pop-profile .profile-details .actions{flex-wrap:wrap}
+.pop-profile .profile-details .actions .btn{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.pop-profile .profile-lightbox-close:focus-visible{outline-color:#fff}
+.pop-profile .profile-image-open{touch-action:manipulation}
+.pop-info .pop-info-filters input,.pop-info .pop-info-filters select{min-height:44px}
+.pop-info .news-card .news-meta,.pop-info .schedule-meta{overflow-wrap:anywhere}
+@media(max-width:760px){
+ .pop-profile .profile-schedule-item{grid-template-columns:minmax(68px,.8fr) minmax(54px,.6fr) minmax(0,1.7fr);gap:8px}
+ .pop-profile .profile-schedule-item a{grid-column:3;justify-self:start}
+ .pop-profile .profile-top{padding:16px}
+ .pop-profile .profile-index a{padding:8px 10px}
+ .pop-info .schedule-intro{flex-wrap:wrap}
+ .pop-info .schedule-intro>*{min-width:0;max-width:100%}
+ .pop-profile .profile-section .actions .btn{width:100%}
+}
+@media(max-width:350px){
+ .pop-directory #talent-grid{grid-template-columns:minmax(0,1fr)}
+ .pop-directory .pop-filters{grid-template-columns:minmax(0,1fr)}
+ .pop-profile .profile-schedule-item{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .pop-profile .profile-schedule-item>div,.pop-profile .profile-schedule-item a{grid-column:1/-1}
+ .pop-profile .talent-fact{grid-template-columns:minmax(0,1fr);gap:4px}
+ .pop-profile .profile-member-nav{grid-template-columns:minmax(0,1fr)}
+ .pop-profile .profile-member-nav>span:empty{display:none}
+}
