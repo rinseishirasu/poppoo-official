@@ -575,3 +575,13 @@
 
 /* Keep news search visible; secondary filters are optional. */
 .news-search-controls{margin:0 0 20px;min-width:0}.news-search-primary{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.news-search-primary label{flex:1 1 250px;display:grid;gap:5px;font-size:.85rem;font-weight:700;min-width:0}.news-search-primary input{width:100%;min-height:44px;padding:10px 12px;font:inherit;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}.news-search-primary #news-count{font-size:.82rem;color:#555;padding:10px 0}.news-advanced{margin-top:10px;border:1px solid #ddd;border-radius:9px;padding:0 12px;background:#fafafa}.news-advanced summary{min-height:44px;padding:10px 0;font-weight:700;font-size:.88rem;cursor:pointer}.news-advanced .pop-info-filters{margin:0 0 12px;border:0;background:transparent;padding:0}.news-search-primary input:focus-visible,.news-advanced summary:focus-visible{outline:2px solid #555;outline-offset:2px}@media(max-width:760px){.news-search-primary input{font-size:16px}.news-search-primary{gap:4px}.news-search-primary #news-count{padding:4px 0}}
+
+/* ABOUT and participation: one purpose per section, compact reading flow. */
+.pop-brand-about .pop-brand-intro p{margin:10px 0 0;line-height:1.85;max-width:68ch}
+.pop-brand-about .about-policy-link{margin-top:14px}
+.pop-brand-join .audition-lead{padding:16px 20px;background:#fafafa;border-radius:10px}
+.pop-brand-join .audition-lead p{margin:0 0 8px}
+.pop-brand-join .audition-application .audition-status{margin-top:8px}
+.pop-brand-join .audition-facts>div{gap:6px}
+.pop-brand-about .pop-brand-content,.pop-brand-join .pop-brand-content{gap:16px}
+@media(max-width:760px){.pop-brand-about .pop-brand-content,.pop-brand-join .pop-brand-content{gap:12px}.pop-brand-join .audition-lead{padding:14px}.pop-brand-about .pop-brand-intro img{max-width:100px}}

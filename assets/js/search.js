@@ -37,13 +37,14 @@ function buildIndex(sets,today){
  for(const r of publicActivityRecords(sets.talents))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
  const settings=published(sets.settings)[0]||{};
  const basic=[
- ["コミュニティ概要","REALITYを中心とした配信者コミュニティ","about.html#about-us",[text(settings.aboutLead),"架空事務所 ぽっぽー Vライバー 個性"]],
+ ["ぽっぽーについて","REALITYで活動する配信者の交流コミュニティ","about.html#about-us",[text(settings.aboutLead),"架空事務所 ぽっぽー Vライバー 個性 専属 マネジメント"]],
  ["名前の由来","ぽっぽーに込めた想い","about.html#about-name",["汽車 汽笛"]],
  ["活動方針","個性・交流・自分のペースを大切に","about.html#about-community",[text(settings.communityPolicy),"休止 退所 活動方針"]],
  ["コミュニティ概要・運営者","設立・代表者・活動拠点","about.html#about-overview",[text(settings.operator)||"ぽっぽー運営",text(settings.representative)||"いつみん",text(settings.chair)||"ユージーン・ペコリーノ",text(settings.founded)||"2026年11月23日",text(settings.base)||"日本国内 オンライン"]],
  ["募集対象・参加条件","REALITYで活動したい方へ","audition.html#join-requirements",[text(settings.requirements),text(settings.joinIntro),"応募 参加 審査 年齢"]],
  ["費用・配信収益","参加費・月額費用は無料。収益は原則本人に帰属","audition.html#join-cost",["所属 事務所 契約 お金"]],
- ["よくある質問・応募窓口","参加に関するご案内","audition.html#join-faq",["応募 申込み 参加 FAQ"]],
+ ["応募窓口","参加申込み・受付方法","audition.html#join-application",["応募 申込み 参加 審査"]],
+ ["よくある質問","他の事務所・休止・退会・交流","audition.html#join-faq",["所属事務所 退所 退会 コラボ FAQ"]],
  ["お問い合わせ","受付方法とお問い合わせ内容","contact.html",["連絡 相談 コラボレーション 不具合 権利"]],
  ["プライバシー・サイトポリシー","個人情報・著作権・利用について","policy.html",["アクセス情報 外部サービス 禁止事項 免責"]]
  ];
