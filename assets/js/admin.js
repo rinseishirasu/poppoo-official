@@ -48,7 +48,7 @@ function fieldHtml(field){
  if(type==="achievements")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="4" placeholder="2026-11-23 | 活動開始 | 架空事務所 ぽっぽーで活動開始"></textarea><small>日付は任意です。日付・内容・詳細を「 | 」で区切って入力します。公開メンバーの表示対象の活動実績は、ACTIVITY・TOP・サイト内検索にも掲載されます。</small></label>`;
  if(type==="cohort")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><div class="admin-choice-grid">${["0期生",...Array.from({length:10},(_,i)=>(i+1)+"期生"),"その他"].map(v=>`<label><input type="checkbox" name="cohort" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
  if(type==="image")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif"><small>画像を選ぶとGitHubの ${key==="heroImage"?"assets/images/home/":key==="thumbnailImage"?"assets/images/news/":"assets/images/talents/"} にアップロードします。PNG・JPG・WebP・GIF、最大8MB。</small><input type="hidden" name="${key}"><span class="admin-image-path" data-image-path="${key}"></span></div>`;
- if(type==="gallery")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif" multiple><small>複数画像をまとめて選択できます。選択した順に掲載します。PNG・JPG・WebP・GIF、1枚8MB以下。画像はGitHubの assets/images/talents/ に保存します。</small><input type="hidden" name="${key}"><div class="admin-gallery-path" data-image-path="${key}"></div></div>`;
+ if(type==="gallery")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif" multiple><small>複数画像をまとめて選択できます。先頭の画像がメインアバターになります。上下ボタンで掲載順を変更できます。PNG・JPG・WebP・GIF、1枚8MB以下。画像はGitHubの assets/images/talents/ に保存します。</small><input type="hidden" name="${key}"><div class="admin-gallery-path" data-image-path="${key}"></div></div>`;
  if(type==="textarea")return `<label class="admin-field admin-field-wide"><span>${label}${required?" *":""}</span><textarea name="${key}" rows="4"${req}></textarea></label>`;
  if(type==="roles")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="2" placeholder="代表者, 盛り上げ会長"></textarea><small>入力した役職はメンバーカードとプロフィールに表示されます。</small></label>`;
  if(type==="agency")return `<label class="admin-field"><span>${label}</span><input name="${key}" type="text" placeholder="例：〇〇プロダクション"><small>ぽっぽー以外に所属事務所・所属先がある場合のみ入力してください。</small></label>`;
@@ -75,6 +75,47 @@ function setupManagementOrder(form,input,initial){
  }};
  add.onclick=()=>{if(select.value&&!ids.includes(select.value)){ids.push(select.value);render();input.dispatchEvent(new Event("input",{bubbles:true}))}};
  reset.onclick=()=>{ids=[...DEFAULT_MANAGEMENT_IDS];render();input.dispatchEvent(new Event("input",{bubbles:true}))};render();
+}
+function galleryValues(input){
+ try{const value=JSON.parse(input.value||"[]");return Array.isArray(value)?value:[]}catch{return []}
+}
+function renderGallery(input){
+ const note=$("content-form").querySelector('[data-image-path="avatarImages"]');if(!note||!input)return;
+ const values=galleryValues(input);
+ note.replaceChildren();
+ if(!values.length){note.textContent="画像未登録（従来のメインアバター画像がある場合はそちらを表示）";return}
+ values.forEach((v,i)=>{
+  const row=document.createElement("div");row.className="admin-management-row";
+  const label=document.createElement("span");label.textContent=(i===0?"メイン / ":"")+(i+1)+". "+v;label.style.overflowWrap="anywhere";row.append(label);
+  const controls=document.createElement("div");controls.className="admin-management-controls";controls.style.flexWrap="wrap";
+  for(const [action,title,disabled] of [["main","メインにする",i===0],["up","上へ",i===0],["down","下へ",i===values.length-1],["delete","掲載解除",false]]){
+   const b=document.createElement("button");b.type="button";b.textContent=title;b.className="admin-small-button"+(action==="delete"?" danger":"");b.disabled=disabled;b.setAttribute("aria-label",(i+1)+"枚目 "+title);
+   if(action==="delete")b.dataset.galleryDelete=String(i);else{b.dataset.galleryMove=action;b.dataset.galleryIndex=String(i)}controls.append(b)
+  }
+  row.append(controls);note.append(row)
+ })
+}
+function moveGallery(action,index){
+ if(imageBusy||publishing||current!=="talents")return;
+ const input=$("content-form").elements.namedItem("avatarImages");if(!input)return;
+ const values=galleryValues(input);if(!Number.isInteger(index)||index<0||index>=values.length)return;
+ const to=action==="main"?0:action==="up"?index-1:action==="down"?index+1:index;
+ if(to<0||to>=values.length||to===index)return;
+ const [value]=values.splice(index,1);values.splice(to,0,value);input.value=JSON.stringify(values);renderGallery(input);input.dispatchEvent(new Event("input",{bubbles:true}));status("アバターの掲載順を変更しました。保存・公開すると反映されます。")
+}
+const profileChecklist=[
+ ["活動名",t=>t.name],["期生",t=>t.cohort?.length],["キャッチコピー",t=>t.catchphrase],["プロフィール画像",t=>t.iconImage||t.avatarImage||t.avatarImages?.length],["自己紹介",t=>t.bio],["誕生日",t=>t.birthday],["活動ジャンル",t=>t.tags?.length],["公式リンク",t=>t.links?.length],["ファン情報",t=>t.fanName||t.oshiMark||t.streamTag||t.fanArtTag],["本人メッセージ",t=>t.message]
+];
+function updateProfileSummary(){
+ const box=$("admin-live-profile");if(!box||current!=="talents")return;
+ const t=formObject(),done=profileChecklist.filter(([,check])=>Boolean(check(t))).length;
+ box.querySelector("[data-profile-preview-name]").textContent=t.name||"活動名未入力";
+ box.querySelector("[data-profile-preview-caption]").textContent=t.catchphrase||"キャッチコピー未入力";
+ box.querySelector("[data-profile-preview-meta]").textContent=[...(t.cohort||[]),...(t.roles||[])].join(" / ")||"期生・役職未設定";
+ box.querySelector("[data-profile-preview-state]").textContent=t.published?"公開設定オン（保存・公開前）":"非公開設定";
+ box.querySelector("progress").value=done;
+ box.querySelector("[data-profile-preview-score]").textContent=done+" / "+profileChecklist.length+" 項目入力済み（任意項目を含む目安）";
+ box.querySelector("[data-profile-preview-missing]").textContent=profileChecklist.filter(([,check])=>!check(t)).map(([label])=>label).join("、")||"すべて入力済み";
 }
 function renderForm(item={}){
  const form=$("content-form");form.reset();const groups=[["基本情報","id name cohort roles affiliationAgency catchphrase"],["ビジュアル","imageColor iconImage avatarImage avatarImages emoji"],["プロフィール","bio birthday height bloodType greeting hobbies skills likes dislikes favoriteFood favoriteWorks illustrator modeler message"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["活動情報","debutDate joinDate anniversaries activityStatus regularSchedule activityGoal achievements tags"],["外部リンク","links"],["公開設定","published hiddenSections"]];
@@ -105,7 +146,7 @@ function renderForm(item={}){
   else if(type==="achievements"){el.value=Array.isArray(item[key])?item[key].map(x=>[x.date||"",x.title||"",x.description||""].join(" | ")).join("\n"):(item[key]||"")}
   else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
   else if(type==="image"){el.value=item[key]||"";const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=item[key]?`登録済み: ${esc(item[key])} <button type="button" class="admin-small-button danger" data-image-delete="${key}" data-image-path-value="${esc(item[key])}">${["thumbnailImage","heroImage"].includes(key)?"掲載解除":"掲載解除"}</button>`:"画像未登録"}
-  else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.length?values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">掲載解除</button></span>`).join(""):"画像未登録"}
+  else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);renderGallery(el)}
   else if(type==="tags"||type==="roles")el.value=Array.isArray(item[key])?item[key].join(", "):(item[key]||"");
   else if(type==="links")el.value=Array.isArray(item[key])?item[key].map(x=>(x.label||"")+" | "+(x.url||"")).join("\n"):"";
   else el.value=item[key]??"";
@@ -120,6 +161,8 @@ function renderForm(item={}){
  select.addEventListener("change",sync);sync();
  }
  const color=form.elements.namedItem("imageColor"),picker=form.querySelector("[data-theme-picker]");if(color&&picker){const preview=form.querySelector("[data-theme-preview]"),label=form.querySelector("[data-theme-label]");const sync=()=>{const p=applyMemberPalette(preview,color.value);picker.value=p.base;label.textContent=color.value&&!/^#[0-9a-f]{6}$/i.test(color.value)?"#RRGGBB 形式で入力してください":color.value?p.base.toUpperCase():"標準色 "+p.base.toUpperCase()};sync();color.addEventListener("input",sync);picker.addEventListener("input",()=>{color.value=picker.value;color.dispatchEvent(new Event("input",{bubbles:true}))});form.querySelector("[data-theme-clear]").onclick=()=>{color.value="";color.dispatchEvent(new Event("input",{bubbles:true}))}}
+ document.getElementById("admin-live-profile")?.remove();
+ if(current==="talents"){const box=document.createElement("section");box.id="admin-live-profile";box.className="cms-overview-panel";box.style.marginBlock="12px";box.innerHTML='<h3>入力中のプロフィール（簡易プレビュー）</h3><strong data-profile-preview-name></strong><p data-profile-preview-caption></p><p data-profile-preview-meta></p><p data-profile-preview-state></p><label>プロフィール入力状況 <progress max="10" value="0"></progress></label><p data-profile-preview-score></p><small>未入力の目安：<span data-profile-preview-missing></span>。すべての項目が必須ではありません。公開ページの表示は別途プレビューで確認してください。</small>';fields.before(box);updateProfileSummary()}
  $("editor-title").textContent=LABELS[current]+"を"+(editing<0?"登録":"編集");
  $("save-button").textContent=editing<0?"登録する":"変更を保存";
  $("publish-description").textContent=LABELS[current]+"のデータ "+data[current].length+"件をGitHubへ公開します。";
@@ -185,7 +228,8 @@ $("cms-visibility")?.addEventListener("change",renderList);
 let formDirty=false;
 function editorMode(open){document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
 function allowDiscard(){if(imageBusy||publishing){status("画像処理・公開中は編集画面を切り替えられません。");return false}return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
-$("content-form").addEventListener("input",()=>{formDirty=true});
+$("content-form").addEventListener("input",()=>{formDirty=true;updateProfileSummary()});
+ $("content-form").addEventListener("change",updateProfileSummary);
 $("cms-new-record").onclick=()=>{editing=-1;renderForm();formDirty=false;editorMode(true)};
 $("cms-back-list").onclick=()=>{if(!allowDiscard())return;editing=-1;renderForm();formDirty=false;editorMode(false)};
 window.addEventListener("beforeunload",e=>{if(formDirty){e.preventDefault();e.returnValue=""}});
@@ -274,13 +318,13 @@ async function uploadTalentImage(input){
   if(!hidden.isConnected){status("画像は保存されましたが、編集画面が切り替わったため登録されていません。");return}
   if(gallery){
    const values=[...existing,...uploaded];hidden.value=JSON.stringify(values);
-   const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=values.map((v,i)=>`<span>${i+1}. ${esc(v)} <button type="button" class="admin-small-button danger" data-gallery-delete="${i}">掲載解除</button></span>`).join("");
+   renderGallery(hidden);
   }else{
    if(!hidden.isConnected){status("画像は保存されましたが、編集画面が切り替わったため登録されていません。");return}
    hidden.value=uploaded[0];
    const note=form.querySelector(`[data-image-path="${key}"]`);if(note)note.innerHTML=`GitHubに保存済み: ${esc(uploaded[0])} <button type="button" class="admin-small-button danger" data-image-delete="${key}" data-image-path-value="${esc(uploaded[0])}">${["thumbnailImage","heroImage"].includes(key)?"掲載解除":"掲載解除"}</button>`;
   }
-  formDirty=true;status(files.length+"枚の画像をGitHubに保存しました。編集データを登録後、「このデータを公開する」を押してください。");
+  formDirty=true;updateProfileSummary();status(files.length+"枚の画像をGitHubに保存しました。編集データを登録後、「このデータを公開する」を押してください。");
  }catch(error){status(error.message||"画像のアップロードに失敗しました。")}
  finally{imageBusy=false;updateAuthUI();input.disabled=false;input.value=""}
 }
@@ -292,12 +336,13 @@ function unlinkImage(key,index=null){
  if(key==="avatarImages"){
  const values=JSON.parse(el.value||"[]");if(!Number.isInteger(index)||index<0||index>=values.length)return;
  values.splice(index,1);el.value=JSON.stringify(values);
- note.innerHTML=values.length?values.map((v,i)=>'<span>'+esc(v)+' <button type="button" class="admin-small-button danger" data-gallery-delete="'+i+'">掲載解除</button></span>').join(""):"画像未登録";
+ renderGallery(el);
  }else{el.value="";note.textContent="画像未登録"}
- formDirty=true;status("画像の掲載を解除しました。保存・公開するまで公式サイトは変更されません。");
+ formDirty=true;updateProfileSummary();status("画像の掲載を解除しました。保存・公開するまで公式サイトは変更されません。");
 }
 $("form-fields").addEventListener("click",e=>{
- const gallery=e.target.closest("[data-gallery-delete]"),single=e.target.closest("[data-image-delete]");
+ const gallery=e.target.closest("[data-gallery-delete]"),single=e.target.closest("[data-image-delete]"),move=e.target.closest("[data-gallery-move]");
+ if(move)moveGallery(move.dataset.galleryMove,Number(move.dataset.galleryIndex));
  if(gallery)unlinkImage("avatarImages",Number(gallery.dataset.galleryDelete));
  if(single&&["iconImage","avatarImage","thumbnailImage","heroImage"].includes(single.dataset.imageDelete))unlinkImage(single.dataset.imageDelete);
 });
