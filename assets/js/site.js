@@ -3,7 +3,10 @@ const navItems = [
   ["SCHEDULE","schedule.html"],["NEWS","news.html"],
   ["JOIN","audition.html"],["CONTACT","contact.html"]
 ];
-const current = location.pathname.split("/").pop() || "index.html";
+const pageFile=location.pathname.split("/").pop()||"index.html";
+const shareRoute=pageFile.match(/^share-(member|news)-([A-Za-z0-9_-]+)\.html$/);
+const current=shareRoute?(shareRoute[1]==="member"?"talent.html":"news-detail.html"):pageFile;
+const publicDetailId=()=>shareRoute?shareRoute[2]:new URLSearchParams(location.search).get("id");
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
 const sharedStyle=document.createElement("link");sharedStyle.rel="stylesheet";sharedStyle.href="assets/css/shared-renewal.css";document.head.append(sharedStyle);
 const mainContent=document.querySelector("main");
@@ -35,6 +38,29 @@ if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>w
 
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#142f56;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
+// Static Open Graph detail pages. The CMS uses the same generator at publication.
+const SHARE_BASE="https://rinseishirasu.github.io/poppoo-official/";
+function shareDetailPath(kind,id){
+ if(!["talents","news"].includes(kind)||typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))return "";
+ return "share-"+(kind==="talents"?"member":"news")+"-"+id+".html";
+}
+function sharePageHtml(kind,item){
+ const path=shareDetailPath(kind,item?.id);
+ if(!path||item.published!==true)return null;
+ const member=kind==="talents",name=String(member?item.name:item.title||"").trim();
+ if(!name)return null;
+ const title=name+" | 架空事務所 ぽっぽー",desc=String(member?(item.catchphrase||"架空事務所 ぽっぽーの参加メンバー、"+name+"のプロフィールです。"):(item.summary||"架空事務所 ぽっぽーからのお知らせです。")).replace(/\s+/g," ").trim().slice(0,180);
+ const hidden=Array.isArray(item.hiddenSections)&&item.hiddenSections.includes("gallery");
+ const avatars=Array.isArray(item.avatarImages)?item.avatarImages:[item.avatarImages];
+ const candidates=member?[...(!hidden?[...avatars,item.avatarImage]:[]),item.iconImage]:[item.thumbnailImage];
+ const imagePath=candidates.find(x=>typeof x==="string"&&/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(x)&&!x.split("/").includes(".."))||"assets/image/poppoo-icon.png";
+ const url=SHARE_BASE+path,image=SHARE_BASE+imagePath;
+ const e=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ const meta=(key,value,property=false)=>'<meta '+(property?"property":"name")+'="'+key+'" content="'+e(value)+'">';
+ const heading=member?"MEMBERS":"NEWS",list=member?"talents.html":"news.html",detail=member?"talent-profile":"news-detail",klass=member?"pop-profile":"pop-info pop-news-detail";
+ const tags=[meta("description",desc),meta("og:title",title,true),meta("og:description",desc,true),meta("og:type",member?"website":"article",true),meta("og:url",url,true),meta("og:image",image,true),meta("og:image:alt",imagePath==="assets/image/poppoo-icon.png"?"ぽっぽー公式アイコン":name+"の掲載画像",true),meta("og:site_name","架空事務所 ぽっぽー",true),meta("og:locale","ja_JP",true),meta("twitter:card",member?"summary":"summary_large_image"),meta("twitter:title",title),meta("twitter:description",desc),meta("twitter:image",image)].join("\n");
+ return {path,content:'<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f7fc"><title>'+e(title)+'</title>\n'+tags+'\n<link rel="canonical" href="'+e(url)+'"><link rel="icon" href="assets/image/poppoo-icon.png"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/renewal.css"></head><body><header id="site-header"></header><main class="'+klass+'"><section class="page-hero detail-breadcrumb"><div class="container"><div class="breadcrumbs"><a href="index.html">TOP</a> / <a href="'+list+'">'+heading+'</a></div></div></section><section class="content"><div class="container"><div id="'+detail+'"><div class="empty-state">'+heading+'を読み込み中...</div><noscript><p>'+e(name)+'</p><p>'+e(desc)+'</p><p>詳細を表示するにはJavaScriptを有効にしてください。</p></noscript></div></div></section></main><footer id="site-footer" class="site-footer"></footer><script src="assets/js/site.js"></script><script src="assets/js/pages.js"></script></body></html>\n'};
+}
 // Share public URLs only; no third-party widgets or tracking scripts.
 function publicShareLinks(url,title){
  const q=encodeURIComponent, text=title+"\n"+url;
@@ -56,7 +82,7 @@ function mountPublicShare(target,{page,id,member,title,label="このページを
  if(!allowed.includes(page))return;
  const url=new URL(page,"https://rinseishirasu.github.io/poppoo-official/");
  if(page==="index.html")url.pathname="/poppoo-official/";
- if(id&&["talent.html","news-detail.html"].includes(page))url.searchParams.set("id",id);
+ if(id&&["talent.html","news-detail.html"].includes(page)){const path=shareDetailPath(page==="talent.html"?"talents":"news",id);if(path)url.pathname="/poppoo-official/"+path;else url.searchParams.set("id",id)}
  if(member&&["news.html","schedule.html"].includes(page))url.searchParams.set("member",member);
  const href=url.href,heading=String(title||"架空事務所 ぽっぽー").trim();
  target.classList.add("pop-share-panel");target.setAttribute("role","group");target.setAttribute("aria-label",label);
