@@ -34,6 +34,7 @@ function updateAuthUI(){
  $("login-button").disabled=ready||!AUTH_API||AUTH_API.includes("YOUR-WORKER");
  $("logout-button").disabled=!ready;
  $("publish-button").disabled=!ready||!dataReady||publishing||imageBusy||draftConflict;
+ document.querySelector(".admin-auth-panel").dataset.authenticated=String(ready);
 }
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"";
@@ -124,7 +125,7 @@ function renderForm(item={}){
  const select=i=>{fields.querySelectorAll("[data-profile-group]").forEach((p,j)=>p.hidden=i!==j);Array.from(tabs.children).forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)))};
  groups.forEach(([label],i)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=()=>select(i);tabs.append(b)});select(0);
  }else fields.innerHTML=SCHEMAS[current].map(fieldHtml).join("");
- form.oninvalid=null;form.addEventListener("invalid",e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()},{capture:true,once:true});
+ form.oninvalid=e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()};
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el&&!["memberSelect","newsMembers"].includes(type))continue;
   if(type==="managementOrder"){
@@ -162,7 +163,7 @@ function renderForm(item={}){
  }
  const color=form.elements.namedItem("imageColor"),picker=form.querySelector("[data-theme-picker]");if(color&&picker){const preview=form.querySelector("[data-theme-preview]"),label=form.querySelector("[data-theme-label]");const sync=()=>{const p=applyMemberPalette(preview,color.value);picker.value=p.base;label.textContent=color.value&&!/^#[0-9a-f]{6}$/i.test(color.value)?"#RRGGBB 形式で入力してください":color.value?p.base.toUpperCase():"標準色 "+p.base.toUpperCase()};sync();color.addEventListener("input",sync);picker.addEventListener("input",()=>{color.value=picker.value;color.dispatchEvent(new Event("input",{bubbles:true}))});form.querySelector("[data-theme-clear]").onclick=()=>{color.value="";color.dispatchEvent(new Event("input",{bubbles:true}))}}
  document.getElementById("admin-live-profile")?.remove();
- if(current==="talents"){const box=document.createElement("section");box.id="admin-live-profile";box.className="cms-overview-panel";box.style.marginBlock="12px";box.innerHTML='<h3>入力中のプロフィール（簡易プレビュー）</h3><strong data-profile-preview-name></strong><p data-profile-preview-caption></p><p data-profile-preview-meta></p><p data-profile-preview-state></p><label>プロフィール入力状況 <progress max="10" value="0"></progress></label><p data-profile-preview-score></p><small>未入力の目安：<span data-profile-preview-missing></span>。すべての項目が必須ではありません。公開ページの表示は別途プレビューで確認してください。</small>';fields.before(box);updateProfileSummary()}
+ if(current==="talents"){const box=document.createElement("details");box.id="admin-live-profile";box.className="cms-overview-panel";box.style.marginBlock="12px";box.innerHTML='<summary>入力状況・簡易プレビュー</summary><strong data-profile-preview-name></strong><p data-profile-preview-caption></p><p data-profile-preview-meta></p><p data-profile-preview-state></p><label>プロフィール入力状況 <progress max="10" value="0"></progress></label><p data-profile-preview-score></p><small>未入力の目安：<span data-profile-preview-missing></span>。すべての項目が必須ではありません。公開ページの表示は別途プレビューで確認してください。</small>';fields.before(box);updateProfileSummary()}
  $("editor-title").textContent=LABELS[current]+"を"+(editing<0?"登録":"編集");
  $("save-button").textContent=editing<0?"登録する":"変更を保存";
  $("publish-description").textContent=LABELS[current]+"のデータ "+data[current].length+"件をGitHubへ公開します。";
@@ -210,6 +211,8 @@ function changes(kind,after=data[kind]){
 function renderChanges(){
  const panel=$("cms-changes");if(!panel)return;
  const list=changes(current),name=x=>x.name||x.title||x.id||LABELS[current];
+ const title=$("cms-changes-title");if(title)title.textContent="未公開の変更内容（"+list.length+"件）";
+ const draft=$("cms-draft-summary");if(draft){const pending=Object.keys(FILES).map(k=>[k,changes(k).length]).filter(([,n])=>n>0);draft.replaceChildren();const label=document.createElement("strong");label.textContent=pending.length?"保存済み・未公開の変更 "+pending.reduce((n,x)=>n+x[1],0)+"件":"保存済み・未公開の変更はありません";draft.append(label);for(const [k,n] of pending){const button=document.createElement("button");button.type="button";button.dataset.cmsJump=k;button.className="btn secondary";button.textContent=LABELS[k]+" "+n+"件 →";draft.append(button)}}
  const counts=Object.keys(FILES).map(k=>LABELS[k]+" "+changes(k).length+"件").join(" / ");
  panel.innerHTML='<p>'+esc(counts)+'</p><h3>'+esc(LABELS[current])+'：変更 '+list.length+'件</h3>'+ (list.length?list.map(d=>{const a=d.before||{},b=d.after||{},keys=[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>canonical(a[k])!==canonical(b[k]));return '<details class="cms-change-row"><summary>'+esc(d.type+"｜"+name(d.after||d.before))+'</summary>'+keys.map(k=>'<div class="cms-change-field"><strong>'+esc(SCHEMAS[current].find(f=>f[0]===k)?.[1]||k)+'</strong><div><small>変更前</small><pre>'+esc(a[k]===undefined?"（なし）":JSON.stringify(a[k],null,2))+'</pre></div><div><small>変更後</small><pre>'+esc(b[k]===undefined?"（なし）":JSON.stringify(b[k],null,2))+'</pre></div></div>').join("")+'</details>'}).join(""):'<p>保存済みの変更はありません。</p>');
 }
@@ -226,7 +229,7 @@ function renderList(){
 $("cms-search")?.addEventListener("input",renderList);
 $("cms-visibility")?.addEventListener("change",renderList);
 let formDirty=false;
-function editorMode(open){document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
+function editorMode(open){$("cms-workspace-title").textContent=LABELS[current]+(open?"を編集":"の管理");$("cms-workspace-hint").textContent=open?"入力 → 下書きを保存 → 公開": "登録済みデータの確認・編集・公開";$("clear-button").hidden=!open;$("cms-other-actions").open=false;document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
 function allowDiscard(){if(imageBusy||publishing){status("画像処理・公開中は編集画面を切り替えられません。");return false}return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
 $("content-form").addEventListener("input",()=>{formDirty=true;updateProfileSummary()});
  $("content-form").addEventListener("change",updateProfileSummary);
