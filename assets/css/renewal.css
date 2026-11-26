@@ -305,3 +305,20 @@
 .pop-info .policy-article p:last-child{margin-bottom:0}
 .pop-info .policy-footer-note{margin-top:20px;padding:18px;border-top:1px solid #dbe8f4;overflow-wrap:anywhere}
 @media(max-width:760px){.pop-contact .contact-types{gap:12px}.pop-contact .pop-brand-cta .pop-link{width:100%;justify-content:center}.pop-info .policy-article{grid-template-columns:30px minmax(0,1fr);gap:10px;padding:16px}.pop-info .policy-number{font-size:1.1rem}.pop-info .policy-article h2{font-size:1.05rem}.pop-info .policy-index{padding:12px}.pop-info .policy-index a{font-size:.78rem;padding:8px}}
+
+/* Member directory and individual profile refinement. */
+.pop-directory .talent-list-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.pop-directory .pop-filters{display:grid;grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr)) auto;align-items:end;gap:12px;padding:18px;background:#f4f9fe;border:1px solid #dbe8f4;border-radius:16px;width:100%;box-sizing:border-box}
+.pop-directory .pop-filters label{display:grid;gap:6px;min-width:0;color:#355979;font-size:.78rem;font-weight:700}
+.pop-directory .pop-filters input,.pop-directory .pop-filters select{display:block;width:100%;font-size:.88rem;background:#fff}
+.pop-directory .pop-filters button{white-space:nowrap}
+.pop-member-status{display:inline-flex;align-self:flex-start;max-width:100%;padding:4px 9px;background:#eff6fd;border:1px solid #d6e5f2;border-radius:99px;color:#355979;font-size:.72rem;font-weight:650;overflow-wrap:anywhere}
+.pop-directory .pop-member-card .pop-member-art img{object-fit:contain}
+.pop-directory .pop-member-link:focus-visible{outline:3px solid #1978c8;outline-offset:-3px}
+.pop-profile .profile-intro .pop-member-status{margin:0 0 12px}
+.pop-profile .profile-index a{min-height:36px;display:inline-flex;align-items:center}
+.pop-profile .profile-section:target{outline:2px solid #1978c8;outline-offset:2px}
+.pop-profile .profile-anniversary{background:linear-gradient(125deg,#fff,#eff7ff)}
+.pop-profile .profile-member-nav a:focus-visible,.pop-profile .profile-image-open:focus-visible,.pop-profile .profile-index a:focus-visible{outline:3px solid #1978c8;outline-offset:3px}
+@media(max-width:1100px){.pop-directory .pop-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.pop-directory .pop-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:10px}.pop-directory .pop-filters label:first-child,.pop-directory #member-reset{grid-column:1/-1}.pop-directory .pop-filters input,.pop-directory .pop-filters select{font-size:16px}.pop-directory .pop-member-status{font-size:.68rem}}
