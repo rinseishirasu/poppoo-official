@@ -35,10 +35,12 @@ export async function verifyPassword(password,stored,env){
  const bytes=s=>Uint8Array.from(s.match(/../g),v=>parseInt(v,16));
  return crypto.subtle.timingSafeEqual(bytes(actual),bytes(expected));
 }
+// D1 meta.changes includes trigger writes. RETURNING counts only directly affected rows.
+const oneAffected=result=>result?.success===true&&Array.isArray(result.results)&&result.results.length===1&&result.results[0]?.affected===1;
 export async function createSession(db,accountId,expectedHash){
  const token=randomToken(),expires=Math.floor(Date.now()/1000)+28800;
- const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND status='active' AND password_hash=?").bind(await digest(token),expires,accountId,expectedHash).run();
- if(result.meta.changes!==1)throw new Error("Account unavailable");
+ const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND status='active' AND password_hash=? RETURNING 1 AS affected").bind(await digest(token),expires,accountId,expectedHash).all();
+ if(!oneAffected(result))throw new Error("Account unavailable");
  return {token,expires};
 }
 export async function readSession(db,token){
@@ -171,11 +173,11 @@ async function saveProfile(env,session,form){
  if(id){
  const old=await db.prepare("SELECT patch_json FROM profile_requests WHERE id=? AND account_id=? AND status='draft' AND base_revision=?").bind(id,session.id,revision).first();
  if(!old||await digest(old.patch_json)!==form.get("draft_version"))return json({error:"Draft changed; reopen editor"},409);
- result=await db.prepare("UPDATE profile_requests SET patch_json=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='draft' AND base_revision=? AND patch_json=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(payload,action,id,session.id,revision,old.patch_json,session.id).run();
+ result=await db.prepare("UPDATE profile_requests SET patch_json=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='draft' AND base_revision=? AND patch_json=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(payload,action,id,session.id,revision,old.patch_json,session.id).all();
  }else{
- result=await db.prepare("INSERT INTO profile_requests(id,account_id,base_revision,patch_json,status) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM profile_requests WHERE account_id=? AND status IN ('draft','pending')) AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(crypto.randomUUID(),session.id,revision,payload,action,session.id,session.id).run();
+ result=await db.prepare("INSERT INTO profile_requests(id,account_id,base_revision,patch_json,status) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM profile_requests WHERE account_id=? AND status IN ('draft','pending')) AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,revision,payload,action,session.id,session.id).all();
  }
- if(result.meta.changes!==1)return json({error:"Request changed; reopen editor"},409);
+ if(!oneAffected(result))return json({error:"Request changed; reopen editor"},409);
  return redirect("/profile");
 }
 // Private submissions: fixed per-account slots, never write to public GitHub.
@@ -286,8 +288,8 @@ async function uploadAvatar(env,session,form){
  const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return json({error:"Profile unavailable"},404);
  const id=crypto.randomUUID();
- const result=previous?await db.prepare("UPDATE avatar_requests SET id=?,mime=?,image_data=?,created_at=CURRENT_TIMESTAMP WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(id,mime,data,session.id,slot,previous,session.id).run():await db.prepare("INSERT INTO avatar_requests(account_id,slot,id,mime,image_data) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') ON CONFLICT(account_id,slot) DO NOTHING").bind(session.id,slot,id,mime,data,session.id).run();
- if(result.meta.changes!==1)return json({error:"Submission changed; reopen page"},409);
+ const result=previous?await db.prepare("UPDATE avatar_requests SET id=?,mime=?,image_data=?,created_at=CURRENT_TIMESTAMP WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(id,mime,data,session.id,slot,previous,session.id).all():await db.prepare("INSERT INTO avatar_requests(account_id,slot,id,mime,image_data) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') ON CONFLICT(account_id,slot) DO NOTHING RETURNING 1 AS affected").bind(session.id,slot,id,mime,data,session.id).all();
+ if(!oneAffected(result))return json({error:"Submission changed; reopen page"},409);
  return redirect("/avatars");
 }
 async function privateAvatar(db,session,slot,version){
@@ -467,8 +469,8 @@ async function submitActivityPublication(env,session,form){
  let record,revision;
  try{record=recordPublication(row);revision=await recordRevision(member,record)}catch{return page("activity","公開済み・非表示設定・日付などを確認してください。",409,memberBack+'<p><a href="/activity">活動記録へ戻る</a></p>')}
  const payload=JSON.stringify({recordPublication:record});
- const result=await db.prepare("INSERT INTO profile_requests(id,account_id,base_revision,patch_json,status) SELECT ?,?,?,?,'pending' WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND EXISTS(SELECT 1 FROM member_activity WHERE id=? AND account_id=? AND kind=? AND event_date=? AND title=? AND description=?) AND NOT EXISTS(SELECT 1 FROM profile_requests WHERE account_id=? AND status IN ('draft','pending'))").bind(crypto.randomUUID(),session.id,revision,payload,session.id,id,session.id,row.kind,row.event_date,row.title,row.description,session.id).run();
- if(result.meta.changes!==1)return page("activity","記録が変更されたか、審査中・下書きのプロフィール申請があります。先に申請状況を確認してください。",409,memberBack+'<p><a href="/profile">申請状況を確認</a>　<a href="/activity">活動記録へ戻る</a></p>');
+ const result=await db.prepare("INSERT INTO profile_requests(id,account_id,base_revision,patch_json,status) SELECT ?,?,?,?,'pending' WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND EXISTS(SELECT 1 FROM member_activity WHERE id=? AND account_id=? AND kind=? AND event_date=? AND title=? AND description=?) AND NOT EXISTS(SELECT 1 FROM profile_requests WHERE account_id=? AND status IN ('draft','pending')) RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,revision,payload,session.id,id,session.id,row.kind,row.event_date,row.title,row.description,session.id).all();
+ if(!oneAffected(result))return page("activity","記録が変更されたか、審査中・下書きのプロフィール申請があります。先に申請状況を確認してください。",409,memberBack+'<p><a href="/profile">申請状況を確認</a>　<a href="/activity">活動記録へ戻る</a></p>');
  return redirect("/profile");
 }
 async function activityPage(env,session){
@@ -486,14 +488,14 @@ async function mutateActivity(db,session,form,path){
  let result;
  if(path==="/activity/delete"){
  if(!id||form.get("confirm")!=="yes")return json({error:"Confirmation required"},400);
- result=await db.prepare("DELETE FROM member_activity WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member')").bind(id,session.id,session.id).run();
+ result=await db.prepare("DELETE FROM member_activity WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member') RETURNING 1 AS affected").bind(id,session.id,session.id).all();
  }else{
  const kind=form.get("kind"),date=form.get("event_date"),title=getText(form,"title",150,true),body=getText(form,"description",1000);
  if(!["activity","anniversary"].includes(kind)||!dateValid(date)||title===null||body===null)return json({error:"Invalid record"},400);
- if(id)result=await db.prepare("UPDATE member_activity SET kind=?,event_date=?,title=?,description=? WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member')").bind(kind,date,title,body,id,session.id,session.id).run();
- else result=await db.prepare("INSERT INTO member_activity(id,account_id,kind,event_date,title,description) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member') AND (SELECT COUNT(*) FROM member_activity WHERE account_id=?)<500").bind(crypto.randomUUID(),session.id,kind,date,title,body,session.id,session.id).run();
+ if(id)result=await db.prepare("UPDATE member_activity SET kind=?,event_date=?,title=?,description=? WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member') RETURNING 1 AS affected").bind(kind,date,title,body,id,session.id,session.id).all();
+ else result=await db.prepare("INSERT INTO member_activity(id,account_id,kind,event_date,title,description) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='member') AND (SELECT COUNT(*) FROM member_activity WHERE account_id=?)<500 RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,kind,date,title,body,session.id,session.id).all();
  }
- if(result.meta.changes!==1)return json({error:"Record unavailable or limit reached"},409);
+ if(!oneAffected(result))return json({error:"Record unavailable or limit reached"},409);
  return redirect("/activity");
 }
 async function noticesPage(db,session){
@@ -516,15 +518,15 @@ async function mutateOperations(db,session,form,path){
  const id=form.get("id")||"";let result;
  if(path==="/admin/notice-create"){
  const title=getText(form,"title",150,true),body=getText(form,"body",2000,true);if(title===null||body===null)return json({error:"Invalid notice"},400);
- result=await db.prepare("INSERT INTO portal_notices(id,author_id,title,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(crypto.randomUUID(),session.id,title,body,session.id).run();
+ result=await db.prepare("INSERT INTO portal_notices(id,author_id,title,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,title,body,session.id).all();
  }else if(path==="/admin/notice-toggle"){
  const expected=form.get("expected");if(!safeId(id)||!["0","1"].includes(expected))return json({error:"Invalid notice"},400);
- result=await db.prepare("UPDATE portal_notices SET published=1-published WHERE id=? AND published=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(id,Number(expected),session.id).run();
+ result=await db.prepare("UPDATE portal_notices SET published=1-published WHERE id=? AND published=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(id,Number(expected),session.id).all();
  }else{
  const decision=form.get("decision"),note=getText(form,"note",1000);if(!safeId(id)||!["accepted","returned"].includes(decision)||note===null||(decision==="returned"&&!note))return json({error:"Invalid review"},400);
- result=await db.prepare("UPDATE member_applications SET status=?,review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(decision,note,session.id,id,session.id).run();
+ result=await db.prepare("UPDATE member_applications SET status=?,review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(decision,note,session.id,id,session.id).all();
  }
- if(result.meta.changes!==1)return json({error:"Record changed; reopen page"},409);
+ if(!oneAffected(result))return json({error:"Record changed; reopen page"},409);
  return redirect("/admin/operations");
 }
 // Approvals publish one Git commit against a verified branch head.
@@ -603,9 +605,9 @@ async function finishPublication(db,job){
  const source=job.kind==="profile"?"profile_requests p WHERE p.id=publication_jobs.request_id AND p.account_id=publication_jobs.account_id AND p.status='pending'":"avatar_requests p WHERE p.id=publication_jobs.request_id AND p.account_id=publication_jobs.account_id";
  const guard=" AND EXISTS(SELECT 1 FROM publication_jobs WHERE request_id=? AND account_id=? AND state='published' AND commit_sha=?)";
  const sql=job.kind==="profile"?"UPDATE profile_requests SET status='approved',review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending'":"DELETE FROM avatar_requests WHERE id=? AND account_id=?";
- const stmt=job.kind==="profile"?db.prepare(sql+guard).bind(job.note,job.actor_id,job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha):db.prepare(sql+guard).bind(job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha);
- const result=await db.batch([db.prepare("UPDATE publication_jobs SET state='published',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND account_id=? AND kind=? AND state='processing' AND commit_sha=? AND EXISTS(SELECT 1 FROM "+source+")").bind(job.request_id,job.account_id,job.kind,job.commit_sha),stmt]);
- if(result[0].meta.changes!==1||result[1].meta.changes!==1)throw Error("Job or source changed");
+ const stmt=job.kind==="profile"?db.prepare(sql+guard+" RETURNING 1 AS affected").bind(job.note,job.actor_id,job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha):db.prepare(sql+guard+" RETURNING 1 AS affected").bind(job.request_id,job.account_id,job.request_id,job.account_id,job.commit_sha);
+ const result=await db.batch([db.prepare("UPDATE publication_jobs SET state='published',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND account_id=? AND kind=? AND state='processing' AND commit_sha=? AND EXISTS(SELECT 1 FROM "+source+") RETURNING 1 AS affected").bind(job.request_id,job.account_id,job.kind,job.commit_sha),stmt]);
+ if(!oneAffected(result[0])||!oneAffected(result[1]))throw Error("Job or source changed");
 }
 async function reviewPage(env){
  const db=env.DB,enabled=publicationReady(env);
@@ -648,8 +650,8 @@ async function reviewSubmission(env,session,form){
  // Lock acquisition and source existence are a single SQLite statement.
  const source=kind==="profile"?"profile_requests p WHERE p.id=? AND p.account_id=? AND p.status='pending'":"avatar_requests p WHERE p.id=? AND p.account_id=?";
  if(decision==="approve"&&(!publicationReady(env)||form.get("confirm")!=="yes"||row.account_status!=="active"))return json({error:"Publication disabled or confirmation required"},403);
- const lock=await db.prepare("INSERT INTO publication_jobs(request_id,kind,account_id,actor_id,state,note) SELECT ?,?,?,?,'processing',? WHERE EXISTS(SELECT 1 FROM "+source+") AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='admin') ON CONFLICT(request_id) DO UPDATE SET state='processing',actor_id=excluded.actor_id,note=excluded.note,commit_sha=NULL,updated_at=CURRENT_TIMESTAMP WHERE publication_jobs.state='failed'").bind(id,kind,row.account_id,session.id,note,id,row.account_id,session.id).run();
- if(lock.meta.changes!==1)return json({error:"Review already in progress"},409);
+ const lock=await db.prepare("INSERT INTO publication_jobs(request_id,kind,account_id,actor_id,state,note) SELECT ?,?,?,?,'processing',? WHERE EXISTS(SELECT 1 FROM "+source+") AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='admin') ON CONFLICT(request_id) DO UPDATE SET state='processing',actor_id=excluded.actor_id,note=excluded.note,commit_sha=NULL,updated_at=CURRENT_TIMESTAMP WHERE publication_jobs.state='failed' RETURNING 1 AS affected").bind(id,kind,row.account_id,session.id,note,id,row.account_id,session.id).all();
+ if(!oneAffected(lock))return json({error:"Review already in progress"},409);
  if(decision==="return"){
  const stmt=kind==="profile"?db.prepare("UPDATE profile_requests SET status='returned',review_note=?,reviewed_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending'").bind(note,session.id,id,row.account_id):db.prepare("DELETE FROM avatar_requests WHERE id=? AND account_id=?").bind(id,row.account_id);
  await db.batch([stmt,db.prepare("UPDATE publication_jobs SET state='returned',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing'").bind(id)]);
@@ -691,8 +693,8 @@ async function reviewSubmission(env,session,form){
  const active=await db.prepare("SELECT id FROM accounts WHERE id=? AND status='active' AND role='member'").bind(row.account_id).first();
  if(!active)throw Error("Member inactive");
  const sha=await buildPublicationCommit(env,head,data,image,updated);
- const saved=await db.prepare("UPDATE publication_jobs SET commit_sha=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND commit_sha IS NULL").bind(sha,id).run();
- if(saved.meta.changes!==1)throw Error("Job changed");
+ const saved=await db.prepare("UPDATE publication_jobs SET commit_sha=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND state='processing' AND commit_sha IS NULL RETURNING 1 AS affected").bind(sha,id).all();
+ if(!oneAffected(saved))throw Error("Job changed");
  commitSha=sha;
  // Non-forced update rejects concurrent changes to main.
  const current=await gitHead(env);if(current.sha!==head.sha)throw Error("Branch head changed before publish");
@@ -731,8 +733,8 @@ async function changePassword(env,session,form){
  const a=await db.prepare("SELECT password_hash FROM accounts WHERE id=? AND status='active'").bind(session.id).first();
  if(!a||!await verifyPassword(old,a.password_hash,env))return accountPage(env,session,"現在のパスワードを確認してください。",401);
  const hash=await hashPassword(password,env);
- const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active' AND password_hash=?").bind(hash,session.id,a.password_hash),db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND password_hash=?)").bind(session.id,session.id,hash)]);
- if(results[0].meta.changes!==1)return json({error:"Account changed; sign in again"},409);
+ const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active' AND password_hash=? RETURNING 1 AS affected").bind(hash,session.id,a.password_hash),db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND password_hash=?)").bind(session.id,session.id,hash)]);
+ if(!oneAffected(results[0]))return json({error:"Account changed; sign in again"},409);
  return redirect("/",clearSessionCookie());
 }
 async function resetMemberAccount(env,session,form){
@@ -740,12 +742,12 @@ async function resetMemberAccount(env,session,form){
  const db=env.DB,id=form.get("id"),token=randomToken(),hash=await digest(token);
  // Insert a fresh unique token only if the reset is eligible, then use it as the batch guard.
  const result=await db.batch([
- db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status IN ('active','suspended') AND NOT EXISTS(SELECT 1 FROM publication_jobs WHERE account_id=accounts.id AND state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')").bind(hash,now()+86400,id,session.id),
- db.prepare("UPDATE accounts SET status='invited',password_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status IN ('active','suspended') AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id)").bind(id,hash),
+ db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status IN ('active','suspended') AND NOT EXISTS(SELECT 1 FROM publication_jobs WHERE account_id=accounts.id AND state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(hash,now()+86400,id,session.id),
+ db.prepare("UPDATE accounts SET status='invited',password_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status IN ('active','suspended') AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id) RETURNING 1 AS affected").bind(id,hash),
  db.prepare("DELETE FROM sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=?)").bind(id,hash,id),
  db.prepare("DELETE FROM activation_tokens WHERE account_id=? AND token_hash<>? AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=?)").bind(id,hash,hash,id)
  ]);
- if(result[0].meta.changes!==1||result[1].meta.changes!==1)return json({error:"Reset unavailable; refresh account list"},409);
+ if(!oneAffected(result[0])||!oneAffected(result[1]))return json({error:"Reset unavailable; refresh account list"},409);
  return adminPage(db,"再設定用コードを発行しました。本人にのみ安全に渡してください。",200,true,token);
 }
 async function auditPage(db){
@@ -766,7 +768,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v21",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v22",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -814,8 +816,8 @@ export default {async fetch(request,env){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
  if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(env,session,form);}
  const slot=form.get("slot"),id=form.get("id");if(!avatarSlot(slot)||typeof id!=="string")return json({error:"Invalid submission"},400);
- const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(session.id,slot,id,session.id).run();
- if(result.meta.changes!==1)return json({error:"Submission unavailable"},409);
+ const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(session.id,slot,id,session.id).all();
+ if(!oneAffected(result))return json({error:"Submission unavailable"},409);
  return redirect("/avatars");
  }
  if(["/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw"].includes(path)){
@@ -830,12 +832,12 @@ export default {async fetch(request,env){
  let result;
  if(path==="/applications/submit"){
  const kind=form.get("kind"),body=getText(form,"body",1000,true);if(!Object.hasOwn(applicationKinds,kind)||body===null)return json({error:"Invalid application"},400);
- result=await db.prepare("INSERT INTO member_applications(id,account_id,kind,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND (SELECT COUNT(*) FROM member_applications WHERE account_id=? AND status='pending')<10").bind(crypto.randomUUID(),session.id,kind,body,session.id,session.id).run();
+ result=await db.prepare("INSERT INTO member_applications(id,account_id,kind,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND (SELECT COUNT(*) FROM member_applications WHERE account_id=? AND status='pending')<10 RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,kind,body,session.id,session.id).all();
  }else{
  if(!safeId(id))return json({error:"Invalid application"},400);
- result=await db.prepare("UPDATE member_applications SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(id,session.id,session.id).run();
+ result=await db.prepare("UPDATE member_applications SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='pending' AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(id,session.id,session.id).all();
  }
- if(result.meta.changes!==1)return json({error:"Application unavailable or limit reached"},409);return redirect("/applications");
+ if(!oneAffected(result))return json({error:"Application unavailable or limit reached"},409);return redirect("/applications");
  }
  if(path.startsWith("/schedule/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
@@ -844,8 +846,8 @@ export default {async fetch(request,env){
  if(path.startsWith("/profile/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
  if(path==="/profile/save")return await saveProfile(env,session,form);
- const result=await db.prepare("UPDATE profile_requests SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status IN ('draft','pending','returned') AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=profile_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active')").bind(form.get("id")||"",session.id,session.id).run();
- if(result.meta.changes!==1)return json({error:"Request unavailable"},409);
+ const result=await db.prepare("UPDATE profile_requests SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status IN ('draft','pending','returned') AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=profile_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(form.get("id")||"",session.id,session.id).all();
+ if(!oneAffected(result))return json({error:"Request unavailable"},409);
  return redirect("/profile");
  }
  if(path==="/activate"){
@@ -855,8 +857,8 @@ export default {async fetch(request,env){
   const target=await db.prepare("SELECT a.id FROM activation_tokens t JOIN accounts a ON a.id=t.account_id WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>? AND a.role='member' AND a.status='invited'").bind(tokenHash,now()).first();
   if(!target)return activationPage("招待コードが無効または期限切れです。",400);
   step="activation-password-hash";const hash=await hashPassword(password,env);
-  const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status='invited' AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id AND used_at IS NULL AND expires_at>?)").bind(hash,target.id,tokenHash,now()),db.prepare("UPDATE activation_tokens SET used_at=CURRENT_TIMESTAMP WHERE token_hash=? AND account_id=? AND used_at IS NULL AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active')").bind(tokenHash,target.id,target.id)]);
-  if(results[0].meta.changes!==1)return activationPage("招待コードが無効または期限切れです。",400);
+  const results=await db.batch([db.prepare("UPDATE accounts SET password_hash=?,status='active',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role='member' AND status='invited' AND EXISTS(SELECT 1 FROM activation_tokens WHERE token_hash=? AND account_id=accounts.id AND used_at IS NULL AND expires_at>?) RETURNING 1 AS affected").bind(hash,target.id,tokenHash,now()),db.prepare("UPDATE activation_tokens SET used_at=CURRENT_TIMESTAMP WHERE token_hash=? AND account_id=? AND used_at IS NULL AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active')").bind(tokenHash,target.id,target.id)]);
+  if(!oneAffected(results[0]))return activationPage("招待コードが無効または期限切れです。",400);
   return redirect("/");
  }
  if(path.startsWith("/admin/")){
@@ -869,15 +871,15 @@ export default {async fetch(request,env){
  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Account issuance disabled"},403);
  const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,env.PORTAL_TEST_MODE==="true");
  const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
- const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING").bind(id,email,memberId).run();if(result.meta.changes!==1)return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,env.PORTAL_TEST_MODE==="true");
+ const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING RETURNING 1 AS affected").bind(id,email,memberId).all();if(!oneAffected(result))return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,env.PORTAL_TEST_MODE==="true");
  return redirect("/admin");
  }
  const id=form.get("id")||"";if(!safeId(id))return json({error:"Invalid account"},400);
  if(path==="/admin/invite"){
   if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Invitation disabled"},403);
   const token=randomToken(),tokenHash=await digest(token);
-  const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited'").bind(tokenHash,now()+86400,id)]);
-  if(result[1].meta.changes!==1)return json({error:"Account not eligible"},409);
+  const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited' RETURNING 1 AS affected").bind(tokenHash,now()+86400,id)]);
+  if(!oneAffected(result[1]))return json({error:"Account not eligible"},409);
   return await adminPage(db,"招待コードを発行しました。",200,true,token);
  }
  await db.batch([db.prepare("UPDATE accounts SET status=\'suspended\',updated_at=CURRENT_TIMESTAMP WHERE id=? AND role=\'member\'").bind(id),db.prepare("DELETE FROM sessions WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role=\'member\')").bind(id),db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role=\'member\')").bind(id)]);
@@ -892,8 +894,8 @@ export default {async fetch(request,env){
   step="password-hash";
  const hash=await hashPassword(password,env);
  step="administrator-insert";
-  const result=await db.prepare("INSERT INTO accounts(id,email,role,status,password_hash) SELECT ?,?,'admin','active',? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE role='admin')").bind(crypto.randomUUID(),email,hash).run();
-  if(result.meta.changes!==1)return json({error:"Setup unavailable"},409);
+  const result=await db.prepare("INSERT INTO accounts(id,email,role,status,password_hash) SELECT ?,?,'admin','active',? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE role='admin') RETURNING 1 AS affected").bind(crypto.randomUUID(),email,hash).all();
+  if(!oneAffected(result))return json({error:"Setup unavailable"},409);
   return redirect("/");
  }
  if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
@@ -907,5 +909,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-validation-v21"},503);}
+ }catch(error){console.error("Portal operation failed",step,error?.name||"Error");return json({error:"Service unavailable",step,revision:"release-validation-v22"},503);}
 }};
