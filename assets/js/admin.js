@@ -11,7 +11,7 @@ const BASELINE_KEY=STORAGE_KEY+"-baseline";
 let draftConflict=false, dataReady=false, imageBusy=false;
 const singleton=k=>["home","settings"].includes(k);
 const SCHEMAS={
- settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"],["seoTitle","検索・SNS表示タイトル（トップページ）","text"],["seoDescription","検索・SNS表示説明文（トップページ）","textarea"],["seoImage","SNS共有画像パス（画像ライブラリからコピー）","text"]],
+ settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["managementIds","ABOUT運営メンバー紹介","managementOrder"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"],["seoTitle","検索・SNS表示タイトル（トップページ）","text"],["seoDescription","検索・SNS表示説明文（トップページ）","textarea"],["seoImage","SNS共有画像パス（画像ライブラリからコピー）","text"]],
  home:[["published","設定を有効にする","checkbox"],["headline1","キャッチコピー1行目","text"],["headline2","キャッチコピー2行目","text"],["lead","紹介メッセージ","textarea"],["heroImage","メインビジュアル画像（任意）","image"],["featuredIds","ピックアップメンバー","memberSelect"],["notice","トップページのお知らせ（任意）","textarea"],["aboutText","コミュニティ紹介文","textarea"],["joinText","参加案内メッセージ","text"],...["News","Schedule","Members","About","Join"].map((v,i)=>["hide"+v,["最新情報","配信予定","メンバー","概要","参加案内"][i]+"を非表示","checkbox"])],
  talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["imageColor","イメージカラー（任意）","themeColor"],["cohort","期生","cohort"],["roles","コミュニティ内の役職（複数ある場合はカンマ区切り）","roles"],["affiliationAgency","所属事務所・所属先（任意）","agency"],["iconImage","プロフィールアイコン画像","image"],["avatarImage","従来のメインアバター画像（既存データ用）","image"],["avatarImages","アバターギャラリー（複数画像）","gallery"],["emoji","画像未設定時のアイコン絵文字","text"],["catchphrase","キャッチコピー","text"],["bio","プロフィール本文","textarea"],["achievements","活動実績（1行に「日付 | 内容 | 詳細」）","achievements"],["hiddenSections","プロフィールで非公開にする項目","visibility"],["birthday","誕生日（例：1月1日）","text"],["debutDate","REALITYデビュー日","date"],["joinDate","ぽっぽー加入日","date"],["anniversaries","その他の記念日（1行に 日付 | 記念日名）","anniversaries"],["activityStatus","活動状況（例：活動中・休止中）","text"],["regularSchedule","定期配信（例：毎週金曜21:00）","text"],["activityGoal","活動目標","textarea"],["favoriteWorks","好きな作品・ジャンル","textarea"],["height","身長","text"],["bloodType","血液型","text"],["fanName","ファンネーム","text"],["oshiMark","推しマーク","text"],["streamTag","配信タグ","text"],["fanArtTag","ファンアートタグ","text"],["greeting","配信の挨拶・定番フレーズ","textarea"],["hobbies","趣味","text"],["skills","特技","text"],["likes","好きなもの","textarea"],["dislikes","苦手なもの","textarea"],["favoriteFood","好きな食べ物","text"],["illustrator","キャラクターデザイン","text"],["modeler","Live2Dモデラー","text"],["message","本人からのメッセージ","textarea"],["tags","活動ジャンル・タグ（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
  schedule:[["published","公開する","checkbox"],["date","日付","date",true],["time","開始時刻","time",true],["memberId","対象メンバー（IDで紐づけ）","scheduleMember"],["talent","参加メンバー名（未選択時は手入力）","text",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
@@ -37,6 +37,7 @@ function updateAuthUI(){
 }
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"";
+ if(type==="managementOrder")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>掲載するメンバーを追加し、上下ボタンで表示順を設定できます。公開設定が有効なメンバーのみ公式HPに掲載されます。全員を除外すると掲載なしになります。</small><input type="hidden" name="${key}"><div data-management-list></div><label>追加するメンバー<select data-management-select><option value="">メンバーを選択</option></select></label><button type="button" class="admin-small-button" data-management-add>追加</button><button type="button" class="admin-small-button" data-management-default>初期の4名に戻す</button></fieldset>`;
  if(type==="newsMembers")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>選択したメンバーの個別プロフィールにこの記事を掲載します。未選択の場合は共通のお知らせとしてNEWSのみに掲載されます。</small><div class="admin-choice-grid" data-related-options>${data.talents.filter(t=>t?.id).map(t=>`<label><input type="checkbox" name="${key}" value="${esc(t.id)}"><span>${esc(t.name||t.id)}${t.published===true?"":"（非公開）"}</span></label>`).join("")}</div></fieldset>`;
  if(type==="scheduleMember")return `<label class="admin-field"><span>${label}</span><select name="${key}"><option value="">従来の名前指定・手入力</option>${data.talents.filter(t=>t?.id).map(t=>`<option value="${esc(t.id)}">${esc(t.name||t.id)}${t.published===true?"":"（非公開）"}</option>`).join("")}</select><small>メンバーを選択すると活動名が変わっても個別プロフィールに紐づきます。</small></label>`;
  if(type==="memberSelect")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>未選択の場合は公開メンバー全員を表示します。画像未設定のメンバーは代替アイコンで表示されます。</small>${data.talents.filter(t=>t.published===true).map(t=>`<label><input type="checkbox" name="${key}" value="${esc(t.id)}">${esc(t.name)}</label>`).join("")}</fieldset>`;
@@ -54,6 +55,27 @@ function fieldHtml(field){
  if(type==="tags"||type==="links")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="3" placeholder="${type==="tags"?"雑談, ゲーム":"X | https://x.com/..."}"></textarea></label>`;
  return `<label class="admin-field"><span>${label}${required?" *":""}</span><input name="${key}" type="${type}"${req} ${key==="url"?'placeholder="https://"':""}></label>`;
 }
+function setupManagementOrder(form,input,initial){
+ const list=form.querySelector("[data-management-list]"),select=form.querySelector("[data-management-select]"),add=form.querySelector("[data-management-add]"),reset=form.querySelector("[data-management-default]");
+ let ids=[...new Set(initial.filter(id=>typeof id==="string"))];
+ const choices=data.talents.filter(t=>t?.id);
+ const make=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;return el};
+ const render=()=>{
+ input.value=JSON.stringify(ids);list.replaceChildren();select.replaceChildren(make("option","メンバーを選択"));select.options[0].value="";
+ for(const t of choices.filter(t=>!ids.includes(t.id))){const o=make("option",(t.name||t.id)+(t.published===true?"":"（非公開）"));o.value=t.id;select.append(o)}
+ if(!ids.length)list.append(make("p","掲載メンバーなし"));
+ for(const [i,id] of ids.entries()){
+ const t=choices.find(x=>x.id===id),row=document.createElement("div");row.className="admin-management-row";
+ row.append(make("span",(i+1)+". "+(t?.name||id)+(t?t.published===true?"":"（非公開）":"（登録なし）")));
+ const controls=document.createElement("div");controls.className="admin-management-controls";
+ for(const [label,delta] of [["上へ",-1],["下へ",1],["除外",0]]){
+ const b=make("button",label);b.type="button";b.className="admin-small-button"+(delta===0?" danger":"");b.disabled=delta!==0&&(i+delta<0||i+delta>=ids.length);b.setAttribute("aria-label",(t?.name||id)+" "+label);
+ b.onclick=()=>{if(delta===0)ids.splice(i,1);else [ids[i],ids[i+delta]]=[ids[i+delta],ids[i]];render();input.dispatchEvent(new Event("input",{bubbles:true}))};controls.append(b)
+ }row.append(controls);list.append(row)
+ }};
+ add.onclick=()=>{if(select.value&&!ids.includes(select.value)){ids.push(select.value);render();input.dispatchEvent(new Event("input",{bubbles:true}))}};
+ reset.onclick=()=>{ids=[...DEFAULT_MANAGEMENT_IDS];render();input.dispatchEvent(new Event("input",{bubbles:true}))};render();
+}
 function renderForm(item={}){
  const form=$("content-form");form.reset();const groups=[["基本情報","id name cohort roles affiliationAgency catchphrase"],["ビジュアル","imageColor iconImage avatarImage avatarImages emoji"],["プロフィール","bio birthday height bloodType greeting hobbies skills likes dislikes favoriteFood favoriteWorks illustrator modeler message"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["活動情報","debutDate joinDate anniversaries activityStatus regularSchedule activityGoal achievements tags"],["外部リンク","links"],["公開設定","published hiddenSections"]];
  const fields=$("form-fields"),tabs=$("cms-profile-tabs");tabs.hidden=current!=="talents";tabs.replaceChildren();
@@ -64,7 +86,9 @@ function renderForm(item={}){
  form.oninvalid=null;form.addEventListener("invalid",e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()},{capture:true,once:true});
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el&&!["memberSelect","newsMembers"].includes(type))continue;
-  if(type==="newsMembers"){
+  if(type==="managementOrder"){
+   setupManagementOrder(form,el,Array.isArray(item[key])?item[key]:DEFAULT_MANAGEMENT_IDS);
+  }else if(type==="newsMembers"){
    const values=Array.isArray(item[key])?item[key].filter(v=>typeof v==="string"):[];
    const options=form.querySelector("[data-related-options]");
    for(const id of values)if(!data.talents.some(t=>t?.id===id)){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.name=key;input.value=id;label.append(input,document.createTextNode(id+"（登録なし）"));options.append(label)}
@@ -166,7 +190,8 @@ function formObject(){
  const obj={};
  for(const [key,,type] of SCHEMAS[current]){
   const el=$("content-form").elements.namedItem(key);if(!el&&!["memberSelect","newsMembers"].includes(type))continue;
-  if(type==="newsMembers")obj[key]=Array.from($("content-form").querySelectorAll('input[name="memberIds"]:checked')).map(e=>e.value);
+  if(type==="managementOrder"){obj[key]=JSON.parse(el.value||"[]")}
+  else if(type==="newsMembers")obj[key]=Array.from($("content-form").querySelectorAll('input[name="memberIds"]:checked')).map(e=>e.value);
   else if(type==="memberSelect")obj[key]=Array.from($("content-form").querySelectorAll('input[name="featuredIds"]:checked')).map(e=>e.value);
   else if(type==="checkbox")obj[key]=el.checked;
   else if(type==="visibility")obj[key]=Array.from($("content-form").querySelectorAll('input[name="hiddenSections"]:checked')).map(input=>input.value);
@@ -200,6 +225,7 @@ function validateDataset(kind,items){
   if(kind==="schedule"&&(!/^\d{4}-\d{2}-\d{2}$/.test(item.date)||!/^\d{2}:\d{2}$/.test(item.time)))return (i+1)+"件目: 日付または時刻の形式を確認してください。";
   if(kind==="news"&&item.thumbnailImage&&!/^assets\/images\/news\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(item.thumbnailImage))return "ニュース画像の保存先が正しくありません。";
   if(kind==="news"&&!/^\d{4}-\d{2}-\d{2}$/.test(item.date))return (i+1)+"件目: 日付はYYYY-MM-DD形式で入力してください。";
+  if(kind==="settings"&&item.managementIds!==undefined&&(!Array.isArray(item.managementIds)||item.managementIds.some(id=>typeof id!=="string"||!/^[A-Za-z0-9_-]+$/.test(id))||new Set(item.managementIds).size!==item.managementIds.length))return "運営メンバーのID・表示順を確認してください。";
   if(kind==="settings")for(const key of ["applicationUrl","contactUrl"])if(item[key]){try{if(new URL(item[key]).protocol!=="https:")throw Error()}catch{return "窓口URLは有効なHTTPS URLを指定してください。"}}
   if(item.url&&!/^https?:\/\//i.test(item.url))return (i+1)+"件目: URLはhttp://またはhttps://で始めてください。";
   if(kind==="talents"&&item.cohort!==undefined&&!Array.isArray(item.cohort))item.cohort=item.cohort?[item.cohort]:[];
@@ -401,6 +427,7 @@ function checkData(sets,paths=null){
  if(kind==="schedule"&&x.id){if(!/^[A-Za-z0-9_-]+$/.test(x.id))issue("error","配信予定IDが不正です");if(ids.has(x.id))issue("error","配信予定IDが重複しています");ids.add(x.id)}
  if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const matches=members.filter(t=>x.memberId?t.id===x.memberId:t.name===x.talent);if(!matches.length)issue("warning","登録メンバーに一致する名前がありません");else if(x.published===true&&!matches.some(t=>t.published===true))issue("warning","公開設定の配信予定が非公開メンバーを参照しています");if(matches.length>1)issue("warning","同名メンバーが複数存在します")}
  if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
+ if(kind==="settings"&&Array.isArray(x.managementIds))for(const id of x.managementIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しない運営メンバーID: "+id);
  if(kind==="home"&&Array.isArray(x.featuredIds))for(const id of x.featuredIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しないピックアップID: "+id);
  for(const key of ["iconImage","avatarImage","avatarImages","thumbnailImage","heroImage","seoImage"]){const values=Array.isArray(x[key])?x[key]:x[key]?[x[key]]:[];for(const v of values){if(typeof v!=="string"){issue("error",key+"の画像パスが不正です");continue}if(/^https:\/\//i.test(v)){issue("warning",key+"の外部画像は到達確認対象外です");continue}if(!/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(v)||v.split("/").includes(".."))issue("error",key+"の画像パスが不正です");else if(paths&&!paths.has(v))issue("warning","GitHubに画像が見つかりません: "+v)}}
  });
