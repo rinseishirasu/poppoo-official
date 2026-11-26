@@ -119,7 +119,7 @@
 .renewal-home .pop-hero-copy .pop-kicker{padding:6px 10px;border:1px solid #d4d4d4;border-radius:6px;background:#ffffffa8}
 .renewal-home .pop-hero h1 span{color:#3b3b3b}
 .renewal-home .pop-spotlight-controls span{max-width:65%;overflow-wrap:anywhere;text-align:center}
-.renewal-home .home-news-editorial{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.renewal-home .pop-news .home-news-editorial{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;align-items:stretch}
 .renewal-home .home-news-editorial .home-news-latest{grid-row:span 2;border-top:4px solid #454545}
 .renewal-home .home-news-editorial .home-news-latest h3{font-size:clamp(1.1rem,2vw,1.45rem);line-height:1.5}
 .renewal-home .home-news-editorial .news-card{min-width:0;overflow-wrap:anywhere}
@@ -142,7 +142,7 @@
 .renewal-home #home-talents .pop-member-link{display:flex;flex-direction:column}
 .renewal-home #home-talents .card-body{flex:1}
 .renewal-home #home-talents .pop-member-more{margin-top:auto;padding-top:8px}
-@media(max-width:760px){.renewal-home .home-news-editorial{grid-template-columns:minmax(0,1fr)}.renewal-home .home-news-editorial .home-news-latest{grid-row:auto}.renewal-home .home-news-editorial .news-card:not(.home-news-latest) .pop-news-image{aspect-ratio:16/9}.renewal-home .home-schedule-day .schedule-item{grid-template-columns:minmax(60px,75px) minmax(0,1fr);gap:8px;padding:12px}.renewal-home .home-schedule-day .schedule-link,.renewal-home .home-schedule-day .schedule-link-pending{grid-column:2;justify-self:start}.renewal-home .home-schedule-day h3{padding:10px 12px}}
+@media(max-width:760px){.renewal-home .pop-news .home-news-editorial{grid-template-columns:minmax(0,1fr)}.renewal-home .home-news-editorial .home-news-latest{grid-row:auto}.renewal-home .home-news-editorial .news-card:not(.home-news-latest) .pop-news-image{aspect-ratio:16/9}.renewal-home .home-schedule-day .schedule-item{grid-template-columns:minmax(60px,75px) minmax(0,1fr);gap:8px;padding:12px}.renewal-home .home-schedule-day .schedule-link,.renewal-home .home-schedule-day .schedule-link-pending{grid-column:2;justify-self:start}.renewal-home .home-schedule-day h3{padding:10px 12px}}
 @media(max-width:380px){.renewal-home #home-talents{grid-template-columns:minmax(0,1fr)}}
 
 /* Neutral community canvas and individually registered member colors. */
@@ -167,3 +167,5 @@
  .renewal-home .pop-heading .pop-link{white-space:normal;max-width:44%;text-align:center}
 }
 @media(max-width:380px){.renewal-home .pop-hero-actions{grid-template-columns:minmax(0,1fr)}}
+
+.renewal-home .pop-news .home-news-editorial .home-news-latest:only-child{grid-column:1/-1;grid-row:auto}
