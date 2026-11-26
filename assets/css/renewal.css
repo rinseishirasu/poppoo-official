@@ -469,3 +469,20 @@
 .pop-directory #talent-grid.member-list-view .pop-member-more{margin-top:0;padding-top:0}
 @media(max-width:760px){.pop-directory .pop-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.pop-directory .pop-filters label:first-child{grid-column:1/-1}.pop-directory #talent-grid.member-list-view .pop-member-link{grid-template-columns:minmax(80px,30%) minmax(0,1fr)}.pop-directory #talent-grid.member-list-view .card-body{padding:10px}}
 @media(max-width:380px){.pop-directory .pop-filters{grid-template-columns:minmax(0,1fr)}}
+
+/* Public schedule: seven-day navigation and result details */
+.pop-schedule-page .schedule-week-strip:not([hidden]){display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:0 0 18px}
+.pop-schedule-page .schedule-week-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:86px;padding:8px 3px;background:white;border:1px solid #cbddeb;border-radius:10px;color:#142f56;font:inherit;cursor:pointer}
+.pop-schedule-page .schedule-week-day span{font-size:.76rem;color:#365c80}
+.pop-schedule-page .schedule-week-day strong{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.pop-schedule-page .schedule-week-day[aria-pressed="true"]{background:#176bb2;border-color:#176bb2;color:white}
+.pop-schedule-page .schedule-week-day[aria-pressed="true"] span{color:white}
+.pop-schedule-page .schedule-active-filters:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pop-schedule-page .schedule-filter-chip{max-width:100%;min-height:44px;padding:8px 12px;border:1px solid #cbddeb;border-radius:8px;background:#eaf4ff;color:#145b98;font:inherit;font-size:.82rem;overflow-wrap:anywhere;cursor:pointer}
+.pop-schedule-page .schedule-week-day:focus-visible,.pop-schedule-page .schedule-filter-chip:focus-visible{outline:3px solid #1978c8;outline-offset:2px}
+.pop-schedule-page .schedule-list-note{margin:12px 0;color:#536b83}
+.pop-schedule-page .schedule-group-count{margin-left:auto;white-space:nowrap;color:white;font-size:.82rem}
+.pop-schedule-page .pop-day-group .schedule-item{border-left:4px solid var(--schedule-member-color,#1978c8)}
+.pop-schedule-page .schedule-program{min-width:0;overflow-wrap:anywhere}
+.pop-schedule-page .schedule-platform-label{display:inline-block;background:#edf6ff;border-radius:5px;color:#365c80;padding:3px 7px;margin-left:5px;font-size:.75rem}
+@media(max-width:760px){.pop-schedule-page .schedule-period{grid-template-columns:repeat(2,minmax(0,1fr))}.pop-schedule-page .schedule-week-strip:not([hidden]){grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.pop-schedule-page .schedule-week-day{min-height:70px}.pop-schedule-page .pop-day-group h3{flex-wrap:wrap;gap:6px}}
