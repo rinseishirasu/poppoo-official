@@ -57,19 +57,32 @@
  if(datasetFailed("data/talents.json")){const controls=document.querySelector("#home-member-controls");if(controls)controls.hidden=true;}
  const tg=document.querySelector("#talent-grid");
  if(tg&&!markUnavailable(tg,"talents","参加メンバー情報")){
- const q=document.querySelector("#talent-search"),filter=document.querySelector("#cohort-filter"),role=document.querySelector("#role-filter"),activity=document.querySelector("#activity-filter"),sort=document.querySelector("#member-sort"),reset=document.querySelector("#member-reset"),count=document.querySelector("#member-count"),all=published(talents);
- const options=(el,values)=>{if(el)[...new Set(values.filter(v=>typeof v==="string"&&v.trim()))].sort((a,b)=>a.localeCompare(b,"ja")).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
- options(filter,all.flatMap(cohorts));options(role,all.flatMap(roles));options(activity,all.map(publicStatus));
+ const q=document.querySelector("#talent-search"),filter=document.querySelector("#cohort-filter"),role=document.querySelector("#role-filter"),activity=document.querySelector("#activity-filter"),genre=document.querySelector("#genre-filter"),sort=document.querySelector("#member-sort"),reset=document.querySelector("#member-reset"),count=document.querySelector("#member-count"),active=document.querySelector("#member-active-filters"),viewButtons=[...document.querySelectorAll("[data-member-view]")],all=published(talents);
+ const memberTags=t=>(Array.isArray(t.tags)?t.tags:[]).filter(v=>typeof v==="string"&&v.trim());
+ const options=(el,values)=>{if(el)[...new Set(values.filter(v=>typeof v==="string"&&v.trim()))].sort((a,b)=>a.localeCompare(b,"ja",{numeric:true})).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
+ options(filter,all.flatMap(cohorts));options(role,all.flatMap(roles));options(activity,all.map(publicStatus));options(genre,all.flatMap(memberTags));
+ const fields=[["q",q,"検索"],["cohort",filter,"期生"],["role",role,"役職"],["status",activity,"活動状況"],["genre",genre,"ジャンル"],["sort",sort,"表示順"]];
+ const params=new URLSearchParams(location.search);let view=params.get("view")==="list"?"list":"grid";
+ for(const [key,el] of fields){const value=params.get(key);if(!el||value===null)continue;if(el.tagName==="SELECT"){if([...el.options].some(o=>o.value===value))el.value=value}else el.value=value}
+ const updateUrl=()=>{try{const url=new URL(location.href);for(const [key,el] of fields){if(!el)continue;const value=el.value.trim();if(value&&value!=="default")url.searchParams.set(key,value);else url.searchParams.delete(key)}if(view==="list")url.searchParams.set("view","list");else url.searchParams.delete("view");if(url.href!==location.href)history.replaceState(history.state,"",url.href)}catch{}};
+ const rank=t=>Math.min(Infinity,...cohorts(t).map(v=>{const m=String(v).match(/^(\d+)期生$/);return m?Number(m[1]):Infinity}));
+ const directoryCard=t=>{const tags=memberTags(t).slice(0,3);const card=talentCard(t);return tags.length?card.replace('<span class="pop-member-more">','<div class="member-card-genres">'+tags.map(tag=>'<span>'+escapeHtml(tag)+'</span>').join("")+'</div><span class="pop-member-more">'):card};
  const render=()=>{
- const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean),group=filter?.value||"",job=role?.value||"",state=activity?.value||"";
- const list=all.filter(t=>(!group||cohorts(t).includes(group))&&(!job||roles(t).includes(job))&&(!state||publicStatus(t)===state)&&terms.every(v=>memberSearch(t).includes(v)));
+ const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean),group=filter?.value||"",job=role?.value||"",state=activity?.value||"",tag=genre?.value||"";
+ const list=all.filter(t=>(!group||cohorts(t).includes(group))&&(!job||roles(t).includes(job))&&(!state||publicStatus(t)===state)&&(!tag||memberTags(t).includes(tag))&&terms.every(v=>memberSearch(t).includes(v)));
  if(sort?.value==="name")list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ja"));
+ if(sort?.value==="cohort")list.sort((a,b)=>rank(a)-rank(b)||0);
+ if(sort?.value==="joined")list.sort((a,b)=>(validDay(b.joinDate)?b.joinDate:"").localeCompare(validDay(a.joinDate)?a.joinDate:""));
  if(count)count.textContent=list.length+"名 / 公開メンバー "+all.length+"名";
- tg.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するメンバーはいません。検索条件を変更してください。":"参加メンバーの紹介は準備中です。")+'</div>';
- attachMemberFallback(tg);
+ tg.classList.toggle("member-list-view",view==="list");
+ viewButtons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.memberView===view)));
+ if(active){active.replaceChildren();for(const [key,el,label] of fields){if(!el||!el.value.trim()||el.value==="default")continue;const b=document.createElement("button");b.type="button";b.className="member-filter-chip";const value=el.tagName==="SELECT"?el.selectedOptions[0]?.textContent:el.value;b.textContent=label+"："+value+" ×";b.setAttribute("aria-label",label+"の条件を解除");b.onclick=()=>{el.value=key==="sort"?"default":"";render();el.focus()};active.append(b)}active.hidden=!active.childElementCount}
+ tg.innerHTML=list.length?list.map(directoryCard).join(""):'<div class="empty-state">'+(all.length?"条件に一致するメンバーはいません。検索条件を変更してください。":"参加メンバーの紹介は準備中です。")+'</div>';
+ attachMemberFallback(tg);updateUrl();
  };
- q?.addEventListener("input",render);[filter,role,activity,sort].forEach(el=>el?.addEventListener("change",render));
- reset?.addEventListener("click",()=>{if(q)q.value="";[filter,role,activity].forEach(el=>{if(el)el.value=""});if(sort)sort.value="default";render();q?.focus()});
+ q?.addEventListener("input",render);[filter,role,activity,genre,sort].forEach(el=>el?.addEventListener("change",render));
+ viewButtons.forEach(b=>b.addEventListener("click",()=>{view=b.dataset.memberView==="list"?"list":"grid";render()}));
+ reset?.addEventListener("click",()=>{if(q)q.value="";[filter,role,activity,genre].forEach(el=>{if(el)el.value=""});if(sort)sort.value="default";render();q?.focus()});
  render();
  }
  const homeT=document.querySelector("#home-talents");if(homeT&&!markUnavailable(homeT,"talents","参加メンバー情報")){const list=published(talents);homeT.innerHTML=list.length?list.map(talentCard).join(""):'<div class="empty-state">参加メンバー情報は準備中です。公開準備が整い次第、こちらでご紹介します。</div>'}

@@ -447,3 +447,25 @@
 .pop-profile .member-themed .profile-section:target{outline-color:var(--member-ink)}
 .pop-profile .member-themed .pop-share-heading{color:var(--member-ink)}
 @media(max-width:760px){.pop-profile .member-themed .profile-top{padding:16px;gap:16px}.pop-profile .profile-identity-label{font-size:.7rem}.pop-profile .member-themed .profile-avatar{max-width:360px}.pop-profile .member-themed .profile-intro h1{text-wrap:wrap}.pop-profile .member-themed .profile-index{margin:12px 0}}
+
+/* Public member directory: result controls and alternate display */
+.pop-directory .pop-filters{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pop-directory .pop-filters label:first-child{grid-column:span 2}
+.pop-directory .member-result-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.pop-directory .member-result-bar .pop-member-count{margin:0}
+.pop-directory .member-view-switch{display:flex;border:1px solid #cbddeb;background:white;border-radius:10px;padding:3px;gap:3px}
+.pop-directory .member-view-switch button,.pop-directory .member-filter-chip{border:0;background:white;color:#142f56;font:inherit;font-size:.82rem;font-weight:700;cursor:pointer;min-height:44px;padding:8px 14px;border-radius:7px}
+.pop-directory .member-view-switch button[aria-pressed="true"]{background:#1978c8;color:white}
+.pop-directory .member-active-filters:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.pop-directory .member-filter-chip{max-width:100%;overflow-wrap:anywhere;background:#eaf4ff;border:1px solid #cbddeb;color:#145b98;text-align:left}
+.pop-directory .member-view-switch button:focus-visible,.pop-directory .member-filter-chip:focus-visible{outline:3px solid #1978c8;outline-offset:2px}
+.pop-directory .member-card-genres{display:flex;flex-wrap:wrap;gap:5px}
+.pop-directory .member-card-genres span{font-size:.72rem;line-height:1.4;background:#f1f6fc;border-radius:5px;padding:4px 7px;max-width:100%;overflow-wrap:anywhere;color:#365c80}
+.pop-directory .pop-member-card .pop-member-art{background:radial-gradient(circle at 50% 42%,white 0 28%,color-mix(in srgb,var(--member-color,#1978c8) 10%,white) 29% 59%,color-mix(in srgb,var(--member-color,#1978c8) 19%,white) 60%)}
+.pop-directory #talent-grid.member-list-view{grid-template-columns:minmax(0,1fr);gap:12px}
+.pop-directory #talent-grid.member-list-view .pop-member-link{display:grid;grid-template-columns:minmax(85px,140px) minmax(0,1fr);align-items:stretch}
+.pop-directory #talent-grid.member-list-view .pop-member-art{aspect-ratio:1/1;align-self:center}
+.pop-directory #talent-grid.member-list-view .card-body{justify-content:center;padding:16px;min-width:0}
+.pop-directory #talent-grid.member-list-view .pop-member-more{margin-top:0;padding-top:0}
+@media(max-width:760px){.pop-directory .pop-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.pop-directory .pop-filters label:first-child{grid-column:1/-1}.pop-directory #talent-grid.member-list-view .pop-member-link{grid-template-columns:minmax(80px,30%) minmax(0,1fr)}.pop-directory #talent-grid.member-list-view .card-body{padding:10px}}
+@media(max-width:380px){.pop-directory .pop-filters{grid-template-columns:minmax(0,1fr)}}
