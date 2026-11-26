@@ -91,3 +91,28 @@ main:not(.admin-page main) :is(a,button,input,select,textarea,summary):focus-vis
  #site-header .brand-logo{width:34px;height:34px}
  .pop-footer-bottom{flex-direction:column}
 }
+
+/* Public SNS share panel: text labels remain legible without external icon fonts. */
+.pop-share-panel{display:grid;gap:10px;width:100%;min-width:0;margin:20px 0 0;box-sizing:border-box}
+.pop-share-panel[hidden]{display:none!important}
+.pop-share-heading{font-size:.85rem;font-weight:750;color:#142f56}
+.pop-share-buttons{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pop-share-buttons .pop-share-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:64px;padding:9px 13px;border:1px solid transparent;border-radius:8px;font:inherit;font-size:.8rem;font-weight:700;line-height:1.4;text-decoration:none;white-space:normal;cursor:pointer;color:white;background:#142f56;box-sizing:border-box}
+.pop-share-buttons .pop-share-x,.pop-share-buttons .pop-share-threads{background:#171717}
+.pop-share-buttons .pop-share-line{background:#067d3d}
+.pop-share-buttons .pop-share-facebook{background:#145bc2}
+.pop-share-buttons .pop-share-bluesky{background:#0867c4}
+.pop-share-buttons .pop-share-whatsapp{background:#176a47}
+.pop-share-buttons .pop-share-telegram{background:#146e9e}
+.pop-share-buttons .pop-share-copy,.pop-share-buttons .pop-share-native{background:#fff;color:#142f56;border-color:#bfd3e5}
+.pop-share-buttons .pop-share-button:hover{filter:brightness(.93)}
+.pop-share-buttons .pop-share-button:focus-visible{outline:3px solid #1978c8;outline-offset:3px}
+.pop-share-status{font-size:.78rem;color:#456582;margin:0;overflow-wrap:anywhere}
+.pop-share-status:empty{display:none}
+.pop-share-url{width:100%;max-width:100%;padding:10px;border:1px solid #bfd3e5;border-radius:8px;background:white;color:#142f56}
+.pop-share-url[hidden]{display:none}
+.pop-news-detail .news-detail-footer #news-share{flex-basis:100%;margin-top:0}
+.pop-page-share-wrap{padding-bottom:32px}
+.pop-page-share-wrap .pop-share-panel{border-top:1px solid #dbe8f4;padding-top:20px}
+@media(max-width:760px){.pop-share-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pop-share-buttons .pop-share-button{min-width:0;padding:8px 5px;font-size:.75rem}}
+@media(max-width:350px){.pop-share-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
