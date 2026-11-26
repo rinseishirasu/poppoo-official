@@ -1,3 +1,5 @@
+# Project site is under /poppoo-official/; robots.txt is effective only at the origin root.
+# Submit this project's sitemap directly in Search Console.
 User-agent: *
-Disallow: /poppoo-official/admin.html
+Allow: /poppoo-official/
 Sitemap: https://rinseishirasu.github.io/poppoo-official/sitemap.xml
