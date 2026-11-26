@@ -555,3 +555,12 @@
 /* Compact next-anniversary link inside the profile facts. */
 .pop-profile .profile-next-anniversary{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--member-border,#ddd);font-size:.85rem;line-height:1.6}
 .pop-profile .profile-quick-links{flex-wrap:wrap}
+
+/* Distinguish the member’s own destinations from sharing this website. */
+.pop-profile .profile-official-links{margin:14px 0 0}
+.pop-profile .profile-official-links h2{font-size:.88rem;margin:0 0 8px;color:var(--member-ink,#333);font-weight:700}
+.pop-profile .profile-official-links .profile-quick-links{margin:0;flex-wrap:wrap}
+.pop-profile .profile-share-disclosure{margin:20px 0;border-top:1px solid var(--member-border,#ddd);padding:6px 0}
+.pop-profile .profile-share-disclosure[hidden]{display:none!important}
+.pop-profile .profile-share-disclosure summary{cursor:pointer;min-height:44px;padding:10px 0;line-height:1.55;font-size:.9rem;font-weight:700;color:#555}
+.pop-profile .profile-share-disclosure .pop-share-panel{margin:0 0 8px}
