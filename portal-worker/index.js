@@ -414,17 +414,57 @@ function scheduleFields(s={}){
  const fields=[["date","配信日","date",10],["time","開始時刻（日本時間）","time",5],["title","配信タイトル","text",150],["platform","配信プラットフォーム","text",80],["url","配信先URL（任意）","url",500]];
  return fields.map(([k,label,type,max])=>'<label>'+label+'<input name="'+k+'" type="'+type+'" maxlength="'+max+'" value="'+esc(typeof s[k]==="string"?s[k]:k==="platform"?"REALITY":"")+'" '+(k==="url"?"":"required")+(k==="date"?' min="'+jstDate()+'"':"")+'></label>').join("");
 }
+const COLLAB_PREFIX="[POPPŌ コラボ配信申請 v1]\n";
+const isCollabApplication=row=>row?.kind==="other"&&typeof row.body==="string"&&row.body.startsWith(COLLAB_PREFIX);
+const applicationLabel=row=>isCollabApplication(row)?"コラボ配信申請":applicationKinds[row.kind]||row.kind;
+const applicationBody=row=>isCollabApplication(row)?row.body.slice(COLLAB_PREFIX.length):row.body;
+function collabUrl(value){
+ if(!value)return true;
+ if(typeof value!=="string"||value.length>500||!/^https?:\/\/[^/\s\\]/i.test(value)||/[\s\\\x00-\x1f\x7f]/.test(value))return false;
+ try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)&&!!u.hostname&&!u.username&&!u.password;}catch{return false;}
+}
+function collabPayload(form,member,members){
+ const fields=["date","time","title","platform","url"],limits={date:10,time:5,title:150,platform:80,url:500},v={};
+ for(const k of fields){const x=form.get(k);if(typeof x!=="string"||x.length>limits[k]||/[\x00-\x1f\x7f]/.test(x))return null;v[k]=x.trim();}
+ if(!member||typeof member.name!=="string"||!member.name.trim()||!validScheduleDate(v.date)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(v.time)||!v.title||!v.platform||!collabUrl(v.url)||form.get("confirm")!=="yes")return null;
+ const ids=[],guests=[];
+ for(let i=0;i<5;i++){
+ const id=form.get("participant_"+i);if(typeof id!=="string")return null;if(!id)continue;
+ if(id===member.id||ids.includes(id)||!members.some(m=>m.id===id&&m.published===true))return null;ids.push(id);
+ }
+ for(let i=0;i<3;i++){
+ const name=form.get("guest_name_"+i),url=form.get("guest_url_"+i);
+ if(typeof name!=="string"||typeof url!=="string"||name.length>80||url.length>500||/[\x00-\x1f\x7f]/.test(name)||/[\x00-\x1f\x7f]/.test(url))return null;
+ if(!name.trim()&&!url.trim())continue;
+ if(!name.trim()||!collabUrl(url.trim())||guests.some(g=>g.name===name.trim()))return null;
+ guests.push({name:name.trim(),url:url.trim()});
+ }
+ if(!ids.length&&!guests.length)return null;
+ const body=COLLAB_PREFIX+["配信日: "+v.date,"開始時刻（JST）: "+v.time,"タイトル: "+v.title,"媒体: "+v.platform,"配信先: "+(v.url||"未指定"),"申請者: "+member.name+" ("+member.id+")","ぽっぽー参加者: "+(ids.map(id=>members.find(m=>m.id===id).name+" ("+id+")").join(" / ")||"なし"),"外部参加者: "+(guests.map(g=>g.name+(g.url?" ("+g.url+")":"")).join(" / ")||"なし")].join("\n");
+ return body.length<=1000?body:null;
+}
+function collabForm(member,members){
+ const options='<option value="">選択しない</option>'+members.filter(m=>m.published===true&&m.id!==member.id).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("");
+ return '<section class="portal-section"><h2>コラボ配信申請</h2><p class="portal-notice">申請者は参加者に自動追加されます。参加者全員の同意を得てから申請してください。運営が内容を確認し、公式HPの管理画面から登録します。受付だけでは公開されません。</p><form method="post" action="/schedule/collab">'+scheduleFields()+'<h3>ぽっぽー内の参加メンバー（最大5名追加）</h3>'+Array.from({length:5},(_,i)=>'<label>参加メンバー '+(i+1)+'<select name="participant_'+i+'">'+options+'</select></label>').join("")+'<h3>外部の参加者（最大3名）</h3>'+Array.from({length:3},(_,i)=>'<details '+(i===0?"open":"")+'><summary>外部参加者 '+(i+1)+'</summary><label>活動名<input name="guest_name_'+i+'" maxlength="80"></label><label>公式リンク（任意）<input type="url" name="guest_url_'+i+'" maxlength="500"></label></details>').join("")+'<p>申請全体は1,000文字以内です。長いリンクを複数登録する場合は運営へご相談ください。</p><label><input type="checkbox" name="confirm" value="yes" required>参加者全員の同意と公開予定の内容を確認しました</label><button>コラボ配信を申請</button></form></section>';
+}
+async function submitCollab(env,session,form){
+ const members=await publishedMembers(env),member=members.find(m=>m.id===session.member_id),body=collabPayload(form,member,members);
+ if(body===null)return json({error:"Invalid collaboration request; verify date, participants, URLs, consent and total length"},400);
+ const result=await env.DB.prepare("INSERT INTO member_applications(id,account_id,kind,body) SELECT ?,?,'other',? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND member_id=? AND role='member' AND status='active') AND (SELECT COUNT(*) FROM member_applications WHERE account_id=? AND status='pending')<10 AND NOT EXISTS(SELECT 1 FROM member_applications WHERE account_id=? AND kind='other' AND body=? AND status IN ('pending','accepted')) RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,body,session.id,session.member_id,session.id,session.id,body).all();
+ if(!oneAffected(result))return json({error:"Request unavailable, already submitted, or pending limit reached"},409);
+ return redirect("/applications");
+}
 async function schedulePage(env,session,success=false){
- let data,sha="",member,legacyCount=0,enabled=publicationReady(env);
+ let data,sha="",member,members=[],legacyCount=0,enabled=publicationReady(env);
  if(enabled){
  const head=await gitHead(env);
  const [s,t]=await Promise.all([githubDataset(env,"schedule",head.sha),githubDataset(env,"talents",head.sha)]);
- data=s.data;sha=s.sha;member=t.data.find(m=>m.id===session.member_id&&m.published===true);
+ data=s.data;sha=s.sha;members=t.data.filter(m=>m?.published===true);member=members.find(m=>m.id===session.member_id);
  legacyCount=t.data.filter(m=>m.published===true&&m.name===member?.name).length;
  }else{
  const [s,t]=await Promise.all([fetch("https://rinseishirasu.github.io/poppoo-official/data/schedule.json",{cache:"no-store"}),publishedMembers()]);
  if(!s.ok)throw Error("Schedule unavailable");data=await s.json();if(!Array.isArray(data))throw Error("Invalid schedule");
- member=t.find(m=>m.id===session.member_id);legacyCount=t.filter(m=>m.name===member?.name).length;
+ members=t;member=t.find(m=>m.id===session.member_id);legacyCount=t.filter(m=>m.name===member?.name).length;
  }
  if(!member)return page("schedule","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
  const owned=data.filter(s=>scheduleOwned(s,session));
@@ -433,7 +473,7 @@ async function schedulePage(env,session,success=false){
  const form=enabled?'<form method="post" action="/schedule/save">'+revision+scheduleFields()+'<button>配信予定を公開登録</button></form>':'<p class="portal-notice">公開登録・更新は最終検証まで停止しています。</p>';
  const rows=owned.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))).map(s=>'<article><strong>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'</strong><p>'+esc(s.platform||"")+'</p>'+(enabled?'<details><summary>編集する</summary><form method="post" action="/schedule/save">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'">'+scheduleFields(s)+'<button>変更を公開</button></form></details><form method="post" action="/schedule/delete">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>この配信予定を削除する</label><button>公開予定を削除</button></form>':"")+'</article>').join("");
  const old=legacy.map(s=>'<article>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'<p>'+(scheduleIsCollab(s)?"コラボ配信 / ":"")+'運営登録・閲覧のみ</p></article>').join("");
- return page("schedule",success?"GitHubへの更新が完了しました。公式サイトへの配信には反映時間がかかる場合があります。":"",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>SCHEDULE / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>本人の配信予定を管理します。</p></div><h2>新規登録</h2>'+form+'<h2>本人の登録済み予定</h2>'+(rows||"<p>登録はありません。</p>")+'<h2>既存の公開予定（運営管理）</h2>'+(old||"<p>該当する予定はありません。</p>"));
+ return page("schedule",success?"GitHubへの更新が完了しました。公式サイトへの配信には反映時間がかかる場合があります。":"",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>SCHEDULE / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>本人の配信予定を管理します。</p></div><h2>ソロ配信の新規登録</h2>'+form+collabForm(member,members)+'<p><a href="/applications">コラボ配信の申請状況・取り下げ</a></p><h2>本人の登録済み予定</h2>'+(rows||"<p>登録はありません。</p>")+'<h2>既存の公開予定（運営管理）</h2>'+(old||"<p>該当する予定はありません。</p>"));
 }
 async function mutateSchedule(env,session,form,path){
  if(!publicationReady(env))return json({error:"Publication disabled"},403);
@@ -567,13 +607,13 @@ async function noticesPage(db,session){
 }
 async function applicationsPage(db,session){
  const rows=(await db.prepare("SELECT id,kind,body,status,review_note,created_at FROM member_applications WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT 100").bind(session.id).all()).results;
- const list=rows.map(a=>'<article><strong>'+esc(applicationKinds[a.kind]||a.kind)+'</strong> <span class="portal-tag">'+esc(applicationStatuses[a.status]||a.status)+'</span><p><small>'+esc(a.created_at)+' UTC</small></p><pre>'+esc(a.body)+'</pre>'+(a.review_note?'<p>運営コメント：'+esc(a.review_note)+'</p>':"")+(a.status==="pending"?'<form method="post" action="/applications/withdraw">'+hInput("id",a.id)+'<button>申請を取り下げる</button></form>':"")+'</article>').join("");
- return page("applications","",200,memberBack+'<p class="portal-notice">申請は運営への連絡です。受付だけでアカウントや公開設定が変更されることはありません。</p><h2>新規申請</h2><form method="post" action="/applications/submit"><label>申請種別<select name="kind">'+Object.entries(applicationKinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join("")+'</select></label>'+textField("body","申請内容（必要な事項のみ）",1000)+'<button>申請する</button></form><h2>申請履歴</h2>'+(list||"<p>申請履歴はありません。</p>"));
+ const list=rows.map(a=>'<article><strong>'+esc(applicationLabel(a))+'</strong> <span class="portal-tag">'+esc(applicationStatuses[a.status]||a.status)+'</span><p><small>'+esc(a.created_at)+' UTC</small></p><pre>'+esc(applicationBody(a))+'</pre>'+(a.review_note?'<p>運営コメント：'+esc(a.review_note)+'</p>':"")+(a.status==="pending"?'<form method="post" action="/applications/withdraw">'+hInput("id",a.id)+'<button>申請を取り下げる</button></form>':"")+'</article>').join("");
+ return page("applications","",200,memberBack+'<p class="portal-notice">申請は運営への連絡です。受付だけでアカウントや公開設定が変更されることはありません。コラボ配信の申請は配信予定ページから行えます。</p><h2>新規申請</h2><form method="post" action="/applications/submit"><label>申請種別<select name="kind">'+Object.entries(applicationKinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join("")+'</select></label>'+textField("body","申請内容（必要な事項のみ）",1000)+'<button>申請する</button></form><h2>申請履歴</h2>'+(list||"<p>申請履歴はありません。</p>"));
 }
 async function operationsPage(db){
  const [n,a]=await Promise.all([db.prepare("SELECT id,title,body,published,created_at FROM portal_notices ORDER BY created_at DESC,id DESC LIMIT 100").all(),db.prepare("SELECT a.id,a.kind,a.body,a.status,a.review_note,a.created_at,m.member_id FROM member_applications a JOIN accounts m ON m.id=a.account_id ORDER BY (a.status='pending') DESC,a.created_at DESC,a.id DESC LIMIT 100").all()]);
  const notices=n.results.map(row=>'<article><strong>'+esc(row.title)+'</strong><p>'+(row.published?"掲載中":"非掲載")+'</p><pre>'+esc(row.body)+'</pre><form method="post" action="/admin/notice-toggle">'+hInput("id",row.id)+hInput("expected",row.published)+'<button>'+(row.published?"掲載を停止":"再掲載")+'</button></form></article>').join("");
- const requests=a.results.map(row=>'<article><strong>'+esc(row.member_id)+' / '+esc(applicationKinds[row.kind]||row.kind)+'</strong><p>'+esc(applicationStatuses[row.status]||row.status)+'</p><pre>'+esc(row.body)+'</pre>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(row.status==="pending"?'<form method="post" action="/admin/application-review">'+hInput("id",row.id)+textField("note","運営コメント",1000)+'<button name="decision" value="accepted">受付済みにする</button><p></p><button name="decision" value="returned">差し戻す</button></form>':"")+'</article>').join("");
+ const requests=a.results.map(row=>'<article><strong>'+esc(row.member_id)+' / '+esc(applicationLabel(row))+'</strong><p>'+esc(applicationStatuses[row.status]||row.status)+'</p><pre>'+esc(applicationBody(row))+'</pre>'+(isCollabApplication(row)?'<p>受付後も公開は自動ではありません。参加者の確認後、公式HPのCMSでコラボ予定を登録してください。</p>':"")+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(row.status==="pending"?'<form method="post" action="/admin/application-review">'+hInput("id",row.id)+textField("note","運営コメント",1000)+'<button name="decision" value="accepted">受付済みにする</button><p></p><button name="decision" value="returned">差し戻す</button></form>':"")+'</article>').join("");
  return page("operations","",200,adminBack+'<h2>メンバー向けお知らせ</h2><form method="post" action="/admin/notice-create">'+inputField("title","件名",150)+textField("body","本文",2000)+'<button>メンバー向けに掲載</button></form><h2>お知らせ一覧</h2>'+(notices||"<p>ありません。</p>")+'<h2>メンバーからの申請</h2>'+(requests||"<p>ありません。</p>"));
 }
 async function mutateOperations(db,session,form,path){
@@ -829,7 +869,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v25",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v26",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -856,7 +896,7 @@ export default {async fetch(request,env){
  }
  if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/schedule/collab","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if(origin!==url.origin||["cross-site","same-site"].includes(request.headers.get("Sec-Fetch-Site")))return json({error:"Cross-origin request rejected"},403);
 
@@ -892,7 +932,7 @@ export default {async fetch(request,env){
  }
  let result;
  if(path==="/applications/submit"){
- const kind=form.get("kind"),body=getText(form,"body",1000,true);if(!Object.hasOwn(applicationKinds,kind)||body===null)return json({error:"Invalid application"},400);
+ const kind=form.get("kind"),body=getText(form,"body",1000,true);if(!Object.hasOwn(applicationKinds,kind)||body===null||body.startsWith(COLLAB_PREFIX.trimEnd()))return json({error:"Invalid application"},400);
  result=await db.prepare("INSERT INTO member_applications(id,account_id,kind,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') AND (SELECT COUNT(*) FROM member_applications WHERE account_id=? AND status='pending')<10 RETURNING 1 AS affected").bind(crypto.randomUUID(),session.id,kind,body,session.id,session.id).all();
  }else{
  if(!safeId(id))return json({error:"Invalid application"},400);
@@ -902,6 +942,7 @@ export default {async fetch(request,env){
  }
  if(path.startsWith("/schedule/")){
  const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ if(path==="/schedule/collab"){step="collab-request";return await submitCollab(env,session,form);}
  step="schedule-publication";return await mutateSchedule(env,session,form,path);
  }
  if(path.startsWith("/profile/")){
@@ -970,5 +1011,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v25",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v26",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }};
