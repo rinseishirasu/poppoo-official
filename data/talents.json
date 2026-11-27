@@ -468,5 +468,38 @@
     "joinDate": "2026-11-25",
     "anniversaries": [],
     "profileFormat": 2
+  },
+  {
+    "id": "ezonii",
+    "published": true,
+    "name": "蝦夷兄",
+    "imageColor": "",
+    "cohort": [
+      "1期生"
+    ],
+    "roles": [
+      "非常勤監査役"
+    ],
+    "affiliationAgency": "",
+    "iconImage": "",
+    "avatarImages": [],
+    "catchphrase": "",
+    "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "birthday": "1月9日",
+    "debutDate": "2023-07-04",
+    "joinDate": "2026-11-25",
+    "anniversaries": [],
+    "activityStatus": "",
+    "regularSchedule": "",
+    "fanName": "",
+    "oshiMark": "",
+    "streamTag": "",
+    "fanArtTag": "",
+    "likes": "",
+    "tags": [],
+    "links": [],
+    "profileFormat": 2
   }
 ]
