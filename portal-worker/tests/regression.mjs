@@ -17,11 +17,11 @@ async function runRegression(source,sql,site,admin,migrations){
  const db={prepare(q){const stmt={bind(){return stmt},async first(){if(q.includes("FROM sessions s JOIN accounts a"))return role?{id:"acct",member_id:"m",role}:null;if(q.includes("RETURNING attempts"))return {attempts:1};return null},async all(){if(q.includes("sqlite_master"))return {results:[...tables,...(missingTrigger?triggers.slice(1):triggers)]};return {results:[]}},async run(){writes++;return {meta:{changes:1}}}};return stmt},async batch(){writes++;throw Error("Unexpected batch")}};
  const fetchMock=async(url,opts)=>{network.push({url,method:opts?.method||"GET"});return {ok:true,json:async()=>({behind_by:0,status:"identical",merge_base_commit:{sha:"a".repeat(40)}})}};
  const js=source.replace("export default","const worker=").replaceAll("export async function","async function").replaceAll("export function","function");
- const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,scheduleOwned,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
+ const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
  new Function(site);new Function(admin);
  check("JS syntax: Worker, site and CMS",true);
- check("SQL contains all five migrations",migrations.length===5&&migrations.every(x=>sql.includes(x.trim())));
- check("SQL 12 tables and 11 audit triggers",tables.length===12&&triggers.length===11);
+ check("SQL contains all six migrations",migrations.length===6&&migrations.every(x=>sql.includes(x.trim())));
+ check("SQL 13 tables and 14 triggers",tables.length===13&&triggers.length===14);
  const origin="https://portal.example",env={DB:db,PASSWORD_PEPPER:"ab".repeat(32),PORTAL_TEST_MODE:"true"},enabled={...env,PORTAL_PUBLICATION_ENABLED:"true",GITHUB_PUBLISH_TOKEN:"dummy-token"},maintenance={...enabled,PORTAL_MAINTENANCE:"true",PORTAL_PUBLICATION_ENABLED:"false",PORTAL_RECOVERY_ENABLED:"true"};
  const request=(path,method="GET",originValue=origin,csrf="a".repeat(64))=>{const h={"Cookie":"__Host-poppoo_session="+"a".repeat(64)+"; __Host-poppoo_csrf="+"a".repeat(64),"Content-Type":"application/x-www-form-urlencoded","Origin":originValue,"Sec-Fetch-Site":"same-origin"};let done=false;return {url:origin+path,method,headers:new HeadersMock(h),body:{getReader(){return {read:async()=>done?{done:true}:(done=true,{done:false,value:new Encoder().encode("csrf="+csrf)}),cancel:async()=>{}}}}}};
  const call=(path,method="GET",e=env,o=origin,csrf="a".repeat(64))=>api.worker.fetch(request(path,method,o,csrf),e);
@@ -52,6 +52,12 @@ async function runRegression(source,sql,site,admin,migrations){
  check("metadata escapes markup",!generated.content.includes("<script>alert(1)</script>"));
  const id="12345678-1234-1234-1234-123456789abc",schedule={id,memberId:"m",published:true,scheduleSource:"member"};
  check("schedule ownership",api.scheduleOwned(schedule,{member_id:"m"})&&!api.scheduleOwned({...schedule,scheduleSource:"admin"},{member_id:"m"})&&!api.scheduleOwned({...schedule,published:false},{member_id:"m"})&&!api.scheduleOwned(schedule,{member_id:"x"}));
+ check("collab participant visibility",api.scheduleRelated({...schedule,memberIds:["m","n"],format:"collab"},{id:"n",name:"N"},true));
+ check("collab member edit blocked",!api.scheduleOwned({...schedule,format:"collab",memberIds:["m","n"]},{member_id:"m"}));
+ check("collab duplicate stable ID",api.collabDuplicate([{id}],{id,memberIds:["m"]}));
+ check("collab pending result not marked published",api.collabStatus({status:"pending",job_state:"processing"}).includes("確認待ち"));
+ check("collab public status",api.collabStatus({status:"accepted",job_state:"published"})==="公開登録済み");
+ check("atomic collab finalization trigger",sql.includes("collab_finish_application")&&sql.includes("RAISE(ABORT,'collab application changed')"));
  const record=api.recordPublication({kind:"anniversary",event_date:"2026-11-26",title:"Anniversary",description:"Private"});
  check("anniversary memo not published",!Object.hasOwn(record,"description"));
  const jpeg=Uint8Array.from([255,216,255,192,0,11,8,0,1,0,1,1,1,17,0,255,218,0,8,1,1,0,0,63,0,12,255,0,11,255,217]);
@@ -64,6 +70,6 @@ async function runRegression(source,sql,site,admin,migrations){
  return results;
 }
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
-const results=await runRegression(read("../index.js"),read("../install-v1.sql"),read("../../assets/js/site.js"),read("../../assets/js/admin.js"),["0001_initial.sql","0002_avatar_requests.sql","0003_member_operations.sql","0004_publication_jobs.sql","0005_audit_triggers.sql"].map(p=>read("../migrations/"+p)));
+const results=await runRegression(read("../index.js"),read("../install-v1.sql"),read("../../assets/js/site.js"),read("../../assets/js/admin.js"),["0001_initial.sql","0002_avatar_requests.sql","0003_member_operations.sql","0004_publication_jobs.sql","0005_audit_triggers.sql","0006_collab_publication.sql"].map(p=>read("../migrations/"+p)));
 for(const name of results)console.log("PASS "+name);
 console.log(results.length+" mock/static checks passed. Real Worker, D1, crypto and browser remain untested.");
