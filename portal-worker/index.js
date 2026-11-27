@@ -3,7 +3,10 @@ const encoder = new TextEncoder();
 const ITERATIONS = 100000; // Compatibility test only; review before production.
 const STRONG_ITERATIONS=600000;
 const configuredIterations=env=>env.PASSWORD_KDF_ITERATIONS==="600000"?STRONG_ITERATIONS:ITERATIONS;
-const kdfConfigValid=env=>env.PASSWORD_KDF_ITERATIONS===undefined||["100000","600000"].includes(env.PASSWORD_KDF_ITERATIONS);
+// Reject unverified runtime settings rather than silently weakening credentials.
+const kdfConfigValid=env=>env.PASSWORD_KDF_ITERATIONS===undefined||env.PASSWORD_KDF_ITERATIONS==="100000";
+const ADMIN_SESSION_SECONDS=3600, MEMBER_SESSION_SECONDS=28800, AUTH_IP_LIMIT=12, AUTH_EMAIL_LIMIT=5;
+const sessionLifetime=role=>role==="admin"?ADMIN_SESSION_SECONDS:MEMBER_SESSION_SECONDS;
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,"0")).join("");
 function randomToken(){return hex(crypto.getRandomValues(new Uint8Array(32)));}
 async function digest(value){return hex(await crypto.subtle.digest("SHA-256",encoder.encode(value)));}
@@ -38,19 +41,19 @@ export async function verifyPassword(password,stored,env){
 // D1 meta.changes includes trigger writes. RETURNING counts only directly affected rows.
 const oneAffected=result=>result?.success===true&&Array.isArray(result.results)&&result.results.length===1&&result.results[0]?.affected===1;
 export async function createSession(db,accountId,expectedHash){
- const token=randomToken(),expires=Math.floor(Date.now()/1000)+28800;
- const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND status='active' AND password_hash=? RETURNING 1 AS affected").bind(await digest(token),expires,accountId,expectedHash).all();
+ const token=randomToken(),t=Math.floor(Date.now()/1000),expires=t+MEMBER_SESSION_SECONDS;
+ const result=await db.prepare("INSERT INTO sessions(token_hash,account_id,expires_at) SELECT ?,id,CASE WHEN role='admin' THEN ? ELSE ? END FROM accounts WHERE id=? AND status='active' AND password_hash=? RETURNING 1 AS affected").bind(await digest(token),t+ADMIN_SESSION_SECONDS,expires,accountId,expectedHash).all();
  if(!oneAffected(result))throw new Error("Account unavailable");
  return {token,expires};
 }
 export async function readSession(db,token){
  if(!/^[a-f0-9]{64}$/.test(token||""))return null;
- return db.prepare("SELECT a.id,a.member_id,a.role FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires_at>? AND a.status='active'").bind(await digest(token),Math.floor(Date.now()/1000)).first();
+ return db.prepare("SELECT a.id,a.member_id,a.role FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires_at>? AND a.status='active' AND (a.role<>'admin' OR s.created_at>datetime('now','-1 hour'))").bind(await digest(token),Math.floor(Date.now()/1000)).first();
 }
 export async function revokeSession(db,token){
  if(/^[a-f0-9]{64}$/.test(token||""))await db.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await digest(token)).run();
 }
-export function sessionCookie(token){return "__Host-poppoo_session="+token+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=28800";}
+export function sessionCookie(token,role){return "__Host-poppoo_session="+token+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age="+sessionLifetime(role);}
 export function clearSessionCookie(){return "__Host-poppoo_session=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0";}
 function json(body,status=200){return new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Robots-Tag":"noindex, nofollow"}});}
 const now=()=>Math.floor(Date.now()/1000);
@@ -58,7 +61,7 @@ const validEmail=e=>typeof e==="string"&&e.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@
 const cookie=request=>(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_session=([a-f0-9]{64})(?:;|$)/)?.[1]||"";
 async function limit(db,key,max){
  const hash=await digest(key),t=now();
- const row=await db.prepare("INSERT INTO login_limits(bucket_hash,attempts,window_until) VALUES (?,1,?) ON CONFLICT(bucket_hash) DO UPDATE SET attempts=CASE WHEN window_until<=? THEN 1 ELSE attempts+1 END, window_until=CASE WHEN window_until<=? THEN excluded.window_until ELSE window_until END RETURNING attempts").bind(hash,t+900,t,t).first();
+ const row=await db.prepare("INSERT INTO login_limits(bucket_hash,attempts,window_until) VALUES (?,1,?) ON CONFLICT(bucket_hash) DO UPDATE SET attempts=CASE WHEN window_until<=? THEN 1 ELSE MIN(attempts+1,1000000) END, window_until=CASE WHEN window_until<=? THEN excluded.window_until ELSE window_until END RETURNING attempts").bind(hash,t+900,t,t).first();
  return row.attempts<=max;
 }
 async function equalSecret(a,b){
@@ -973,7 +976,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v29",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v30",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1005,7 +1008,7 @@ export default {async fetch(request,env){
  if(origin!==url.origin||["cross-site","same-site"].includes(request.headers.get("Sec-Fetch-Site")))return json({error:"Cross-origin request rejected"},403);
 
  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
- if(["/login","/activate","/setup","/account/password"].includes(path)&&!await limit(db,"auth-ip:"+ip,20))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
+ if(["/login","/activate","/setup","/account/password"].includes(path)&&!await limit(db,"auth-ip:"+ip,AUTH_IP_LIMIT))return page(path==="/setup"?"setup":"login","試行回数の上限です。15分後にお試しください。",429);
  if(!["/login","/activate","/setup","/account/password","/logout"].includes(path)&&!await limit(db,"mutation-ip:"+ip,120))return json({error:"Too many requests"},429);
  const upload=path==="/avatars/upload",contentType=request.headers.get("Content-Type")||"";
  if(upload?!contentType.startsWith("multipart/form-data;"):!contentType.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
@@ -1112,16 +1115,21 @@ export default {async fetch(request,env){
   if(!oneAffected(result))return json({error:"Setup unavailable"},409);
   return redirect("/");
  }
- if(!await limit(db,"email:"+email,8))return page("login","試行回数の上限です。15分後にお試しください。",429);
+ if(!pepperReady(env)||!kdfConfigValid(env))return json({error:"Authentication configuration unavailable"},503);
+ if(!await limit(db,"email:"+email,AUTH_EMAIL_LIMIT))return page("login","試行回数の上限です。15分後にお試しください。",429);
  const account=await db.prepare("SELECT id,status,password_hash,role FROM accounts WHERE email=?").bind(email).first();
  const dummy=(pepperReady(env)?"pbkdf2-sha256-hmac-v1$":"pbkdf2-sha256$")+(pepperReady(env)?configuredIterations(env):ITERATIONS)+"$"+"0".repeat(64)+"$"+"0".repeat(64);
  step="password-verify";
  const valid=await verifyPassword(password,account?.password_hash||dummy,env);
- if(!valid||account?.status!=="active"||(account.role==="member"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true")))return page("login","メールアドレスまたはパスワードを確認してください。",401);
+ if(!valid||account?.status!=="active"||(account.role==="member"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))){
+ // Do not log submitted identifiers, passwords, IPs or tokens. Known IDs are internal.
+ try{await audit(db,null,"login.failure",account?.id||null);}catch{}
+ return page("login","メールアドレスまたはパスワードを確認してください。",401);
+ }
  await revokeSession(db,cookie(request));
  step="session-create";
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
- return redirect("/",sessionCookie(session.token));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v29",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ return redirect("/",sessionCookie(session.token,account.role));
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v30",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }};
