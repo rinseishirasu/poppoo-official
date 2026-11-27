@@ -135,14 +135,43 @@ async function memberDashboard(env,session){
  return page("home","",200,html);
 }
 // Only these text fields may be requested by members. Identity, roles, publication and images are administrator-controlled.
-const PROFILE_FIELDS=[["catchphrase","キャッチフレーズ",100],["bio","自己紹介",800],["hobbies","趣味",200],["skills","特技",200],["fanName","ファンネーム",60],["oshiMark","推しマーク",60],["streamTag","配信タグ",100],["fanArtTag","ファンアートタグ",100],["message","メッセージ",400],["greeting","挨拶",200],["likes","好きなもの",200],["dislikes","苦手なもの",200],["favoriteFood","好きな食べ物",200],["favoriteWorks","好きな作品",300],["activityGoal","活動目標",400],["regularSchedule","定期配信時間",150],["illustrator","イラストレーター",100],["modeler","モデラー",100],["height","身長",40],["bloodType","血液型",40],["affiliationAgency","所属事務所",150]];
-const profileValues=m=>Object.fromEntries(PROFILE_FIELDS.map(([k])=>[k,typeof m[k]==="string"?m[k]:""]));
-const profileRevision=async m=>digest(JSON.stringify(profileValues(m))); // v24 legacy text-only requests
+const LEGACY_PROFILE_FIELDS=[["catchphrase","キャッチフレーズ",100],["bio","自己紹介",800],["hobbies","趣味",200],["skills","特技",200],["fanName","ファンネーム",60],["oshiMark","推しマーク",60],["streamTag","配信タグ",100],["fanArtTag","ファンアートタグ",100],["message","メッセージ",400],["greeting","挨拶",200],["likes","好きなもの",200],["dislikes","苦手なもの",200],["favoriteFood","好きな食べ物",200],["favoriteWorks","好きな作品",300],["activityGoal","活動目標",400],["regularSchedule","定期配信時間",150],["illustrator","イラストレーター",100],["modeler","モデラー",100],["height","身長",40],["bloodType","血液型",40],["affiliationAgency","所属事務所",150]];
+const legacyProfileValues=m=>Object.fromEntries(LEGACY_PROFILE_FIELDS.map(([k])=>[k,typeof m[k]==="string"?m[k]:""]));
+const profileRevision=async m=>digest(JSON.stringify(legacyProfileValues(m))); // v24 legacy text-only requests
 const PROFILE_LINK_LIMIT=10;
 const profileLinkBase=m=>m?.links===undefined?[]:m.links;
-const profileRevisionV2=async m=>digest(JSON.stringify({version:2,fields:profileValues(m),links:profileLinkBase(m)}));
+const profileRevisionV2=async m=>digest(JSON.stringify({version:2,fields:legacyProfileValues(m),links:profileLinkBase(m)}));
 const PROFILE_V2_LEGACY_FIELDS=new Set(["hobbies","skills","dislikes","favoriteFood","favoriteWorks","activityGoal","illustrator","modeler","message","greeting","height","bloodType"]);
-const profileEditableFields=m=>PROFILE_FIELDS.filter(([key])=>m?.profileFormat!==2||!PROFILE_V2_LEGACY_FIELDS.has(key));
+// Current official-site schema. Operator identity, visibility and media paths remain protected.
+const PROFILE_FIELDS=[
+ ["catchphrase","キャッチコピー",100,"text"],["bio","自己紹介",2000,"textarea"],["likes","趣味・好きなもの",1000,"textarea"],
+ ["affiliationAgency","所属事務所（任意）",150,"text"],["imageColor","イメージカラー（任意）",7,"color"],
+ ["birthday","誕生日（例：1月1日）",60,"text"],["debutDate","REALITYデビュー日",10,"date"],
+ ["activityStatus","活動状況",80,"text"],["tags","主な配信ジャンル（カンマ区切り）",500,"tags"],["regularSchedule","定期配信",150,"text"],
+ ["fanName","ファンネーム",60,"text"],["oshiMark","推しマーク",60,"text"],["streamTag","配信タグ",100,"text"],["fanArtTag","ファンアートタグ",100,"text"],
+ ["voiceIntroText","自己紹介ボイスの文字起こし（任意）",2000,"textarea"],["voiceGreetingText","挨拶ボイスの文字起こし（任意）",2000,"textarea"]
+];
+const profileEditableFields=m=>PROFILE_FIELDS.filter(([k])=>k!=="voiceIntroText"&&k!=="voiceGreetingText"||typeof m?.[k==="voiceIntroText"?"voiceIntro":"voiceGreeting"]==="string"&&!!m[k==="voiceIntroText"?"voiceIntro":"voiceGreeting"].trim());
+const profileValues=m=>{
+ const n=normalizedMemberProfile(m);
+ return Object.fromEntries(PROFILE_FIELDS.map(([k])=>[k,k==="tags"?(Array.isArray(n.tags)?n.tags:[]):typeof n[k]==="string"?n[k]:""]));
+};
+const profileRevisionV3=async m=>digest(JSON.stringify({version:3,fields:profileValues(m),legacy:legacyProfileValues(m),links:profileLinkBase(m),format:m.profileFormat??null,hidden:m.hiddenSections??[],voiceIntro:m.voiceIntro??null,voiceGreeting:m.voiceGreeting??null}));
+const profileFieldValue=(k,v)=>k==="tags"?(Array.isArray(v)?v.join(", "):""):typeof v==="string"?v:"";
+function profileFieldValid(k,v,max){
+ if(k==="tags")return Array.isArray(v)&&v.length<=20&&v.every(x=>typeof x==="string"&&x.length<=50&&x.trim()===x&&x.length>0&&!/[,\r\n\x00-\x1f\x7f]/.test(x))&&new Set(v).size===v.length&&v.join(", ").length<=max;
+ if(typeof v!=="string"||v.length>max)return false;
+ if(k==="imageColor")return v===""||/^#[0-9a-f]{6}$/i.test(v);
+ if(k==="debutDate")return v===""||dateValid(v);
+ return true;
+}
+function profileFieldEditor([k,label,max,type],value){
+ const v=esc(profileFieldValue(k,value)),head='<label>'+esc(label)+'（'+max+'文字以内）';
+ if(type==="textarea"||type==="tags")return head+'<textarea name="'+k+'" maxlength="'+max+'">'+v+'</textarea></label>';
+ return head+'<input name="'+k+'" type="'+(type==="date"?"date":"text")+'" maxlength="'+max+'" value="'+v+'"'+(type==="color"?' placeholder="#666666" pattern="#[0-9a-fA-F]{6}"':"")+'></label>';
+}
+const profileHistoryFields=[...PROFILE_FIELDS,...LEGACY_PROFILE_FIELDS.filter(([k])=>!PROFILE_FIELDS.some(([key])=>key===k))];
+const profilePatchText=(k,v)=>profileFieldValue(k,v)||"（空欄）";
 function validateProfileLinks(value){
  if(!Array.isArray(value)||value.length>PROFILE_LINK_LIMIT)return false;
  const seen=new Set();
@@ -170,14 +199,24 @@ function profileLinksDetail(value){
  return value.length?value.map(v=>'<pre>'+esc(v?.label||"（名称なし）")+'\n'+esc(v?.url||"（URLなし）")+'</pre>').join(""):'<p>（リンクなし）</p>';
 }
 async function profilePatchRevisionMatches(member,patch,revision){
+ if(await profileRevisionV3(member)===revision)return true;
+ // Only old-schema keys can be approved against an old revision.
+ if(Object.keys(patch).some(k=>k!=="links"&&!LEGACY_PROFILE_FIELDS.some(([key])=>key===k)))return false;
  if(await profileRevisionV2(member)===revision)return true;
  return !Object.hasOwn(patch,"links")&&await profileRevision(member)===revision;
 }
-function applyProfilePatch(member,patch){
+function applyProfilePatch(member,patch,legacy=false){
  const updated={...member};
+ // Match the public site's normalization before editing combined legacy text.
+ if(!legacy&&member.profileFormat!==2&&(Object.hasOwn(patch,"bio")||Object.hasOwn(patch,"likes"))){
+ const n=normalizedMemberProfile(member);updated.bio=n.bio;updated.likes=n.likes;updated.avatarImages=n.avatarImages;updated.profileFormat=2;
+ }
  for(const [k,v] of Object.entries(patch)){
  if(k==="links"){if(!validateProfileLinks(v))throw Error("Invalid links");updated.links=v;continue;}
- const field=profileEditableFields(member).find(([key])=>key===k);if(!field||typeof v!=="string"||v.length>field[2])throw Error("Invalid or legacy profile patch field");updated[k]=v;
+ const field=profileEditableFields(member).find(([key])=>key===k);
+ if(!field||!profileFieldValid(k,v,field[2]))throw Error("Invalid or legacy profile patch field");
+ if(legacy){const old=LEGACY_PROFILE_FIELDS.find(([key])=>key===k);if(!old||typeof v!=="string"||v.length>old[2])throw Error("Invalid legacy profile field");}
+ updated[k]=v;
  }
  return updated;
 }
@@ -186,32 +225,35 @@ async function profilePage(env,session,message="",status=200){
  const db=env.DB;
  const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return page("profile","公開プロフィールが見つかりません。",404,'<a href="/">ダッシュボードに戻る</a>');
- const base=profileValues(member),revision=await profileRevisionV2(member);
+ const base=profileValues(member),revision=await profileRevisionV3(member);
  const rows=(await db.prepare("SELECT id,base_revision,patch_json,status,review_note,updated_at FROM profile_requests WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT 30").bind(session.id).all()).results;
  const open=await db.prepare("SELECT id,base_revision,patch_json,status FROM profile_requests WHERE account_id=? AND status IN ('draft','pending') ORDER BY created_at DESC,id DESC LIMIT 1").bind(session.id).first();
  const draft=open?.status==="draft"?open:null;
  const stale=draft&&draft.base_revision!==revision;
  const patch=draft?JSON.parse(draft.patch_json):{};
- const values={...base,...Object.fromEntries(PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k])=>[k,patch[k]]))};
- const editor=open?.status==="pending"?'<p class="portal-notice">審査中の申請があります。取り下げるまで新規申請はできません。</p>':stale?'<p class="portal-notice">公開プロフィールが変更されています。下書きを取り下げてから編集し直してください。</p>':'<form method="post" action="/profile/save"><input type="hidden" name="revision" value="'+esc(revision)+'"><input type="hidden" name="request_id" value="'+esc(draft?.id||"")+'"><input type="hidden" name="draft_version" value="'+esc(draft?await digest(draft.patch_json):"")+'">'+profileEditableFields(member).map(([k,label,max])=>'<label>'+esc(label)+'（'+max+'文字以内）<textarea name="'+k+'" maxlength="'+max+'">'+esc(values[k])+'</textarea></label>').join("")+profileLinksEditor(profileLinkBase(member),Object.hasOwn(patch,"links")?patch.links:profileLinkBase(member))+'<p>変更内容はD1に保存され、公式サイトには反映されません。</p><button name="action" value="draft">下書き保存</button><p></p><button name="action" value="pending">審査へ提出</button></form>';
+ const values={...base,...Object.fromEntries(profileEditableFields(member).filter(([k,,max])=>Object.hasOwn(patch,k)&&profileFieldValid(k,patch[k],max)).map(([k])=>[k,patch[k]]))};
+ const editor=open?.status==="pending"?'<p class="portal-notice">審査中の申請があります。取り下げるまで新規申請はできません。</p>':stale?'<p class="portal-notice">公開プロフィールが変更されています。下書きを取り下げてから編集し直してください。</p>':'<form method="post" action="/profile/save"><input type="hidden" name="revision" value="'+esc(revision)+'"><input type="hidden" name="request_id" value="'+esc(draft?.id||"")+'"><input type="hidden" name="draft_version" value="'+esc(draft?await digest(draft.patch_json):"")+'">'+profileEditableFields(member).map(field=>profileFieldEditor(field,values[field[0]])).join("")+profileLinksEditor(profileLinkBase(member),Object.hasOwn(patch,"links")?patch.links:profileLinkBase(member))+'<p>変更内容はD1に保存され、公式サイトには反映されません。</p><button name="action" value="draft">下書き保存</button><p></p><button name="action" value="pending">審査へ提出</button></form>';
  const history=rows.length?rows.map(row=>{
  const patch=JSON.parse(row.patch_json);
  const record=publicationRecordPatch(patch);
- const details=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3>'+profileLinksDetail(patch.links):"");
+ const details=record?recordPatchDetail(record):profileHistoryFields.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(profilePatchText(k,patch[k]))+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3>'+profileLinksDetail(patch.links):"");
  return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(displayJst(row.updated_at))+'</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
  }).join(""):"<p>申請履歴はまだありません。</p>";
- return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
+ return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">活動名・期生・役職・ぽっぽー加入日・公開設定・ボイス音源は運営管理です。画像は画像管理、活動実績・その他の記念日は活動記録から申請できます。ボイスの文字起こしは音源掲載済みの場合に編集できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
 }
 async function saveProfile(env,session,form){
  const db=env.DB;
  const member=(await publishedMembers(env)).find(m=>m.id===session.member_id);
  if(!member)return json({error:"Profile unavailable"},404);
- const revision=await profileRevisionV2(member),base=profileValues(member),action=form.get("action");
+ const revision=await profileRevisionV3(member),base=profileValues(member),action=form.get("action");
  if(!["draft","pending"].includes(action)||form.get("revision")!==revision)return json({error:"Profile changed; reopen editor"},409);
  const patch={};
  for(const [k,,max] of profileEditableFields(member)){
  const value=form.get(k);if(typeof value!=="string"||value.length>max)return json({error:"Invalid profile field"},400);
- const normalized=value.replace(/\r\n/g,"\n").trim();if(normalized!==base[k].replace(/\r\n/g,"\n").trim())patch[k]=normalized;
+ const normalized=k==="tags"?value.split(",").map(x=>x.trim()).filter(Boolean):value.replace(/\r\n/g,"\n").trim();
+ if(!profileFieldValid(k,normalized,max))return json({error:"Invalid profile field: "+k},400);
+ const previous=k==="tags"?base[k]:base[k].replace(/\r\n/g,"\n").trim();
+ if(JSON.stringify(normalized)!==JSON.stringify(previous))patch[k]=normalized;
  }
  if(validateProfileLinks(profileLinkBase(member))){
  if(form.get("links_edit")!=="yes")return json({error:"Link fields missing; reopen editor"},400);
@@ -853,7 +895,7 @@ async function githubConnectionDiagnostic(env){
  const anonymous=await probe("anonymous-read",githubBaseHeaders(),false);
  const authenticated=format?await probe("authenticated-read",githubHeaders(env),false):{ok:false,githubReason:configured?"token-format":"token-missing"};
  const noStore=authenticated.ok?await probe("authenticated-no-store",githubHeaders(env),true):{ok:false,githubReason:"skipped"};
- return json({revision:"release-1.0-rc5",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
+ return json({revision:"release-1.0-rc6",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
 }
 async function reviewRegistry(env){
  const configured=publicationReady(env);
@@ -889,7 +931,7 @@ async function reviewPage(env){
  const p=profiles.results.map(row=>{
  const m=member(row.member_id),patch=JSON.parse(row.patch_json);
  const record=publicationRecordPatch(patch);
- const changes=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?(m[k]||"（空欄）"):"（現在の情報を取得できません）")+'</pre><small>申請内容</small><pre>'+esc(patch[k]||"（空欄）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3><small>現在</small>'+(m?profileLinksDetail(profileLinkBase(m)):'<p>現在の情報を取得できません。</p>')+'<small>申請内容</small>'+profileLinksDetail(patch.links):"");
+ const changes=record?recordPatchDetail(record):profileHistoryFields.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?profilePatchText(k,Object.hasOwn(profileValues(m),k)?profileValues(m)[k]:m[k]):"（現在の情報を取得できません）")+'</pre><small>申請内容</small><pre>'+esc(profilePatchText(k,patch[k]))+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3><small>現在</small>'+(m?profileLinksDetail(profileLinkBase(m)):'<p>現在の情報を取得できません。</p>')+'<small>申請内容</small>'+profileLinksDetail(patch.links):"");
  return '<article><h3>'+esc(m?.name||row.member_id)+'</h3><details open><summary>変更差分</summary>'+changes+'</details>'+form(row,"profile")+'</article>';
  }).join("");
  const a=avatars.results.map(row=>'<article><h3>'+esc(member(row.member_id)?.name||row.member_id)+' / '+esc(AVATAR_SLOTS.find(([k])=>k===row.slot)?.[1]||row.slot)+'</h3><img class="avatar-preview" src="/admin/review-image?id='+encodeURIComponent(row.id)+'" alt="審査対象画像">'+form(row,"avatar")+'</article>').join("");
@@ -936,7 +978,7 @@ async function reviewSubmission(env,session,form){
  updated[key]=[...rows,record.kind==="activity"?{date:record.date,title:record.title,description:record.description}:{date:record.date,title:record.title}];
  }else{
  if(!await profilePatchRevisionMatches(member,patch,row.base_revision))throw Error("Profile base changed");
- updated=applyProfilePatch(member,patch);
+ updated=applyProfilePatch(member,patch,await profileRevisionV3(member)!==row.base_revision);
  }
  }else{
  const bytes=new Uint8Array(row.image_data),mime=imageMime(bytes),ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[mime];
@@ -1055,7 +1097,7 @@ async function handleRequest(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc5",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc6",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1223,6 +1265,6 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc5",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc6",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
 }
 export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
