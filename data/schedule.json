@@ -9,5 +9,17 @@
     "platform": "REALITY",
     "url": "",
     "id": "a9939a33-cd1a-492f-abe6-99581e6cdd40"
+  },
+  {
+    "date": "2026-11-28",
+    "time": "10:00",
+    "title": "【朝活】喉休めしながらよりみち【～12:00】",
+    "platform": "REALITY",
+    "url": "",
+    "id": "50ebaab8-d338-4fe4-94ef-4261e54dab79",
+    "memberId": "rinsei_shirasu",
+    "talent": "白栖 凜生",
+    "published": true,
+    "scheduleSource": "member"
   }
 ]
