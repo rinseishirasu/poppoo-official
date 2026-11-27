@@ -47,8 +47,14 @@
       }
     ],
     "imageColor": "",
-    "tags": [],
-    "joinDate": "2026-11-25"
+    "tags": [
+      "雑談",
+      "歌",
+      "スリッパ"
+    ],
+    "joinDate": "2026-11-25",
+    "anniversaries": [],
+    "profileFormat": 2
   },
   {
     "id": "dondoko",
@@ -92,9 +98,15 @@
     "modeler": "",
     "message": "",
     "imageColor": "",
-    "tags": [],
+    "tags": [
+      "雑談",
+      "歌",
+      "イラスト"
+    ],
     "links": [],
-    "joinDate": "2026-11-25"
+    "joinDate": "2026-11-25",
+    "anniversaries": [],
+    "profileFormat": 2
   },
   {
     "id": "kakao_choco",
@@ -122,7 +134,7 @@
     "height": "",
     "bloodType": "",
     "fanName": "",
-    "oshiMark": "",
+    "oshiMark": "🍫🐈",
     "streamTag": "",
     "fanArtTag": "",
     "greeting": "",
@@ -138,10 +150,20 @@
     "affiliationAgency": "",
     "achievements": [],
     "hiddenSections": [],
-    "tags": [],
-    "links": [],
+    "tags": [
+      "雑談",
+      "歌",
+      "スリッパ"
+    ],
+    "links": [
+      {
+        "label": "X",
+        "url": "https://x.com/choco388338"
+      }
+    ],
     "joinDate": "2026-11-25",
-    "anniversaries": []
+    "anniversaries": [],
+    "profileFormat": 2
   },
   {
     "id": "yu_zi_n_pecorino",
@@ -296,11 +318,6 @@
     "bio": "",
     "achievements": [
       {
-        "date": "2026-01-02",
-        "title": "活動開始",
-        "description": "配信活動開始"
-      },
-      {
         "date": "2026-03-29",
         "title": "ルキグラ7位",
         "description": "ルーキーグランプリ7位入賞"
@@ -334,14 +351,24 @@
     "illustrator": "",
     "modeler": "",
     "message": "",
-    "imageColor": "",
+    "imageColor": "#96AD96",
     "tags": [
       "雑談",
       "歌"
     ],
-    "links": [],
+    "links": [
+      {
+        "label": "X",
+        "url": "https://x.com/ShirasuRinsei"
+      },
+      {
+        "label": "Youtube",
+        "url": "https://www.youtube.com/@ShirasuRinsei"
+      }
+    ],
     "joinDate": "2026-11-25",
-    "anniversaries": []
+    "anniversaries": [],
+    "profileFormat": 2
   },
   {
     "id": "sakurabachi_kamui",
@@ -432,7 +459,14 @@
     "modeler": "",
     "message": "",
     "tags": [],
-    "links": [],
-    "joinDate": "2026-11-25"
+    "links": [
+      {
+        "label": "X",
+        "url": "https://x.com/7nekineki"
+      }
+    ],
+    "joinDate": "2026-11-25",
+    "anniversaries": [],
+    "profileFormat": 2
   }
 ]
