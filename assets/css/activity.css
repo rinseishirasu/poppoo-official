@@ -20,3 +20,11 @@
 #activity-more-wrap[hidden]{display:none}
 #activity-achievements{scroll-margin-top:12px}
 @media(max-width:760px){.activity-record{grid-template-columns:minmax(0,1fr);gap:8px;padding:14px}.activity-record-body{border-left:0;padding-left:0}.activity-record h3{font-size:1rem}.activity-filters input,.activity-filters select{font-size:16px}}
+
+.activity-intro-note{margin:0;color:#555;font-size:.88rem;line-height:1.7}
+.activity-search-panel{min-width:0}
+.activity-search-panel .activity-filters{margin:0 0 12px}
+.activity-record-date{font-size:.9rem}
+.activity-record h3{overflow-wrap:anywhere}
+.activity-record .text-link{font-size:.85rem}
+@media(max-width:760px){.activity-search-panel .activity-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:0;gap:8px}.activity-search-panel .activity-filters button{grid-column:1/-1}.activity-content{gap:12px}.activity-record{gap:5px}.activity-record h3{margin:5px 0}}

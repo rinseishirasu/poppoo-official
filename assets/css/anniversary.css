@@ -50,3 +50,22 @@
  #anniversary-today{grid-column:1/-1}
  .anniversary-table td{padding:2px}
 }
+
+/* Shared filters precede both the upcoming list and the monthly view. */
+.anniversary-filter-panel{border:1px solid #e6e6e6;background:#fff;border-radius:12px;padding:clamp(12px,2.5vw,20px)}
+.anniversary-filter-panel .anniversary-controls{margin:0;align-items:end}
+.anniversary-filter-panel button{min-height:44px}
+.anniversary-filter-panel button:disabled{opacity:.5}
+#anniversary-filter-note{margin:8px 0 0;color:#555;line-height:1.6;overflow-wrap:anywhere}
+.anniversary-panel-lead{font-size:.85rem;color:#555;margin:-10px 0 16px;line-height:1.6}
+.anniversary-upcoming-group{display:grid;gap:6px;min-width:0}
+.anniversary-upcoming-group+.anniversary-upcoming-group{border-top:1px solid #e5e5e5;padding-top:14px;margin-top:6px}
+.anniversary-upcoming-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.anniversary-upcoming-heading time{font-size:.93rem;font-weight:800}
+.anniversary-jump{margin-left:auto;min-height:44px;padding:6px 10px;background:#fff;border:1px solid #ddd;border-radius:8px;color:#404040;font:inherit;font-size:.8rem;cursor:pointer}
+.anniversary-upcoming-group .anniversary-event{grid-template-columns:minmax(0,1fr);padding:10px 12px}
+.anniversary-upcoming-group .anniversary-event-date{display:none}
+.anniversary-upcoming-group .anniversary-event-info{grid-column:1;grid-row:1}
+.anniversary-day-group{scroll-margin-top:96px}
+@media(max-width:760px){.anniversary-filter-panel .anniversary-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.anniversary-filter-panel button{grid-column:1/-1}.anniversary-filter-panel .anniversary-controls label{font-size:.78rem}.anniversary-filter-panel select{padding:8px 5px}.anniversary-upcoming-heading{gap:6px}.anniversary-jump{font-size:.75rem;padding:6px 8px}}
+@media(max-width:340px){.anniversary-filter-panel .anniversary-controls{grid-template-columns:minmax(0,1fr)}}

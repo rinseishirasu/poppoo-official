@@ -19,11 +19,17 @@ const people=new Map(records.map(r=>[r.memberId,r.name]));
 for(const [id,name] of [...people.entries()].sort((a,b)=>a[1].localeCompare(b[1],"ja"))){const o=make("option","",name);o.value=id;member.append(o)}
 for(const y of [...new Set(records.filter(r=>r.dateKey).map(r=>r.dateKey.slice(0,4)))].sort().reverse()){const o=make("option","",y+"年");o.value=y;year.append(o)}
 const params=new URLSearchParams(location.search);if(people.has(params.get("member")))member.value=params.get("member");q.value=(params.get("q")||"").slice(0,160);let limit=15;
+if([...year.options].some(o=>o.value===params.get("year")))year.value=params.get("year");if(params.get("sort")==="old")sort.value="old";
+const advanced=$("activity-advanced"),active=$("activity-active-filters"),fields=[["q",q,"検索"],["member",member,"メンバー"],["year",year,"年"],["sort",sort,"表示順"]];
+if(member.value||year.value||sort.value==="old")advanced.open=true;
+function syncFilters(){active.replaceChildren();for(const [key,el,label] of fields){if(!el.value.trim()||key==="sort"&&el.value==="new")continue;const btn=make("button","news-filter-chip",label+"："+(el.tagName==="SELECT"?el.selectedOptions[0].textContent:el.value)+" ×");btn.type="button";btn.setAttribute("aria-label",label+"の条件を解除");btn.onclick=()=>{el.value=key==="sort"?"new":"";changed();if(advanced.contains(el))advanced.open=true;el.focus()};active.append(btn)}active.hidden=!active.childElementCount;
+try{const u=new URL(location.href);for(const [key,el] of fields){const value=el.value.trim();if(value&&!(key==="sort"&&value==="new"))u.searchParams.set(key,value);else u.searchParams.delete(key)}if(u.href!==location.href)history.replaceState(history.state,"",u.href)}catch{}}
+
 function render(){
  const terms=normalize(q.value).split(/\s+/).filter(Boolean);
  const list=records.filter(r=>(!member.value||r.memberId===member.value)&&(!year.value||r.dateKey.slice(0,4)===year.value)&&terms.every(t=>normalize([r.title,r.name,r.description,r.date].join(" ")).includes(t)));
  if(sort.value==="old")list.sort((a,b)=>Number(!a.dateKey)-Number(!b.dateKey)||a.dateKey.localeCompare(b.dateKey)||a.name.localeCompare(b.name,"ja"));
- status.textContent=list.length+"件中 "+Math.min(limit,list.length)+"件を表示";timeline.replaceChildren();more.hidden=list.length<=limit;
+ status.textContent=list.length+"件中 "+Math.min(limit,list.length)+"件を表示 / 全"+records.length+"件";timeline.replaceChildren();more.hidden=list.length<=limit;syncFilters();
  if(!list.length){empty(timeline,records.length?"条件に一致する活動実績はありません。":"現在、掲載中の活動実績はありません。");return}
  const groups=new Map();for(const r of list.slice(0,limit)){const key=r.dateKey?r.dateKey.slice(0,4)+"年":"日付未登録・その他";if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r)}
  for(const [label,rows] of groups){const section=make("section","activity-year-group");section.append(make("h2","activity-year-heading",label),...rows.map(card));timeline.append(section)}
