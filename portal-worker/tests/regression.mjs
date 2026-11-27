@@ -8,16 +8,16 @@ async function runRegression(source,sql,site,admin,migrations){
  class Decoder{decode(b){return String.fromCharCode(...b)}}
  class Params{constructor(s=""){this.items=String(s).split("&").filter(Boolean).map(v=>{const i=v.indexOf("=");return [decodeURIComponent(i<0?v:v.slice(0,i)),decodeURIComponent(i<0?"":v.slice(i+1))]})}get(k){return this.items.find(x=>x[0]===k)?.[1]??null}}
  class URLMock{constructor(v){const m=String(v).match(/^(https?:\/\/[^/]+)(\/[^?]*)?(?:\?(.*))?$/);if(!m)throw Error("bad URL");this.origin=m[1];this.pathname=m[2]||"/";this.searchParams=new Params(m[3]);}}
- class HeadersMock{constructor(v={}){this.v={...v}}get(k){const key=Object.keys(this.v).find(x=>x.toLowerCase()===k.toLowerCase());return key?this.v[key]:null}set(k,v){this.v[k]=v}}
- class ResponseMock{constructor(body,opts={}){this.body=body;this.status=opts.status??200;this.headers=opts.headers instanceof HeadersMock?opts.headers:new HeadersMock(opts.headers)}async json(){return JSON.parse(this.body)}}
- const fakeCrypto={getRandomValues:b=>b.fill(17),randomUUID:()=>"12345678-1234-1234-1234-123456789abc",subtle:{digest:async(alg,b)=>Uint8Array.from({length:32},(_,i)=>b[i%b.length]||0),timingSafeEqual:(a,b)=>eq(Array.from(new Uint8Array(a)),Array.from(new Uint8Array(b)))}};
+ class HeadersMock{constructor(v={}){this.v={...(v instanceof HeadersMock?v.v:v)}}get(k){const key=Object.keys(this.v).find(x=>x.toLowerCase()===k.toLowerCase());return key?this.v[key]:null}set(k,v){const key=Object.keys(this.v).find(x=>x.toLowerCase()===k.toLowerCase());this.v[key||k]=v}append(k,v){this.set(k,(this.get(k)?this.get(k)+", ":"")+v)}}
+ class ResponseMock{constructor(body,opts={}){this.body=body;this.status=opts.status??200;this.headers=opts.headers instanceof HeadersMock?opts.headers:new HeadersMock(opts.headers)}async json(){return JSON.parse(this.body)}async text(){return this.body}}
+ let randomCounter=17;const fakeCrypto={getRandomValues:b=>b.fill(randomCounter++%255),randomUUID:()=>"12345678-1234-1234-1234-123456789abc",subtle:{importKey:async()=>({}),sign:async()=>new Uint8Array(32).fill(33),deriveBits:async()=>new Uint8Array(32).fill(33),digest:async(alg,b)=>Uint8Array.from({length:32},(_,i)=>b[i%b.length]||0),timingSafeEqual:(a,b)=>eq(Array.from(new Uint8Array(a)),Array.from(new Uint8Array(b)))}};
  let role=null,missingTrigger=false,writes=0,network=[],sessionQuery="",sessionBind=[];
  const tables=[...sql.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map(x=>({name:x[1],type:"table"}));
  const triggers=[...sql.matchAll(/CREATE TRIGGER IF NOT EXISTS (\w+)/g)].map(x=>({name:x[1],type:"trigger"}));
  const db={prepare(q){const stmt={bind(...args){if(q.includes("INSERT INTO sessions"))sessionBind=args;return stmt},async first(){if(q.includes("FROM sessions s JOIN accounts a")){sessionQuery=q;return role?{id:"acct",member_id:"m",role}:null;}if(q.includes("RETURNING attempts"))return {attempts:1};return null},async all(){if(q.includes("INSERT INTO sessions"))return {success:true,results:[{affected:1}]};if(q.includes("sqlite_master"))return {results:[...tables,...(missingTrigger?triggers.slice(1):triggers)]};return {results:[]}},async run(){writes++;return {meta:{changes:1}}}};return stmt},async batch(){writes++;throw Error("Unexpected batch")}};
  const fetchMock=async(url,opts)=>{network.push({url,method:opts?.method||"GET"});return {ok:true,json:async()=>({behind_by:0,status:"identical",merge_base_commit:{sha:"a".repeat(40)}})}};
  const js=source.replace("export default","const worker=").replaceAll("export async function","async function").replaceAll("export function","function");
- const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,kdfConfigValid,sessionCookie,sessionLifetime,createSession,readSession,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,profileEditableFields,applyProfilePatch,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
+ const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,preserveCsrf,csrfCookieValue,kdfConfigValid,sessionCookie,sessionLifetime,createSession,readSession,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,profileEditableFields,applyProfilePatch,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
  new Function(site);new Function(admin);
  check("JS syntax: Worker, site and CMS",true);
  check("SQL contains all six migrations",migrations.length===6&&migrations.every(x=>sql.includes(x.trim())));
@@ -97,6 +97,31 @@ async function runRegression(source,sql,site,admin,migrations){
  check("JPEG trailing content rejected",api.imageMime(Uint8Array.from([...jpeg,1]))==="");
  const h=api.page("home","<script>bad</script>",400,'<form method="post" action="/activity/save"><button>Save</button></form>');
  check("HTML and CSRF preserved",!h.body.includes("<script>bad</script>")&&(h.body.match(/<form\b/g)||[]).length===(h.body.match(/name="csrf"/g)||[]).length&&h.headers.get("Content-Security-Policy").includes("frame-ancestors 'none'"));
+ role=null;
+ const reqWith=(path,method="GET",token="",body="")=>{const r=request(path,method);r.headers.set("Cookie",token?"__Host-poppoo_csrf="+token:"");let done=false;r.body={getReader(){return {read:async()=>done?{done:true}:(done=true,{done:false,value:new Encoder().encode(body)}),cancel:async()=>{}}}};return r};
+ const tokenFrom=res=>res.headers.get("Set-Cookie")?.match(/^__Host-poppoo_csrf=([a-f0-9]{64});/)?.[1];
+ const formFrom=res=>res.body.match(/name="csrf" value="([a-f0-9]{64})"/)?.[1];
+ const first=await api.worker.fetch(reqWith("/"),maintenance),token=tokenFrom(first);
+ check("initial GET issues matching CSRF cookie and form",first.status===200&&!!token&&token===formFrom(first));
+ const next=await api.worker.fetch(reqWith("/","GET",token),maintenance);
+ check("reopened GET retains browser token",tokenFrom(next)===token&&formFrom(next)===token);
+ for(let i=0;i<3;i++){
+ const failed=await api.worker.fetch(reqWith("/login","POST",token,"csrf="+token+"&email=probe"+i+"%40example.invalid&password=test"),maintenance);
+ check("consecutive failed login preserves CSRF "+(i+1),failed.status===401&&tokenFrom(failed)===token&&formFrom(failed)===token);
+ }
+ const missing=await api.worker.fetch(reqWith("/login","POST","","csrf="+token),maintenance);
+ check("missing cookie fails closed and offers recovery",missing.status===403&&missing.body.includes('href="/"')&&!missing.body.includes('action="/login"'));
+ const mismatch=await api.worker.fetch(reqWith("/login","POST",token,"csrf="+"b".repeat(64)),maintenance);
+ check("mismatch rejected and no login form submitted",mismatch.status===403&&mismatch.body.includes('href="/"'));
+ const duplicate=reqWith("/login","POST",token,"csrf="+token);duplicate.headers.set("Cookie","__Host-poppoo_csrf="+token+"; __Host-poppoo_csrf="+"b".repeat(64));
+ check("duplicate cookie rejected",(await api.worker.fetch(duplicate,maintenance)).status===403);
+ const newPage=await api.worker.fetch(reqWith("/"),maintenance);
+ check("missing cookie receives fresh token",tokenFrom(newPage)!==token&&formFrom(newPage)===tokenFrom(newPage));
+ const authRedirect=new ResponseMock(null,{status:303,headers:{"Set-Cookie":"__Host-poppoo_session=abc; Path=/","Location":"/"}});
+ const rotated=await api.preserveCsrf(reqWith("/","GET",token),authRedirect);
+ check("authentication redirect preserves session cookie and clears CSRF",rotated.headers.get("Set-Cookie").includes("__Host-poppoo_session=abc")&&rotated.headers.get("Set-Cookie").includes("__Host-poppoo_csrf=;")&&rotated.headers.get("Set-Cookie").includes("Max-Age=0"));
+ const after=await api.worker.fetch(reqWith("/health"),maintenance);
+ check("health reports CSRF policy and unchanged safety gates",(await after.json()).csrfPolicy==="stable-browser-token-v1"&&(await after.json()).productionEnabled===false);
  return results;
 }
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
