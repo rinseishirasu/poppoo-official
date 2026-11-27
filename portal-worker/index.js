@@ -820,15 +820,31 @@ async function finishPublication(db,job){
  const result=await db.batch([db.prepare("UPDATE publication_jobs SET state='published',updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND account_id=? AND kind=? AND state='processing' AND commit_sha=? AND EXISTS(SELECT 1 FROM "+source+") RETURNING 1 AS affected").bind(job.request_id,job.account_id,job.kind,job.commit_sha),stmt]);
  if(!oneAffected(result[0])||!oneAffected(result[1]))throw Error("Job or source changed");
 }
+async function reviewRegistry(env){
+ const configured=publicationReady(env);
+ if(configured){
+  try{return {...await githubDataset(env,"talents"),available:true,enabled:true,warning:""};}
+  catch(error){
+   const d=safeGitDiagnostic(error);
+   const code=[d.githubOperation,d.githubReason,d.githubStatus].filter(Boolean).join(" / ")||"取得エラー";
+   try{return {data:await publishedMembers(),sha:"",available:true,enabled:false,warning:"GitHub連携の最新情報を取得できません（"+code+"）。公式HPの表示情報を参考として使用しています。承認・公開は停止しています。"};}
+   catch{return {data:[],sha:"",available:false,enabled:false,warning:"GitHub連携と公式HPの情報を取得できません（"+code+"）。申請内容のみ表示します。承認・公開は停止しています。"};}
+  }
+ }
+ try{return {data:await publishedMembers(),sha:"",available:true,enabled:false,warning:""};}
+ catch{return {data:[],sha:"",available:false,enabled:false,warning:"公式HPの情報を取得できません。申請内容のみ表示します。"};}
+}
 async function reviewPage(env){
- const db=env.DB,enabled=publicationReady(env);
+ const db=env.DB;
  const [profiles,avatars,jobs,members]=await Promise.all([
  db.prepare("SELECT p.id,p.account_id,p.base_revision,p.patch_json,p.updated_at,a.member_id,a.status AS account_status FROM profile_requests p JOIN accounts a ON a.id=p.account_id WHERE p.status='pending' ORDER BY p.created_at LIMIT 100").all(),
  db.prepare("SELECT p.id,p.slot,p.account_id,p.created_at,a.member_id,a.status AS account_status FROM avatar_requests p JOIN accounts a ON a.id=p.account_id ORDER BY p.created_at LIMIT 100").all(),
  db.prepare("SELECT request_id,kind,account_id,state,commit_sha,note,updated_at FROM publication_jobs ORDER BY (state='processing') DESC,updated_at DESC LIMIT 100").all(),
- enabled?githubDataset(env,"talents"):publishedMembers().then(data=>({data,sha:""}))
+ reviewRegistry(env)
  ]);
+ const enabled=members.enabled;
  const member=id=>members.data.find(m=>m.id===id&&m.published===true);
+ const registryNotice=members.warning?'<p class="portal-status is-error" role="alert">'+esc(members.warning)+'</p>':"";
  const form=(row,kind)=>{
  if(env.PORTAL_MAINTENANCE==="true")return '<p>保守モード中は承認・差し戻しを停止しています。</p>';
  const busy=jobs.results.some(j=>j.request_id===row.id&&j.state==="processing");
@@ -838,12 +854,12 @@ async function reviewPage(env){
  const p=profiles.results.map(row=>{
  const m=member(row.member_id),patch=JSON.parse(row.patch_json);
  const record=publicationRecordPatch(patch);
- const changes=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?.[k]||"（空欄）")+'</pre><small>申請内容</small><pre>'+esc(patch[k]||"（空欄）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3><small>現在</small>'+profileLinksDetail(profileLinkBase(m))+'<small>申請内容</small>'+profileLinksDetail(patch.links):"");
+ const changes=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>Object.hasOwn(patch,k)).map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><small>現在</small><pre>'+esc(m?(m[k]||"（空欄）"):"（現在の情報を取得できません）")+'</pre><small>申請内容</small><pre>'+esc(patch[k]||"（空欄）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3><small>現在</small>'+(m?profileLinksDetail(profileLinkBase(m)):'<p>現在の情報を取得できません。</p>')+'<small>申請内容</small>'+profileLinksDetail(patch.links):"");
  return '<article><h3>'+esc(m?.name||row.member_id)+'</h3><details open><summary>変更差分</summary>'+changes+'</details>'+form(row,"profile")+'</article>';
  }).join("");
  const a=avatars.results.map(row=>'<article><h3>'+esc(member(row.member_id)?.name||row.member_id)+' / '+esc(AVATAR_SLOTS.find(([k])=>k===row.slot)?.[1]||row.slot)+'</h3><img class="avatar-preview" src="/admin/review-image?id='+encodeURIComponent(row.id)+'" alt="審査対象画像">'+form(row,"avatar")+'</article>').join("");
  const history=jobs.results.map(j=>'<article><strong>'+esc(j.kind)+' / '+esc(j.state)+'</strong><p>'+esc(j.request_id)+'</p><small>'+esc(j.updated_at)+' UTC</small>'+(j.commit_sha?'<p>Git commit: '+esc(j.commit_sha)+'</p>':"")+(j.note?'<pre>'+esc(j.note)+'</pre>':"")+(j.state==="processing"&&j.commit_sha&&(enabled||reconciliationReady(env))?'<form method="post" action="/admin/reconcile">'+hInput("id",j.request_id)+'<button>GitHubの反映結果を確認</button></form>':"")+'</article>').join("");
- return page("reviews","",200,adminBack+'<p class="portal-notice">'+(enabled?"承認すると公開GitHubへ反映します。":env.PORTAL_MAINTENANCE==="true"?"保守モード：新規公開・差し戻しは停止中です。照合のみ実施できます。":"公開処理は停止中です。差し戻しのみ可能です。")+'</p><h2>プロフィール変更申請</h2>'+(p||"<p>審査待ちはありません。</p>")+'<h2>画像提出</h2>'+(a||"<p>審査待ちはありません。</p>")+'<h2>公開・審査履歴（最新100件）</h2>'+(history||"<p>履歴はありません。</p>"));
+ return page("reviews","",200,adminBack+registryNotice+'<p class="portal-notice">'+(enabled?"承認すると公開GitHubへ反映します。":env.PORTAL_MAINTENANCE==="true"?"保守モード：新規公開・差し戻しは停止中です。照合のみ実施できます。":"公開処理は停止中です。差し戻しのみ可能です。")+'</p><h2>プロフィール変更申請</h2>'+(p||"<p>審査待ちはありません。</p>")+'<h2>画像提出</h2>'+(a||"<p>審査待ちはありません。</p>")+'<h2>公開・審査履歴（最新100件）</h2>'+(history||"<p>履歴はありません。</p>"));
 }
 async function adminReviewImage(db,id){
  if(!safeId(id))return json({error:"Not found"},404);
@@ -860,7 +876,7 @@ async function reviewSubmission(env,session,form){
  const row=await db.prepare(select).bind(id).first();if(!row)return json({error:"Submission unavailable"},404);
  // Lock acquisition and source existence are a single SQLite statement.
  const source=kind==="profile"?"profile_requests p WHERE p.id=? AND p.account_id=? AND p.status='pending'":"avatar_requests p WHERE p.id=? AND p.account_id=?";
- if(decision==="approve"&&(!publicationReady(env)||form.get("confirm")!=="yes"||row.account_status!=="active"))return json({error:"Publication disabled or confirmation required"},403);
+ if(decision==="approve"&&(!publicationReady(env)||!shaValid(form.get("revision"))||form.get("confirm")!=="yes"||row.account_status!=="active"))return json({error:"Publication disabled or confirmation required"},403);
  const lock=await db.prepare("INSERT INTO publication_jobs(request_id,kind,account_id,actor_id,state,note) SELECT ?,?,?,?,'processing',? WHERE EXISTS(SELECT 1 FROM "+source+") AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND status='active' AND role='admin') ON CONFLICT(request_id) DO UPDATE SET state='processing',actor_id=excluded.actor_id,note=excluded.note,commit_sha=NULL,updated_at=CURRENT_TIMESTAMP WHERE publication_jobs.state='failed' RETURNING 1 AS affected").bind(id,kind,row.account_id,session.id,note,id,row.account_id,session.id).all();
  if(!oneAffected(lock))return json({error:"Review already in progress"},409);
  if(decision==="return"){
@@ -1004,7 +1020,7 @@ async function handleRequest(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc2",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc3",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1020,6 +1036,7 @@ async function handleRequest(request,env){
  }
  if(request.method==="GET"&&["/admin/reviews","/admin/review-image"].includes(path)){
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
+ step=path==="/admin/reviews"?"review-read":"review-image";
  return path==="/admin/reviews"?await reviewPage(env):await adminReviewImage(db,url.searchParams.get("id"));
  }
  if(request.method==="GET"&&path==="/admin/operations"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await operationsPage(env);}
@@ -1102,7 +1119,7 @@ async function handleRequest(request,env){
  step="admin-session";
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
  if(path==="/admin/reset-account")return await resetMemberAccount(env,session,form);
- if(path==="/admin/review")return await reviewSubmission(env,session,form);
+ if(path==="/admin/review"){step="review-submit";return await reviewSubmission(env,session,form);}
  if(path==="/admin/reconcile")return await reconcilePublication(env,form);
  if(path==="/admin/collab-publish")return await publishCollab(env,session,form);
  if(path==="/admin/collab-reconcile")return await reconcileCollab(env,form);
@@ -1166,6 +1183,6 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc2",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc3",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
 }
 export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
