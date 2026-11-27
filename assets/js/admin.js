@@ -36,6 +36,13 @@ function updateAuthUI(){
  $("publish-button").disabled=!ready||!dataReady||publishing||imageBusy||draftConflict;
  document.querySelector(".admin-auth-panel").dataset.authenticated=String(ready);
 }
+const CLOSED_COHORTS=["0期生","1期生"];
+const SELECTABLE_COHORTS=[...Array.from({length:9},(_,i)=>(i+2)+"期生"),"その他"];
+function cohortValues(value){return Array.isArray(value)?value:typeof value==="string"&&value?[value]:[]}
+function editableMemberCohorts(previous,selected){
+ const old=cohortValues(previous),allowed=new Set(cohortValues(selected).filter(v=>SELECTABLE_COHORTS.includes(v)));
+ return [...new Set([...old.filter(v=>CLOSED_COHORTS.includes(v)||!SELECTABLE_COHORTS.includes(v)||allowed.has(v)),...allowed])];
+}
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"",mark=required?' <span class="admin-required-label">必須</span>':"";
  if(type==="managementOrder")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>掲載するメンバーを追加し、上下ボタンで表示順を設定できます。公開設定が有効なメンバーのみ公式HPに掲載されます。全員を除外すると掲載なしになります。</small><input type="hidden" name="${key}"><div data-management-list></div><label>追加するメンバー<select data-management-select><option value="">メンバーを選択</option></select></label><button type="button" class="admin-small-button" data-management-add>追加</button><button type="button" class="admin-small-button" data-management-default>初期の4名に戻す</button></fieldset>`;
@@ -50,7 +57,7 @@ function fieldHtml(field){
  if(type==="visibility")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>チェックした項目は公式サイトの該当表示・検索対象から除外します。GitHubの公開リポジトリに保存されたデータ自体は非公開になりません。機密情報は登録しないでください。</small><div class="admin-choice-grid">${[["bio","自己紹介"],["facts","基本プロフィール"],["personality","趣味・好きなもの"],["fan","ファン情報"],["gallery","アバターギャラリー"],["voice","ボイスプロフィール"],["activity","活動状況・配信ジャンル・定期配信"],["achievements","活動実績"],["schedule","配信スケジュール"],["news","関連ニュース"],["links","公式リンク"]].map(([v,l])=>`<label><input type="checkbox" name="hiddenSections" value="${v}"><span>${l}</span></label>`).join("")}</div></fieldset>`;
  if(type==="anniversaries")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="5" placeholder="2026-11-23 | 新ビジュアル公開"></textarea><small>YYYY-MM-DD または MM-DD と記念日名を入力してください。</small></label>`;
  if(type==="achievements")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="4" placeholder="2026-11-23 | 活動開始 | 架空事務所 ぽっぽーで活動開始"></textarea><small>日付は任意です。日付・内容・詳細を「 | 」で区切って入力します。公開メンバーの表示対象の活動実績は、ACTIVITY・TOP・サイト内検索にも掲載されます。</small></label>`;
- if(type==="cohort")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><div class="admin-choice-grid">${["0期生",...Array.from({length:10},(_,i)=>(i+1)+"期生"),"その他"].map(v=>`<label><input type="checkbox" name="cohort" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
+ if(type==="cohort")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>0期生・1期生の新規設定は終了しました。登録済みの期生は維持されます。</small><div data-closed-cohorts class="admin-closed-cohorts" hidden></div><div class="admin-choice-grid">${SELECTABLE_COHORTS.map(v=>`<label><input type="checkbox" name="cohort" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
  if(type==="voice")return `<div class="admin-field admin-field-wide admin-voice-field"><span>${label}</span><input type="file" name="${key}Audio" accept=".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/wav"><small>MP3・M4A・WAV、各5MB以下。アップロード時点で公開GitHubに保存されます。本人の掲載許諾を確認してください。</small><input type="hidden" name="${key}"><div data-voice-path="${key}"></div></div>`;
  if(type==="voiceText")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="3" maxlength="2000"></textarea><small>聞き取りが難しい方にも内容が伝わるよう、可能な範囲で入力してください。</small></label>`;
  if(type==="image")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif"><small>画像を選ぶとGitHubの ${key==="heroImage"?"assets/images/home/":key==="thumbnailImage"?"assets/images/news/":"assets/images/talents/"} にアップロードします。PNG・JPG・WebP・GIF、最大8MB。</small><input type="hidden" name="${key}"><span class="admin-image-path" data-image-path="${key}"></span></div>`;
@@ -177,7 +184,7 @@ function renderForm(item={}){
   else if(type==="visibility"){const values=Array.isArray(item[key])?item[key]:[];form.querySelectorAll('input[name="hiddenSections"]').forEach(input=>input.checked=values.includes(input.value))}
   else if(type==="anniversaries"){const rows=Array.isArray(item[key])?item[key]:item.anniversary?[{date:item.anniversary,title:"活動記念日"}]:[];el.value=rows.map(x=>[x.date,x.title].join(" | ")).join("\n")}
   else if(type==="achievements"){el.value=Array.isArray(item[key])?item[key].map(x=>[x.date||"",x.title||"",x.description||""].join(" | ")).join("\n"):(item[key]||"")}
-  else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
+  else if(type==="cohort"){const values=cohortValues(item[key]);form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value));const locked=form.querySelector("[data-closed-cohorts]"),retained=values.filter(v=>!SELECTABLE_COHORTS.includes(v));if(locked){locked.hidden=!retained.length;locked.textContent=retained.length?"登録済み（変更不可）："+retained.join("・"):""}}
   else if(type==="voice"){el.value=item[key]||"";renderVoiceField(key,el.value,item.id||"")}
   else if(type==="image"){el.value=item[key]||"";renderSingleImage(key,el.value)}
   else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);renderGallery(el)}
@@ -316,7 +323,7 @@ function formObject(){
   else if(type==="visibility")obj[key]=Array.from($("content-form").querySelectorAll('input[name="hiddenSections"]:checked')).map(input=>input.value);
   else if(type==="anniversaries")obj[key]=el.value.split(/\r?\n/).filter(s=>s.trim()).map(s=>{const [date,...title]=s.split("|");return {date:date.trim(),title:title.join("|").trim()}});
   else if(type==="achievements")obj[key]=el.value.split(/\r?\n/).map(line=>{const parts=line.split("|").map(s=>s.trim());return parts[1]?{date:parts[0],title:parts[1],description:parts.slice(2).join(" | ")}:null}).filter(Boolean);
-  else if(type==="cohort")obj[key]=Array.from($("content-form").querySelectorAll('input[name="cohort"]:checked')).map(input=>input.value);
+  else if(type==="cohort")obj[key]=editableMemberCohorts(data.talents[editing]?.[key],Array.from($("content-form").querySelectorAll('input[name="cohort"]:checked')).map(input=>input.value));
   else if(type==="image")obj[key]=el.value;
   else if(type==="gallery"){try{obj[key]=JSON.parse(el.value||"[]")}catch{obj[key]=[]}}
   else if(type==="tags"||type==="roles")obj[key]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
