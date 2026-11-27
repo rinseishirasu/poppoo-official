@@ -9,3 +9,6 @@
 4. 正式リリース用コード・公開導線を最新mainに対して準備。現在のv31はproductionEnabled=false固定で、公開経路はテストモードに依存するため設定変更だけでは正式版にならない。公開書込経路の残存リスクを明示し、隔離試験または運営のリスク判断を記録する。
 5. 正式版デプロイと確認、公式HP導線の公開。障害時は保守モード・公開停止に戻す。
 現時点でD1削除・本番デプロイ・mainへの書込は未実施。
+
+## RC1 稼働・公式HP導線
+利用者報告: RC1 health productionEnabled=true、memberModeEnabled=true、testModeEnabled=false、publicationEnabled=false、schemaReady=true、passwordKdfProductionReady=false。テストアカウント削除は利用者のOK報告に基づく（削除後の件数は未受領）。main e4911c0732d6230cebc64e334f4a74ca78514fdf に共通ナビ・フッター導線とRC1 Workerソースを反映。既存公開データの変更なし。GitHub Pages配信後の表示確認、公開書込の実動作と安全性は未確認。KDF強度の制約を解消したわけではない。
