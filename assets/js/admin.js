@@ -217,19 +217,12 @@ function renderDashboard(){
  const members=data.talents.filter(Boolean),cohorts=new Map();
  for(const t of members){const groups=Array.isArray(t.cohort)?t.cohort:t.cohort?[t.cohort]:[];for(const g of new Set(groups.filter(Boolean).length?groups.filter(Boolean):["未設定"]))cohorts.set(g,(cohorts.get(g)||0)+1)}
  const upcoming=data.schedule.filter(s=>s&&s.date>=today).sort((a,b)=>(a.date+" "+(a.time||"")).localeCompare(b.date+" "+(b.time||"")));
- const dates=[];
- for(const t of members)for(const [value,label] of [[t.birthday,"誕生日"],[t.debutDate,"デビュー周年"],[t.joinDate,"ぽっぽー加入周年"],...(Array.isArray(t.anniversaries)?t.anniversaries:t.anniversary?[{date:t.anniversary,title:"活動記念日"}]:[]).map(x=>[x.date,x.title])]){
- const raw=String(value||"").trim(),m=raw.match(/^(?:\d{4}[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m)continue;
- const month=Number(m[1]),day=Number(m[2]);let year=Number(today.slice(0,4));let date="";
- for(let i=0;i<9;i++,year++){const d=new Date(Date.UTC(year,month-1,day));if(d.getUTCMonth()!==month-1||d.getUTCDate()!==day)continue;const iso=d.toISOString().slice(0,10);if(iso>=today){date=iso;break}}
- if(date)dates.push({date,label,name:t.name,published:t.published===true});
- }
- dates.sort((a,b)=>a.date.localeCompare(b.date));
+ const dates=nextAnniversaryEvents(anniversaryRecords(members,data.settings),today).map(e=>({date:e.date,label:e.title,name:e.name,published:true}));
  const state=x=>x.published===true?"公開設定":"非公開";
  const rows=(items,fn,empty)=>items.length?items.slice(0,5).map(fn).join(""):'<p class="admin-empty">'+empty+'</p>';
- metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>{const total=data[k].length,pub=data[k].filter(x=>x?.published===true).length;return '<div class="cms-metric"><span>'+LABELS[k]+'</span><strong>'+total+'</strong><small>公開設定 '+pub+' 件 / 非公開 '+(total-pub)+' 件</small></div>'}).join("");
+ metrics.innerHTML=Object.keys(FILES).filter(k=>!singleton(k)).map(k=>{const total=data[k].length,pub=data[k].filter(x=>x?.published===true).length,live=(baseline[k]||[]).filter(x=>x?.published===true).length;return '<div class="cms-metric"><span>'+LABELS[k]+'</span><strong>'+total+'<small>件登録</small></strong><small>公開データ '+live+'件 / 編集中の公開設定 '+pub+'件</small></div>'}).join("");
  const detail=$("cms-overview");if(!detail)return;
- detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(scheduleParticipants(s,data.talents,false).map(p=>p.name).join("・")||s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>誕生日・周年・記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
+ detail.innerHTML='<section class="cms-overview-panel"><h3>期生別メンバー数</h3>'+rows([...cohorts].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"ja",{numeric:true})),([g,n])=>'<div class="cms-overview-row"><span>'+esc(g)+'</span><strong>'+n+' 名</strong></div>',"登録メンバーなし")+'<small>複数期生はそれぞれに集計します（最大5区分表示）。</small></section><section class="cms-overview-panel"><h3>直近の配信予定</h3>'+rows(upcoming,s=>'<div class="cms-overview-row"><div><small>'+esc(s.date)+' '+esc(s.time)+'</small><strong>'+esc(s.title)+'</strong><small>'+esc(scheduleParticipants(s,data.talents,false).map(p=>p.name).join("・")||s.talent)+'</small></div><span>'+state(s)+'</span></div>',"今後の配信予定はありません")+'</section><section class="cms-overview-panel"><h3>これからの公開設定の記念日</h3>'+rows(dates,d=>'<div class="cms-overview-row"><div><small>'+esc(d.date)+'</small><strong>'+esc(d.name)+'</strong><small>'+esc(d.label)+'</small></div><span>'+state(d)+'</span></div>',"登録された記念日はありません")+'</section>';
 }
 
 function canonical(v){return JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x)}
@@ -256,14 +249,35 @@ function renderChanges(){
 function scheduleSourceForSave(previous,next,takeOver){
  return previous?.scheduleSource==="member"&&previous.published===true&&next.published===true&&typeof previous.memberId==="string"&&previous.memberId&&previous.memberId===next.memberId&&scheduleFormat(next)==="solo"&&!takeOver?"member":"admin";
 }
+// Retain the original array index after filtering and sorting to keep edit/delete targets correct.
+function adminListRows(kind,items,before,options={}){
+ const {term="",visibility="",period="",sort="default",changedOnly=false,today=""}=options;
+ const original=new Map(),key=x=>kind==="schedule"?(x.id?"id:"+x.id:"legacy:"+canonical([x.date,x.time,x.talent,x.title])):singleton(kind)?"settings":String(x.id||"");
+ for(const x of before||[]){const k=key(x);if(!original.has(k))original.set(k,[]);original.get(k).push(x)}
+ const normalize=v=>String(v??"").normalize("NFKC").toLocaleLowerCase("ja-JP").trim();
+ const terms=normalize(term).split(/\s+/).filter(Boolean);
+ const date=x=>kind==="talents"?x.joinDate||"":x.date||"";
+ const rows=items.map((item,i)=>{const old=original.get(key(item))||[];return {item,i,change:old.length?(old.some(x=>canonical(x)===canonical(item))?"":"変更"):"追加"}}).filter(({item,change})=>(!visibility||(item.published===true)===(visibility==="yes"))&&(!changedOnly||change)&&(!period||kind!=="schedule"||period==="upcoming"&&item.date>=today||period==="past"&&item.date<today)&&terms.every(t=>normalize(JSON.stringify(item)).includes(t)));
+ const cmp=(a,b)=>String(date(a.item)).localeCompare(String(date(b.item)))||String(a.item.time||"").localeCompare(String(b.item.time||""));
+ if(sort==="name")rows.sort((a,b)=>String(a.item.name||a.item.title||"").localeCompare(String(b.item.name||b.item.title||""),"ja")||a.i-b.i);
+ else if(sort==="new"||sort==="old")rows.sort((a,b)=>Number(!date(a.item))-Number(!date(b.item))||(sort==="new"?-cmp(a,b):cmp(a,b))||a.i-b.i);
+ else if(kind==="schedule")rows.sort((a,b)=>Number(a.item.date<today)-Number(b.item.date<today)||(a.item.date<today?-cmp(a,b):cmp(a,b))||a.i-b.i);
+ else if(kind==="news")rows.sort((a,b)=>-cmp(a,b)||a.i-b.i);
+ return rows;
+}
 function renderList(){
  renderChanges();
  renderDashboard();
- const list=data[current],term=($("cms-search")?.value||"").trim().toLowerCase(),visibility=$("cms-visibility")?.value||"",filtered=list.map((item,i)=>({item,i})).filter(({item})=>(!visibility||(item.published===true)===(visibility==="yes"))&&JSON.stringify(item).toLowerCase().includes(term));$("item-count").textContent=filtered.length+" / "+list.length+"件";
- $("content-list").innerHTML=filtered.length?filtered.map(({item,i})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span>${current==="schedule"?`<span class="admin-publish-state">${item.scheduleSource==="member"&&item.published===true?"本人管理":"運営管理"}</span>`:""}</div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">登録済みデータはありません。</p>';
+ const list=data[current],today=new Date(Date.now()+9*3600000).toISOString().slice(0,10),filtered=adminListRows(current,list,baseline[current],{term:$("cms-search").value,visibility:$("cms-visibility").value,period:$("cms-period").value,sort:$("cms-sort").value,changedOnly:$("cms-changed-only").checked,today});$("item-count").textContent=filtered.length+" / "+list.length+"件";
+ $("cms-period-field").hidden=current!=="schedule";
+ $("content-list").innerHTML=filtered.length?filtered.map(({item,i,change})=>`<article class="admin-list-item"><div><strong>${esc(summary(item)||"名称未設定")}</strong><div class="cms-record-tags"><span class="admin-publish-state ${item.published?"is-published":""}">${item.published?"公開設定":"非公開"}</span>${change?`<span class="cms-record-change">未公開・${change}</span>`:""}${current==="schedule"?`<span class="admin-publish-state">${item.scheduleSource==="member"&&item.published===true?"本人管理":"運営管理"}</span><span class="admin-publish-state">${item.date<today?"過去":"本日以降"}</span>`:""}</div></div><div class="admin-list-actions"><button type="button" data-edit="${i}" class="admin-small-button">編集</button><button type="button" data-delete="${i}" class="admin-small-button danger">削除</button></div></article>`).join(""):'<p class="admin-empty">'+(list.length?"条件に一致するデータはありません。":"登録済みデータはありません。")+'</p>';
+
 }
 $("cms-search")?.addEventListener("input",renderList);
 $("cms-visibility")?.addEventListener("change",renderList);
+for(const id of ["cms-period","cms-sort","cms-changed-only"])$(id).addEventListener("change",renderList);
+function clearListFilters(){$("cms-search").value="";$("cms-visibility").value="";$("cms-period").value="";$("cms-sort").value="default";$("cms-changed-only").checked=false}
+$("cms-list-reset").addEventListener("click",()=>{clearListFilters();renderList();$("cms-search").focus()});
 let formDirty=false;
 function editorMode(open){$("cms-workspace-title").textContent=LABELS[current]+(open?"を編集":"の管理");$("cms-workspace-hint").textContent=open?"入力 → 下書きを保存 → 公開": "登録済みデータの確認・編集・公開";$("clear-button").hidden=!open;$("cms-other-actions").open=false;document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
 function allowDiscard(){if(imageBusy||publishing){status("画像処理・公開中は編集画面を切り替えられません。");return false}return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
@@ -273,7 +287,7 @@ $("cms-new-record").onclick=()=>{editing=-1;renderForm();formDirty=false;editorM
 $("cms-back-list").onclick=()=>{if(!allowDiscard())return;editing=-1;renderForm();formDirty=false;editorMode(false)};
 window.addEventListener("beforeunload",e=>{if(formDirty){e.preventDefault();e.returnValue=""}});
 function renderTabs(){
- if($("cms-search"))$("cms-search").value="";if($("cms-visibility"))$("cms-visibility").value="";
+ clearListFilters();
  document.querySelectorAll(".admin-tab").forEach(b=>{const active=b.dataset.kind===current;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});
  if(singleton(current)){editing=data[current].length?0:-1;renderForm(data[current][0]||{})}else renderForm();formDirty=false;editorMode(singleton(current));renderList();updateAuthUI();
 }

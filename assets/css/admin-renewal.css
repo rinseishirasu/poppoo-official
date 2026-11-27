@@ -249,3 +249,20 @@
 .admin-page [data-schedule-guest-panel][hidden]{display:none!important}
 .admin-page .schedule-guest-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;padding:12px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;background:#fafafa}
 @media(max-width:760px){.admin-page .schedule-guest-row{grid-template-columns:minmax(0,1fr)}}
+
+/* Operational list tools and draft/public distinction. */
+.admin-page .cms-metrics{margin:12px 0;gap:10px}
+.admin-page .cms-metric strong small{font-size:.75rem;font-weight:600;margin-left:5px;color:#555}
+.admin-page .cms-metric-note{margin:0 0 14px;font-size:.78rem;color:#555}
+.admin-page .cms-list-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;gap:10px}
+.admin-page .cms-list-filters label{min-width:0}
+.admin-page .cms-list-filters label:first-child{grid-column:1/-1}
+.admin-page .cms-list-filters label[hidden]{display:none!important}
+.admin-page .cms-list-filters input:not([type=checkbox]),.admin-page .cms-list-filters select{min-height:44px;width:100%;box-sizing:border-box}
+.admin-page .cms-list-filters .cms-changed-field{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-height:44px}
+.admin-page .cms-list-filters .cms-changed-field input{width:18px;height:18px;flex:none}
+.admin-page #cms-list-reset{grid-column:1/-1;min-height:44px}
+.admin-page .cms-record-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.admin-page .cms-record-change{display:inline-block;font-size:.75rem;padding:3px 7px;border:1px solid #c8c8c8;border-radius:5px;background:#f2f2f2;color:#333;font-weight:750}
+@media(max-width:760px){.admin-page .cms-list-filters select,.admin-page .cms-list-filters input:not([type=checkbox]){font-size:16px}.admin-page .cms-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-page .cms-metric{min-width:0;padding:9px}.admin-page .cms-metric small{overflow-wrap:anywhere}.admin-page .cms-metric strong{font-size:1.4rem}}
+@media(max-width:380px){.admin-page .cms-metrics{grid-template-columns:minmax(0,1fr)}}
