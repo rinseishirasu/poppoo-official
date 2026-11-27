@@ -103,13 +103,20 @@
  if(memberFilter){for(const t of linkedMembers){const o=document.createElement("option");o.value=t.id;o.textContent=t.name;memberFilter.append(o)}if(linkedMembers.some(t=>t.id===requested)){memberFilter.value=requested;const advanced=document.querySelector("#news-advanced");if(advanced)advanced.open=true;}}
  const yearOf=n=>/^\d{4}-\d{2}-\d{2}$/.test(n.date||"")?n.date.slice(0,4):"";
  fillOptions(cat,all.map(n=>newsCategory(n.category)));fillOptions(year,all.map(yearOf));
+ const advanced=document.querySelector("#news-advanced"),active=document.querySelector("#news-active-filters"),fields=[["q",q,"検索"],["member",memberFilter,"メンバー"],["category",cat,"カテゴリー"],["year",year,"掲載年"],["sort",sort,"表示順"]];
+ if(!isHome){for(const [key,el] of fields){const value=params.get(key);if(!el||value===null)continue;if(el.tagName==="SELECT"){if([...el.options].some(o=>o.value===value))el.value=value}else el.value=value;}if(advanced&&fields.slice(1).some(([key,el])=>el?.value&&(key!=="sort"||el.value!=="new")))advanced.open=true;}
+ const syncFilters=()=>{if(isHome)return;
+ if(active){active.replaceChildren();for(const [key,el,label] of fields){if(!el?.value.trim()||key==="sort"&&el.value==="new")continue;const b=document.createElement("button");b.type="button";b.className="news-filter-chip";b.textContent=label+"："+(el.tagName==="SELECT"?el.selectedOptions[0]?.textContent:el.value)+" ×";b.setAttribute("aria-label",label+"の条件を解除");b.onclick=()=>{el.value=key==="sort"?"new":"";changed();if(advanced?.contains(el))advanced.open=true;el.focus()};active.append(b)}active.hidden=!active.childElementCount;}
+ try{const u=new URL(location.href);for(const [key,el] of fields){const value=el?.value.trim()||"";if(value&&!(key==="sort"&&value==="new"))u.searchParams.set(key,value);else u.searchParams.delete(key);}if(u.href!==location.href)history.replaceState(history.state,"",u.href)}catch{}
+ };
+
  const render=()=>{
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
  const list=all.filter(n=>(!memberFilter?.value||newsMemberIds(n).includes(memberFilter.value))&&(!cat?.value||newsCategory(n.category)===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,newsCategory(n.category)].join(" ")).includes(term)));
  if(sort?.value==="old")list.reverse();
  if(count)count.textContent=list.length+"件中 "+Math.min(limit,list.length)+"件を表示";
- nl.innerHTML=list.length?list.slice(0,limit).map(n=>isHome?'<a class="home-news-row" href="news-detail.html?id='+encodeURIComponent(n.id)+'"><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time><strong>'+escapeHtml(n.title||"お知らせ")+'</strong><span aria-hidden="true">→</span></a>':newsCard(n)).join(""):'<div class="empty-state">'+(all.length?"条件に一致するお知らせはありません。":"現在、お知らせはありません。")+'</div>';
- if(pagination)pagination.hidden=list.length<=limit;
+ nl.innerHTML=list.length?list.slice(0,limit).map(n=>isHome?'<a class="home-news-row" href="news-detail.html?id='+encodeURIComponent(n.id)+'"><div class="home-news-meta"><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time><span class="home-news-category">'+escapeHtml(newsCategory(n.category))+'</span></div><strong>'+escapeHtml(n.title||"お知らせ")+'</strong><span aria-hidden="true">→</span></a>':newsCard(n)).join(""):'<div class="empty-state">'+(all.length?"条件に一致するお知らせはありません。":"現在、お知らせはありません。")+'</div>';
+ if(pagination)pagination.hidden=list.length<=limit;syncFilters();
  };
  const changed=()=>{limit=isHome?3:pageSize;render()};
  [cat,year,sort,memberFilter].forEach(el=>el?.addEventListener("change",changed));q?.addEventListener("input",changed);
@@ -141,6 +148,8 @@
  if(day&&[...day.options].some(o=>o.value===params.get("day"))&&params.get("day")){day.value=params.get("day");period="all"}
  if(platform&&[...platform.options].some(o=>o.value===params.get("platform")))platform.value=params.get("platform");
  if(q)q.value=params.get("q")||"";if(format&&["solo","collab"].includes(params.get("format")))format.value=params.get("format");
+ const scheduleAdvanced=document.querySelector("#schedule-advanced");if(scheduleAdvanced&&[member,day,platform,format,q].some(el=>el?.value.trim()))scheduleAdvanced.open=true;
+
  const updateUrl=()=>{if(!day)return;try{const u=new URL(location.href),m=member?.value||"",values={member:m.startsWith("id:")?m.slice(3):m,day:day.value,platform:platform?.value||"",format:format?.value||"",q:q?.value.trim()||"",period:period==="all"?"":period};for(const [key,value] of Object.entries(values)){if(value)u.searchParams.set(key,value);else u.searchParams.delete(key)}if(u.href!==location.href)history.replaceState(history.state,"",u.href)}catch{}};
  const dayTitle=d=>dateLabel(d)+"（"+"日月火水木金土"[new Date(d+"T00:00:00Z").getUTCDay()]+"）";
  const row=s=>{const url=safeExternalLink(s.url||""),t=scheduleMember(s),color=t?memberColor(t):"#666666",time=String(s.time||"");return '<article class="schedule-item" style="--schedule-member-color:'+color+'"><div class="schedule-date">'+""+'<span class="schedule-time">'+escapeHtml(time||"時間未定")+'</span></div><div class="schedule-program"><div class="schedule-title">'+escapeHtml(s.title||"配信")+'</div><div class="schedule-meta">'+schedulePeopleHtml(s)+collabLabel(s)+' <span class="schedule-platform-label">'+escapeHtml(media(s))+'</span></div></div>'+(url?'<a class="schedule-link" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">配信ページを見る ↗</a>':day?'<span class="schedule-link-pending">配信先リンク未登録</span>':"")+'</article>'};
@@ -148,10 +157,10 @@
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
  const matching=all.filter(s=>(!member?.value||memberKeys(s).includes(member.value))&&(!platform?.value||media(s)===platform.value)&&(!format?.value||scheduleFormat(s)===format.value)&&terms.every(term=>searchText([s.title,name(s),media(s),scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信"].join(" ")).includes(term)));
  const list=matching.filter(s=>(period==="all"||period==="today"&&s.date===todayJST||period==="tomorrow"&&s.date===tomorrow||period==="week"&&s.date<=endDay)&&(!day?.value||s.date===day.value));
- if(count)count.textContent=list.length+"件 / 今後の公開予定 "+all.length+"件";
+ if(count)count.textContent=list.length+"件 / 今後の公開予定 "+all.length+"件";if(reset)reset.hidden=period==="all"&&![member,day,platform,format,q].some(el=>el?.value.trim());
  buttons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.period===period&&!day?.value)));
  if(weekStrip){weekStrip.replaceChildren();weekStrip.hidden=false;for(const d of weekDays){const b=document.createElement("button");b.type="button";b.className="schedule-week-day";const n=matching.filter(s=>s.date===d).length;const label=d===todayJST?"今日":d===tomorrow?"明日":"日月火水木金土"[new Date(d+"T00:00:00Z").getUTCDay()]+"曜";const small=document.createElement("span");small.textContent=label;const date=document.createElement("strong");date.textContent=Number(d.slice(5,7))+"/"+Number(d.slice(8));const total=document.createElement("span");total.textContent=n+"件";b.append(small,date,total);b.setAttribute("aria-label",dayTitle(d)+" "+n+"件");b.setAttribute("aria-pressed",String(day?.value===d||!day?.value&&(period==="today"&&d===todayJST||period==="tomorrow"&&d===tomorrow)));b.onclick=()=>{period="all";if(day)day.value=d;render();weekStrip.children[weekDays.indexOf(d)]?.focus()};weekStrip.append(b)}}
- if(active){active.replaceChildren();for(const [el,label] of [[member,"メンバー"],[day,"日付"],[platform,"媒体"],[format,"配信形式"],[q,"検索"]]){if(!el?.value.trim())continue;const b=document.createElement("button");b.type="button";b.className="schedule-filter-chip";b.textContent=label+"："+(el.tagName==="SELECT"?el.selectedOptions[0]?.textContent:el.value)+" ×";b.setAttribute("aria-label",label+"の条件を解除");b.onclick=()=>{el.value="";render();el.focus()};active.append(b)}active.hidden=!active.childElementCount}
+ if(active){active.replaceChildren();for(const [el,label] of [[member,"メンバー"],[day,"日付"],[platform,"媒体"],[format,"配信形式"],[q,"検索"]]){if(!el?.value.trim())continue;const b=document.createElement("button");b.type="button";b.className="schedule-filter-chip";b.textContent=label+"："+(el.tagName==="SELECT"?el.selectedOptions[0]?.textContent:el.value)+" ×";b.setAttribute("aria-label",label+"の条件を解除");b.onclick=()=>{el.value="";render();if(scheduleAdvanced?.contains(el))scheduleAdvanced.open=true;el.focus()};active.append(b)}active.hidden=!active.childElementCount}
  updateUrl();
  if(!list.length){sl.innerHTML='<div class="empty-state">'+(all.length?"条件に一致する配信予定はありません。":"現在、掲載中の配信予定はありません。")+'</div>';return}
  if(!day){const upcoming=list.slice(0,3);sl.innerHTML=[...new Set(upcoming.map(s=>s.date))].map(d=>{const items=upcoming.filter(s=>s.date===d);return '<section class="home-schedule-day"><h3><time datetime="'+escapeHtml(d)+'">'+dayTitle(d)+'</time>'+(d===todayJST?' <span>本日</span>':d===tomorrow?' <span>明日</span>':"")+'</h3>'+items.map(row).join("")+'</section>'}).join("");return}
@@ -159,7 +168,7 @@
  };
  buttons.forEach(b=>b.addEventListener("click",()=>{period=b.dataset.period;if(day)day.value="";render()}));
  [member,day,platform,format].forEach(el=>el?.addEventListener("change",()=>{if(el===day&&day.value)period="all";render()}));q?.addEventListener("input",render);
- reset?.addEventListener("click",()=>{period="all";[member,day,platform,format,q].forEach(el=>{if(el)el.value=""});render();q?.focus()});render();
+ reset?.addEventListener("click",()=>{period="all";[member,day,platform,format,q].forEach(el=>{if(el)el.value=""});render();if(scheduleAdvanced) scheduleAdvanced.querySelector("summary")?.focus();else q?.focus()});render();
  }
  const profile=document.querySelector("#talent-profile");
  if(profile&&!markUnavailable(profile,"talents","プロフィール","talents.html")){

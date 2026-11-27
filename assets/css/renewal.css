@@ -591,3 +591,15 @@
 
 /* Consistent collapsed sharing on detail pages. */
 .news-detail-footer .news-share-disclosure{width:100%;min-width:0}.news-detail-footer .news-share-disclosure[hidden]{display:none!important}
+
+/* Public list filters: compact defaults and visible, removable active conditions. */
+.news-active-filters:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.news-filter-chip{max-width:100%;min-height:44px;padding:8px 12px;border:1px solid #dadada;border-radius:8px;background:#f3f3f3;color:#404040;font:inherit;font-size:.82rem;overflow-wrap:anywhere;cursor:pointer}
+.news-filter-chip:focus-visible{outline:3px solid #454545;outline-offset:2px}
+.pop-schedule-page .schedule-advanced{margin:0 0 12px}
+.pop-schedule-page .schedule-results-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin:10px 0;color:#555;font-size:.85rem}
+.pop-schedule-page .schedule-results-bar button{min-height:44px}
+.pop-schedule-page .schedule-results-bar button[hidden]{display:none!important}
+.pop-schedule-page .schedule-list-note{font-size:.8rem;margin:12px 0}
+@media(max-width:760px){.pop-schedule-page .schedule-advanced .pop-info-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0}.pop-schedule-page .schedule-advanced .pop-info-filters label{min-width:0}.pop-schedule-page .schedule-advanced .pop-info-filters label:last-child{grid-column:1/-1}}
+@media(max-width:340px){.pop-schedule-page .schedule-advanced .pop-info-filters{grid-template-columns:minmax(0,1fr)}}
