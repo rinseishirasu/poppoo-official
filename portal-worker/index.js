@@ -104,7 +104,7 @@ function page(mode,message="",status=200,content="",role=""){
  const form=kind||mode==="activate"||mode==="csrf"?content:'<p class="portal-auth-intro">'+(setup?"運営管理者の初期設定を行います。":"運営から発行されたアカウントでログインしてください。")+'</p><form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="20" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
  const logout=kind?'<form method="post" action="/logout"><button>ログアウト</button></form>':"";
  const nav=kind?'<aside class="portal-sidebar"><small>'+(kind==="admin"?"ADMIN MENU":"MEMBER MENU")+'</small><nav class="portal-nav" aria-label="ポータルメニュー">'+PORTAL_NAV[kind].map(([id,url,en,ja])=>'<a href="'+url+'"'+(id===mode?' aria-current="page"':'')+'><small>'+en+'</small><span>'+ja+'</span></a>').join("")+'</nav><a class="portal-nav-footer" href="https://rinseishirasu.github.io/poppoo-official/" target="_blank" rel="noopener noreferrer">公式HPを開く ↗</a></aside>':"";
- const header='<a class="portal-skip" href="#portal-main">本文へ移動</a><header class="portal-header"><a class="portal-brand" href="'+(kind==="admin"?"/admin":"/")+'"><span class="portal-brand-mark" aria-hidden="true">P</span><span>POPPŌ<small>MEMBER PORTAL</small></span></a><div class="portal-header-actions"><span class="portal-mode">検証環境'+(kind==="admin"?" / 運営":"")+'</span>'+logout+'</div></header>';
+ const header='<a class="portal-skip" href="#portal-main">本文へ移動</a><header class="portal-header"><a class="portal-brand" href="'+(kind==="admin"?"/admin":"/")+'"><span class="portal-brand-mark" aria-hidden="true">P</span><span>POPPŌ<small>MEMBER PORTAL</small></span></a><div class="portal-header-actions"><span class="portal-mode">MEMBER PORTAL 1.0'+(kind==="admin"?" / 運営":"")+'</span>'+logout+'</div></header>';
  const heading='<div class="portal-page-heading"><small>'+esc(mode.toUpperCase())+'</small><h1>'+esc(title)+'</h1></div>';
  const notice=message?'<p class="portal-status'+(status>=400?' is-error':'')+'" role="'+(status>=400?'alert':'status')+'">'+esc(message)+'</p>':"";
  const body=header+'<div class="'+(auth?'portal-auth':'portal-shell')+'">'+nav+'<main id="portal-main" tabindex="-1">'+heading+notice+form+'</main></div><footer class="portal-footer">架空事務所 ぽっぽー / POPPŌ CREATOR COMMUNITY</footer>';
@@ -131,7 +131,7 @@ async function memberDashboard(env,session){
  const profile=member?'<div>'+tags(member.cohort)+tags(member.roles)+'</div><p>'+esc(member.catchphrase||"")+'</p><a class="portal-link" href="'+base+'talent.html?id='+encodeURIComponent(member.id)+'" target="_blank" rel="noopener noreferrer">公式プロフィールを見る</a>':"<p>"+(registryError?"公開プロフィールを取得できません。":"公開プロフィールが見つかりません。")+"</p>";
  const cards=[["プロフィール・アバター","プロフィール変更申請・非公開画像提出"],["配信スケジュール","本人の配信予定の登録・更新"],["活動記録・記念日","活動実績や記念日の管理"],["運営からのお知らせ","メンバー向けの連絡事項"],["各種申請","活動休止・その他の申請"],["アカウント設定","パスワード変更・アカウント設定"]] .map(([title,description],i)=>'<section class="portal-tile"><span class="portal-card-code">'+["PROFILE / AVATAR","SCHEDULE","ACTIVITY","NOTICES","REQUESTS","ACCOUNT"][i]+'</span><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(i===0?'<a class="portal-link" href="/profile">プロフィールを編集・申請</a><br><a class="portal-link" href="/avatars">アバター・アイコン画像管理</a>':i===1?'<a class="portal-link" href="/schedule">配信予定を管理</a>':i===2?'<a class="portal-link" href="/activity">活動記録・記念日を管理</a>':i===3?'<a class="portal-link" href="/notices">お知らせを確認</a>':i===4?'<a class="portal-link" href="/applications">申請・履歴を確認</a>':'<a class="portal-link" href="/account">パスワードを変更</a>')+'</section>').join("");
  const metrics=[["プロフィール審査待ち",count("pending"),"/profile"],["未読のお知らせ",unread===null?"取得不可":unread+"件","/notices"],["各種申請の審査待ち",applications===null?"取得不可":applications+"件","/applications"]].map(([label,value,href])=>'<a class="portal-metric" href="'+href+'"><small>'+esc(label)+'</small><strong>'+esc(value)+'</strong></a>').join("");
- const html='<div class="portal-hero"><small>MEMBER DASHBOARD / TEST MODE</small><h2>おかえりなさい'+(member?'、'+esc(member.name)+'さん':'')+'</h2><p>あなたの配信活動を、ひとつの場所から。</p></div><p class="portal-notice">検証版です。公開機能の利用は運営の指示に従ってください。</p><div class="portal-metrics">'+metrics+'</div><div class="portal-grid"><section class="portal-tile"><h2>マイプロフィール</h2>'+profile+'</section><section class="portal-tile"><h2>プロフィール申請状況</h2><p>審査待ち：'+esc(count("pending"))+'</p><p>差し戻し：'+esc(count("returned"))+'</p><p>下書き：'+esc(count("draft"))+'</p><small>承認されるまで公式サイトに反映されません。</small></section></div><section class="portal-section"><h2>メンバーメニュー</h2><div class="portal-grid">'+cards+'</div></section><p><a href="'+base+'" target="_blank" rel="noopener noreferrer">ぽっぽー公式サイト</a></p>';
+ const html='<div class="portal-hero"><small>MEMBER DASHBOARD</small><h2>おかえりなさい'+(member?'、'+esc(member.name)+'さん':'')+'</h2><p>あなたの配信活動を、ひとつの場所から。</p></div><p class="portal-notice">公開機能の利用は運営の案内に従ってください。</p><div class="portal-metrics">'+metrics+'</div><div class="portal-grid"><section class="portal-tile"><h2>マイプロフィール</h2>'+profile+'</section><section class="portal-tile"><h2>プロフィール申請状況</h2><p>審査待ち：'+esc(count("pending"))+'</p><p>差し戻し：'+esc(count("returned"))+'</p><p>下書き：'+esc(count("draft"))+'</p><small>承認されるまで公式サイトに反映されません。</small></section></div><section class="portal-section"><h2>メンバーメニュー</h2><div class="portal-grid">'+cards+'</div></section><p><a href="'+base+'" target="_blank" rel="noopener noreferrer">ぽっぽー公式サイト</a></p>';
  return page("home","",200,html);
 }
 // Only these text fields may be requested by members. Identity, roles, publication and images are administrator-controlled.
@@ -200,7 +200,7 @@ async function profilePage(env,session,message="",status=200){
  const details=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3>'+profileLinksDetail(patch.links):"");
  return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(row.updated_at)+' UTC</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
  }).join(""):"<p>申請履歴はまだありません。</p>";
- return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
+ return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
 }
 async function saveProfile(env,session,form){
  const db=env.DB;
@@ -328,7 +328,7 @@ async function avatarPage(env,session){
  }).join("");
  const reviewed=(await db.prepare("SELECT request_id,state,note,updated_at FROM publication_jobs WHERE account_id=? AND kind='avatar' AND state IN ('published','returned') ORDER BY updated_at DESC LIMIT 30").bind(session.id).all()).results;
  const history=reviewed.map(j=>'<article><strong>'+(j.state==="published"?"公開済み":"差し戻し")+'</strong><p><small>'+esc(j.updated_at)+' UTC</small></p><pre>'+esc(j.note||"")+'</pre></article>').join("")||"<p>審査履歴はありません。</p>";
- return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。位置情報などのメタデータを除去し、静止画に書き出してから提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
+ return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。位置情報などのメタデータを除去し、静止画に書き出してから提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
 }
 async function uploadAvatar(env,session,form){
  const db=env.DB;
@@ -358,11 +358,14 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
  const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(testEnabled&&a.role==="member"&&a.status!=="invited"?'<form method="post" action="/admin/reset-account"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>本人確認済み・旧パスワードと全セッションを無効にする</label><button>'+(a.status==="suspended"?"利用再開・再招待":"パスワード再設定・再招待")+'</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
  const form=!testEnabled?"<p>アカウント発行は検証モードでのみ利用できます。</p>":eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
- return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a>　<a class="portal-link" href="/account">アカウント設定</a>　<a class="portal-link" href="/admin/audit">監査履歴</a></p>'+"<p>運営専用・検証版。"+(testEnabled?"招待機能はテスト専用です。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
+ return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a>　<a class="portal-link" href="/account">アカウント設定</a>　<a class="portal-link" href="/admin/audit">監査履歴</a></p>'+"<p>運営専用。"+(testEnabled?"招待機能が利用できます。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
-function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。検証用です。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
+function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
 // Publication writes are disabled unless explicitly enabled for a controlled release test.
-const publicationReady=env=>env.PORTAL_MAINTENANCE!=="true"&&pepperReady(env)&&kdfConfigValid(env)&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
+// Formal operation is explicitly enabled; never combine with test or recovery mode.
+const productionReady=env=>env.PORTAL_PRODUCTION_ENABLED==="true"&&env.PORTAL_TEST_MODE!=="true"&&env.PORTAL_MAINTENANCE!=="true"&&env.PORTAL_RECOVERY_ENABLED!=="true"&&pepperReady(env)&&kdfConfigValid(env);
+const memberModeEnabled=env=>productionReady(env)||(env.PORTAL_TEST_MODE==="true"&&env.PORTAL_PRODUCTION_ENABLED!=="true"&&env.PORTAL_MAINTENANCE!=="true"&&env.PORTAL_RECOVERY_ENABLED!=="true");
+const publicationReady=env=>productionReady(env)&&env.PORTAL_PUBLICATION_ENABLED==="true"&&typeof env.GITHUB_PUBLISH_TOKEN==="string"&&env.GITHUB_PUBLISH_TOKEN.length>0;
 const githubDataUrl=kind=>"https://api.github.com/repos/rinseishirasu/poppoo-official/contents/data/"+({schedule:"schedule.json",talents:"talents.json",news:"news.json"}[kind]);
 const githubHeaders=env=>({"Authorization":"Bearer "+env.GITHUB_PUBLISH_TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"poppoo-member-portal"});
 // Safe diagnostics: never expose response bodies, URLs, headers, tokens or raw exception messages.
@@ -480,10 +483,10 @@ async function schedulePage(env,session,success=false){
  const owned=data.filter(s=>scheduleOwned(s,session));
  const legacy=data.filter(s=>scheduleRelated(s,member,legacyCount===1)&&!scheduleOwned(s,session));
  const revision='<input type="hidden" name="revision" value="'+esc(sha)+'">';
- const form=enabled?'<form method="post" action="/schedule/save">'+revision+scheduleFields()+'<button>配信予定を公開登録</button></form>':'<p class="portal-notice">公開登録・更新は最終検証まで停止しています。</p>';
+ const form=enabled?'<form method="post" action="/schedule/save">'+revision+scheduleFields()+'<button>配信予定を公開登録</button></form>':'<p class="portal-notice">公開登録・更新は現在停止しています。</p>';
  const rows=owned.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))).map(s=>'<article><strong>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'</strong><p>'+esc(s.platform||"")+'</p>'+(enabled?'<details><summary>編集する</summary><form method="post" action="/schedule/save">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'">'+scheduleFields(s)+'<button>変更を公開</button></form></details><form method="post" action="/schedule/delete">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>この配信予定を削除する</label><button>公開予定を削除</button></form>':"")+'</article>').join("");
  const old=legacy.map(s=>'<article>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'<p>'+(scheduleIsCollab(s)?"コラボ配信 / ":"")+'運営登録・閲覧のみ</p></article>').join("");
- return page("schedule",success?"GitHubへの更新が完了しました。公式サイトへの配信には反映時間がかかる場合があります。":"",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>SCHEDULE / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>本人の配信予定を管理します。</p></div><h2>ソロ配信の新規登録</h2>'+form+collabForm(member,members)+'<p><a href="/applications">コラボ配信の申請状況・取り下げ</a></p><h2>本人の登録済み予定</h2>'+(rows||"<p>登録はありません。</p>")+'<h2>既存の公開予定（運営管理）</h2>'+(old||"<p>該当する予定はありません。</p>"));
+ return page("schedule",success?"GitHubへの更新が完了しました。公式サイトへの配信には反映時間がかかる場合があります。":"",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>SCHEDULE</small><h2>'+esc(member.name)+'</h2><p>本人の配信予定を管理します。</p></div><h2>ソロ配信の新規登録</h2>'+form+collabForm(member,members)+'<p><a href="/applications">コラボ配信の申請状況・取り下げ</a></p><h2>本人の登録済み予定</h2>'+(rows||"<p>登録はありません。</p>")+'<h2>既存の公開予定（運営管理）</h2>'+(old||"<p>該当する予定はありません。</p>"));
 }
 async function mutateSchedule(env,session,form,path){
  if(!publicationReady(env))return json({error:"Publication disabled"},403);
@@ -946,7 +949,7 @@ async function changePassword(env,session,form){
  return redirect("/",clearSessionCookie());
 }
 async function resetMemberAccount(env,session,form){
- if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
+ if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env)||form.get("confirm")!=="yes"||!safeId(form.get("id")))return json({error:"Reset unavailable"},403);
  const db=env.DB,id=form.get("id"),token=randomToken(),hash=await digest(token);
  // Insert a fresh unique token only if the reset is eligible, then use it as the batch guard.
  const result=await db.batch([
@@ -1001,18 +1004,18 @@ async function handleRequest(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v31",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc1",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
- if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
+ if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
  if(request.method==="GET"&&path==="/setup"){
   if(!env.BOOTSTRAP_SECRET||await db.prepare("SELECT id FROM accounts WHERE role='admin' LIMIT 1").first())return json({error:"Setup unavailable"},404);
   return page("setup");
  }
- if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&env.PORTAL_TEST_MODE==="true"&&env.PORTAL_MAINTENANCE!=="true"?await memberDashboard(env,session):page("login");}
+ if(request.method==="GET"&&path==="/"){const session=await readSession(db,cookie(request));return session?.role==="admin"?redirect("/admin"):session&&session.role==="member"&&memberModeEnabled(env)&&env.PORTAL_MAINTENANCE!=="true"?await memberDashboard(env,session):page("login");}
  if(request.method==="GET"&&["/activity","/notices","/applications"].includes(path)){
- const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  return path==="/activity"?await activityPage(env,session):path==="/notices"?await noticesPage(db,session):await applicationsPage(db,session);
  }
  if(request.method==="GET"&&["/admin/reviews","/admin/review-image"].includes(path)){
@@ -1020,14 +1023,14 @@ async function handleRequest(request,env){
  return path==="/admin/reviews"?await reviewPage(env):await adminReviewImage(db,url.searchParams.get("id"));
  }
  if(request.method==="GET"&&path==="/admin/operations"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await operationsPage(env);}
- if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);step="schedule-read";return await schedulePage(env,session,false);}
- if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);return await profilePage(env,session);}
+ if(request.method==="GET"&&path==="/schedule"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);step="schedule-read";return await schedulePage(env,session,false);}
+ if(request.method==="GET"&&path==="/profile"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);return await profilePage(env,session);}
  if(request.method==="GET"&&(path==="/avatars"||path==="/avatars/image")){
- const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  return path==="/avatars"?await avatarPage(env,session):await privateAvatar(db,session,url.searchParams.get("slot"),url.searchParams.get("v"));
  }
- if(request.method==="GET"&&path==="/activate"){if(env.PORTAL_TEST_MODE!=="true")return json({error:"Activation disabled"},404);return activationPage();}
- if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,env.PORTAL_TEST_MODE==="true"); }
+ if(request.method==="GET"&&path==="/activate"){if(!memberModeEnabled(env))return json({error:"Activation disabled"},404);return activationPage();}
+ if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,memberModeEnabled(env)); }
  if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/schedule/collab","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/collab-publish","/admin/collab-reconcile","/admin/review","/admin/reconcile","/account/password","/admin/reset-account"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if(origin!==url.origin||["cross-site","same-site"].includes(request.headers.get("Sec-Fetch-Site")))return json({error:"Cross-origin request rejected"},403);
@@ -1037,16 +1040,16 @@ async function handleRequest(request,env){
  if(!["/login","/activate","/setup","/account/password","/logout"].includes(path)&&!await limit(db,"mutation-ip:"+ip,120))return json({error:"Too many requests"},429);
  const upload=path==="/avatars/upload",contentType=request.headers.get("Content-Type")||"";
  if(upload?!contentType.startsWith("multipart/form-data;"):!contentType.startsWith("application/x-www-form-urlencoded"))return json({error:"Invalid request"},400);
- if(upload){const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);}
+ if(upload){const session=await readSession(db,cookie(request));if(session?.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);}
  const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(upload?540672:path==="/profile/save"?65536:32768)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
  const form=upload?await new Request(request.url,{method:"POST",headers:{"Content-Type":contentType},body:bytes}).formData():new URLSearchParams(new TextDecoder().decode(bytes)),email=typeof form.get("email")==="string"?form.get("email").trim().toLowerCase():"",password=typeof form.get("password")==="string"?form.get("password"):"";
  const csrfCookie=csrfCookieValue(request),submitted=form.get("csrf");
  if(!csrfCookie||typeof submitted!=="string"||!/^[a-f0-9]{64}$/.test(submitted)||!await equalSecret(submitted,csrfCookie))return page("csrf","安全確認の有効期限切れ、または画面とCookieの不一致により操作を中断しました。送信内容は保存されていません。",403,'<p><a href="/">ポータルを開き直す</a></p><p>入力し直してから再送信してください。</p>');
  if(path==="/logout"){await revokeSession(db,cookie(request));return redirect("/",clearSessionCookie());}
- if(path==="/account/password"){const session=await readSession(db,cookie(request));if(!session||(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true"))return json({error:"Forbidden"},403);return await changePassword(env,session,form);}
+ if(path==="/account/password"){const session=await readSession(db,cookie(request));if(!session||(session.role!=="admin"&&!memberModeEnabled(env)))return json({error:"Forbidden"},403);return await changePassword(env,session,form);}
  if(path.startsWith("/avatars/")){
- const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  if(path==="/avatars/upload"){step="avatar-upload";return await uploadAvatar(env,session,form);}
  const slot=form.get("slot"),id=form.get("id");if(!avatarSlot(slot)||typeof id!=="string")return json({error:"Invalid submission"},400);
  const result=await db.prepare("DELETE FROM avatar_requests WHERE account_id=? AND slot=? AND id=? AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=avatar_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(session.id,slot,id,session.id).all();
@@ -1054,7 +1057,7 @@ async function handleRequest(request,env){
  return redirect("/avatars");
  }
  if(["/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw"].includes(path)){
- const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  if(path==="/activity/publish")return await submitActivityPublication(env,session,form);
  if(path.startsWith("/activity/"))return await mutateActivity(db,session,form,path);
  const id=form.get("id")||"";
@@ -1073,19 +1076,19 @@ async function handleRequest(request,env){
  if(!oneAffected(result))return json({error:"Application unavailable or limit reached"},409);return redirect("/applications");
  }
  if(path.startsWith("/schedule/")){
- const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  if(path==="/schedule/collab"){step="collab-request";return await submitCollab(env,session,form);}
  step="schedule-publication";return await mutateSchedule(env,session,form,path);
  }
  if(path.startsWith("/profile/")){
- const session=await readSession(db,cookie(request));if(session?.role!=="member"||env.PORTAL_TEST_MODE!=="true")return json({error:"Forbidden"},403);
+ const session=await readSession(db,cookie(request));if(session?.role!=="member"||!memberModeEnabled(env))return json({error:"Forbidden"},403);
  if(path==="/profile/save")return await saveProfile(env,session,form);
  const result=await db.prepare("UPDATE profile_requests SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status IN ('draft','pending','returned') AND NOT EXISTS(SELECT 1 FROM publication_jobs j WHERE j.request_id=profile_requests.id AND j.state='processing') AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member' AND status='active') RETURNING 1 AS affected").bind(form.get("id")||"",session.id,session.id).all();
  if(!oneAffected(result))return json({error:"Request unavailable"},409);
  return redirect("/profile");
  }
  if(path==="/activate"){
-  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Activation disabled"},404);
+  if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Activation disabled"},404);
   const token=(form.get("token")||"").trim();if(!/^[a-f0-9]{64}$/.test(token)||!passwordValid(password)||encoder.encode(password).length>1024||password!==form.get("confirm"))return activationPage("入力内容を確認してください。",400);
   const tokenHash=await digest(token);
   const target=await db.prepare("SELECT a.id FROM activation_tokens t JOIN accounts a ON a.id=t.account_id WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>? AND a.role='member' AND a.status='invited'").bind(tokenHash,now()).first();
@@ -1104,15 +1107,15 @@ async function handleRequest(request,env){
  if(path==="/admin/collab-reconcile")return await reconcileCollab(env,form);
  if(["/admin/notice-create","/admin/notice-toggle","/admin/application-review"].includes(path))return await mutateOperations(db,session,form,path);
  if(path==="/admin/accounts"){
- if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Account issuance disabled"},403);
- const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,env.PORTAL_TEST_MODE==="true");
- const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,env.PORTAL_TEST_MODE==="true");
- const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING RETURNING 1 AS affected").bind(id,email,memberId).all();if(!oneAffected(result))return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,env.PORTAL_TEST_MODE==="true");
+ if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Account issuance disabled"},403);
+ const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,memberModeEnabled(env));
+ const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,memberModeEnabled(env));
+ const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING RETURNING 1 AS affected").bind(id,email,memberId).all();if(!oneAffected(result))return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,memberModeEnabled(env));
  return redirect("/admin");
  }
  const id=form.get("id")||"";if(!safeId(id))return json({error:"Invalid account"},400);
  if(path==="/admin/invite"){
-  if(env.PORTAL_TEST_MODE!=="true"||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Invitation disabled"},403);
+  if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Invitation disabled"},403);
   const token=randomToken(),tokenHash=await digest(token);
   const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited' RETURNING 1 AS affected").bind(tokenHash,now()+86400,id)]);
   if(!oneAffected(result[1]))return json({error:"Account not eligible"},409);
@@ -1146,7 +1149,7 @@ async function handleRequest(request,env){
  const dummy=(pepperReady(env)?"pbkdf2-sha256-hmac-v1$":"pbkdf2-sha256$")+(pepperReady(env)?configuredIterations(env):ITERATIONS)+"$"+"0".repeat(64)+"$"+"0".repeat(64);
  step="password-verify";
  const valid=await verifyPassword(password,account?.password_hash||dummy,env);
- if(!valid||account?.status!=="active"||(account.role==="member"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))){
+ if(!valid||account?.status!=="active"||(account.role==="member"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))){
  // Do not log submitted identifiers, passwords, IPs or tokens. Known IDs are internal.
  try{await audit(db,null,"login.failure",account?.id||null);}catch{}
  return page("login","メールアドレスまたはパスワードを確認してください。",401);
@@ -1156,6 +1159,6 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v31",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc1",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }
 export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
