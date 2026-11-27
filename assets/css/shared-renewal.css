@@ -209,3 +209,17 @@ main:not(.admin-page main) .pop-page-share-wrap{padding-bottom:24px}
  main:not(.admin-page main) .page-hero .page-heading h1{font-size:clamp(1.6rem,6.6vw,2.1rem)}
  main:not(.admin-page main) .pop-link{font-size:.85rem;padding:9px 12px}
 }
+
+/* Member portal entry: match the current neutral public-site palette. */
+#site-header .nav a.pop-member-portal-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 12px;border:1px solid #cdcdcd;border-radius:8px;background:#fff;color:#282828;font-weight:750;white-space:nowrap;flex-shrink:0}
+#site-header .nav a.pop-member-portal-link:hover{background:#282828;color:#fff;border-color:#282828}
+#site-header .nav a.pop-member-portal-link svg{flex:0 0 17px}
+#site-header .nav a.pop-member-portal-link:focus-visible{outline:2px solid #454545;outline-offset:3px}
+.pop-footer .footer-links a.pop-footer-member-portal{margin-top:5px;padding-top:10px;border-top:1px solid #ffffff30;font-weight:750}
+@media (min-width:1001px) and (max-width:1200px){
+ #site-header .nav{gap:12px}
+ #site-header .nav a.pop-member-portal-link{padding-inline:9px;font-size:.8rem}
+}
+@media (max-width:1000px){
+ #site-header .nav a.pop-member-portal-link{justify-content:flex-start;margin:8px 0 4px;padding:12px;min-height:48px}
+}
