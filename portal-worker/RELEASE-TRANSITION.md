@@ -12,3 +12,6 @@
 
 ## RC1 稼働・公式HP導線
 利用者報告: RC1 health productionEnabled=true、memberModeEnabled=true、testModeEnabled=false、publicationEnabled=false、schemaReady=true、passwordKdfProductionReady=false。テストアカウント削除は利用者のOK報告に基づく（削除後の件数は未受領）。main e4911c0732d6230cebc64e334f4a74ca78514fdf に共通ナビ・フッター導線とRC1 Workerソースを反映。既存公開データの変更なし。GitHub Pages配信後の表示確認、公開書込の実動作と安全性は未確認。KDF強度の制約を解消したわけではない。
+
+## 正式運用開始記録（2026-11-28）
+利用者報告により、D1アカウント集計は admin active 1 のみ。続いてRC1のhealthで stage=production、productionEnabled=true、memberModeEnabled=true、testModeEnabled=false、maintenanceEnabled=false、publicationEnabled=true、reconciliationEnabled=false、schemaReady=true を確認。運営判断に基づき正式運用開始と記録する。稼働コードの識別子は release-1.0-rc1 のまま。認証仕様はv31を維持し、passwordKdfProductionReady=false（PBKDF2 100000回の制約は未解消）。公開連携の設定有効化は実書き込み成功を証明しない。公式HPでの導線表示、正式メンバー発行、公開書込および省略された個別試験は独立確認していない。障害時はPORTAL_PUBLICATION_ENABLED=false、必要ならPORTAL_MAINTENANCE=trueへ戻す。新規のコード・main・公開データ変更はこの記録では行わない。
