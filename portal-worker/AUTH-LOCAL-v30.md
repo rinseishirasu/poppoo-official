@@ -16,3 +16,6 @@ healthのrevision=release-validation-v30、schemaReady=true、passwordKdfConfigV
 
 ## 追加試験記録（2026-11-28）
 利用者報告: 管理者セッションのDB保存期限3600秒。未登録メールアドレスのログイン試行1〜5回は通常拒否、6回目は試行上限メッセージ。メール単位制限の挙動は期待値と一致。IP単位制限の独立した境界試験、期限経過後のアクセス拒否、追加認証、新規パスワード生成、メンバー機能および公開試験は未完了。保守と公開停止を維持。
+
+## v31 CSRF改善版の実環境確認（2026-11-28）
+利用者報告: v31 health正常、csrfPolicy=stable-browser-token-v1、maintenanceEnabled=true、publicationEnabled=false、productionEnabled=false。v30のIP試験2回目でCSRF token invalidが発生（単一タブ）。v31では連続3回の認証拒否が正常。IP試験1〜12回目は通常拒否、13回目は試行上限表示で全項目正常。今回の連続操作ではCSRFエラー再発なし。原因の厳密な特定、セッションの実際の期限切れ、追加認証、KDFの強度、隔離メンバー試験・公開試験は未完了。保守と公開停止を維持。
