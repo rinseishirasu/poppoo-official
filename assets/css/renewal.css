@@ -660,3 +660,9 @@
 .favorite-feedback[hidden]{display:none!important}
 @media(max-width:760px){.favorite-member-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.favorite-event{grid-template-columns:minmax(0,1fr);gap:6px}.favorite-entry .btn{width:100%}.favorite-panel .pop-heading a{font-size:.8rem}.pop-member-card>.member-favorite-button{font-size:.75rem}}
 @media(max-width:340px){.favorite-member-grid{grid-template-columns:1fr}}
+
+/* Keep the favorite action aligned in cards and compact in list view. */
+.pop-member-card:has(>.member-favorite-button){display:flex;flex-direction:column}
+.pop-member-card:has(>.member-favorite-button)>.pop-member-link{flex:1;min-width:0}
+.pop-directory #talent-grid.member-list-view .pop-member-card>.member-favorite-button{align-self:flex-end;width:auto;max-width:calc(100% - 20px);margin:0 10px 10px}
+.pop-favorites .favorite-event>div,.pop-favorites .favorite-event>strong{min-width:0;overflow-wrap:anywhere}
