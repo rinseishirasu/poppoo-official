@@ -603,3 +603,34 @@
 .pop-schedule-page .schedule-list-note{font-size:.8rem;margin:12px 0}
 @media(max-width:760px){.pop-schedule-page .schedule-advanced .pop-info-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0}.pop-schedule-page .schedule-advanced .pop-info-filters label{min-width:0}.pop-schedule-page .schedule-advanced .pop-info-filters label:last-child{grid-column:1/-1}}
 @media(max-width:340px){.pop-schedule-page .schedule-advanced .pop-info-filters{grid-template-columns:minmax(0,1fr)}}
+
+/* Member identity: reserve large portrait space for full avatar artwork. */
+.pop-profile .member-themed .profile-top.profile-top-compact{grid-template-columns:minmax(120px,190px) minmax(0,1fr);min-height:0;align-items:center;gap:clamp(16px,3vw,32px)}
+.pop-profile .member-themed .profile-avatar.profile-avatar-compact{width:100%;max-width:190px;min-height:0;aspect-ratio:1;border-radius:18px;margin:0}
+.pop-profile .profile-avatar-compact .profile-image-open span{font-size:.68rem;padding:4px 6px;left:auto;right:6px;bottom:6px}
+.pop-profile .profile-avatar-compact .pop-member-placeholder{font-size:clamp(2.8rem,6vw,4.5rem)}
+.pop-profile .profile-top-compact .profile-intro h1{font-size:clamp(1.65rem,4vw,2.8rem);margin:6px 0}
+.pop-profile .profile-top-compact .profile-identity-label{margin:4px 0;letter-spacing:.035em}
+.pop-profile .profile-details{padding-inline:0;gap:16px}
+.pop-profile .profile-details .profile-section{margin:0;min-width:0}
+.pop-profile .profile-details .profile-section .eyebrow{font-size:.7rem}
+.pop-profile .profile-details .talent-fact{grid-template-columns:minmax(95px,.8fr) minmax(0,1.2fr);gap:10px;padding:11px 0;align-items:baseline}
+.pop-profile .profile-details .talent-fact dd{font-weight:600;min-width:0}
+.pop-profile .avatar-unavailable{display:grid;place-items:center;min-height:110px;padding:12px;text-align:center;font-size:.8rem;color:#666;background:#f5f5f5}
+.pop-directory .pop-member-card h3{margin:0;font-weight:800;line-height:1.45}
+.pop-directory .pop-member-card .talent-badges{margin:0}
+.pop-directory .pop-member-card .pop-member-more{font-size:.75rem;letter-spacing:0}
+@media(max-width:760px){
+ .pop-profile .member-themed .profile-top.profile-top-compact{grid-template-columns:minmax(86px,112px) minmax(0,1fr);gap:12px;justify-items:stretch;text-align:left;align-items:start;padding:14px}
+ .pop-profile .member-themed .profile-top-compact .profile-avatar{max-width:112px}
+ .pop-profile .profile-top-compact .profile-intro{text-align:left;min-width:0}
+ .pop-profile .profile-top-compact .profile-intro h1{font-size:clamp(1.2rem,5vw,1.8rem);line-height:1.35;overflow-wrap:anywhere}
+ .pop-profile .profile-top-compact .talent-badges{justify-content:flex-start}
+ .pop-profile .profile-top-compact .profile-identity-label{font-size:.63rem}
+ .pop-profile .profile-top-compact .profile-identity-dot{width:9px;height:9px}
+ .pop-profile .profile-top-compact .profile-official-links .profile-quick-links a{font-size:.8rem;padding:8px}
+ .pop-profile .profile-top-compact .profile-intro .lead{font-size:.85rem}
+ .pop-profile .profile-details{gap:12px;margin:16px 0}
+ .pop-profile .profile-details .talent-fact{grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr);font-size:.9rem}
+}
+@media(max-width:340px){.pop-profile .member-themed .profile-top.profile-top-compact{grid-template-columns:minmax(0,1fr)}.pop-profile .member-themed .profile-top-compact .profile-avatar{max-width:96px}}
