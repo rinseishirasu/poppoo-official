@@ -357,7 +357,7 @@ async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
  const eligible=members.filter(m=>!rows.some(a=>a.member_id===m.id));
  const labels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
  const list=rows.map(a=>'<article><strong>'+esc(members.find(m=>m.id===a.member_id)?.name||a.member_id||"運営管理者")+'</strong><p>'+esc(a.email)+'<br>'+esc(a.role==="admin"?"管理者":labels[a.status]||a.status)+'</p>'+(testEnabled&&a.role==="member"&&a.status==="invited"?'<form method="post" action="/admin/invite"><input type="hidden" name="id" value="'+esc(a.id)+'"><button>招待コードを発行・再発行</button></form>':"")+(testEnabled&&a.role==="member"&&a.status!=="invited"?'<form method="post" action="/admin/reset-account"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>本人確認済み・旧パスワードと全セッションを無効にする</label><button>'+(a.status==="suspended"?"利用再開・再招待":"パスワード再設定・再招待")+'</button></form>':"")+(a.role==="member"&&a.status!=="suspended"?'<form method="post" action="/admin/suspend"><input type="hidden" name="id" value="'+esc(a.id)+'"><label><span>利用停止を実行する場合のみ押してください</span><button>利用停止・セッション失効</button></label></form>':"")+'</article>').join("");
- const form=!testEnabled?"<p>アカウント発行は検証モードでのみ利用できます。</p>":eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
+ const form=!testEnabled?"<p>アカウント発行は現在停止しています。</p>":eligible.length?'<form method="post" action="/admin/accounts"><label>公開メンバー<select name="member_id" required><option value="">選択してください</option>'+eligible.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>').join("")+'</select></label><label>メールアドレス<input name="email" type="email" required maxlength="254"></label><button>アカウントを仮発行</button></form>':"<p>発行可能な公開メンバーはいません。</p>";
  return page("admin",message,status,'<p><a class="portal-link" href="/admin/operations">運営連絡・申請管理</a>　<a class="portal-link" href="/admin/reviews">プロフィール・画像審査</a>　<a class="portal-link" href="/account">アカウント設定</a>　<a class="portal-link" href="/admin/audit">監査履歴</a></p>'+"<p>運営専用。"+(testEnabled?"招待機能が利用できます。":"招待機能は停止中です。")+"</p>"+(issued?'<article><h2>招待コード（24時間有効）</h2><label>一度だけ表示します<input readonly value="'+esc(issued)+'"></label><p><a href="/activate">初回設定ページ</a></p></article>':"")+"<h2>アカウント仮発行</h2>"+warning+form+"<h2>登録済みアカウント</h2>"+list);
 }
 function activationPage(message="",status=200){return page("activate",message,status,'<p>運営から受け取った招待コードを入力してください。</p><form method="post" action="/activate"><label>招待コード<input name="token" required maxlength="64" autocomplete="off" spellcheck="false"></label><label>新しいパスワード（20文字以上）<input name="password" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><label>パスワード確認<input name="confirm" type="password" required minlength="20" maxlength="1024" autocomplete="new-password"></label><button>初回設定を完了</button></form><p><a href="/">ログインに戻る</a></p>');}
@@ -1004,7 +1004,7 @@ async function handleRequest(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc1",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc2",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1099,6 +1099,7 @@ async function handleRequest(request,env){
   return redirect("/");
  }
  if(path.startsWith("/admin/")){
+ step="admin-session";
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
  if(path==="/admin/reset-account")return await resetMemberAccount(env,session,form);
  if(path==="/admin/review")return await reviewSubmission(env,session,form);
@@ -1109,16 +1110,22 @@ async function handleRequest(request,env){
  if(path==="/admin/accounts"){
  if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Account issuance disabled"},403);
  const memberId=form.get("member_id")||"";if(!validEmail(email)||! /^[A-Za-z0-9_-]{1,100}$/.test(memberId))return await adminPage(db,"入力内容を確認してください。",400,memberModeEnabled(env));
- const members=await publishedMembers(env);if(!members.some(m=>m.id===memberId))return await adminPage(db,"公開メンバーを選択してください。",400,memberModeEnabled(env));
- const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) VALUES (?,?,?,\'member\',\'invited\') ON CONFLICT DO NOTHING RETURNING 1 AS affected").bind(id,email,memberId).all();if(!oneAffected(result))return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,memberModeEnabled(env));
+ // Issuance uses the same public, read-only registry as the account selection page.
+ step="account-registry";
+ const members=await publishedMembers();if(members.filter(m=>m.id===memberId).length!==1)return await adminPage(db,"公開メンバーを選択してください。",400,memberModeEnabled(env));
+ step="account-insert";
+ const id=crypto.randomUUID();const result=await db.prepare("INSERT INTO accounts(id,email,member_id,role,status) SELECT ?,?,?,\'member\',\'invited\' WHERE EXISTS(SELECT 1 FROM accounts WHERE id=? AND role=\'admin\' AND status=\'active\') ON CONFLICT DO NOTHING RETURNING 1 AS affected").bind(id,email,memberId,session.id).all();if(!oneAffected(result))return await adminPage(db,"メールアドレスまたはメンバーは登録済みです。",409,memberModeEnabled(env));
  return redirect("/admin");
  }
  const id=form.get("id")||"";if(!safeId(id))return json({error:"Invalid account"},400);
  if(path==="/admin/invite"){
   if(!memberModeEnabled(env)||!pepperReady(env)||!kdfConfigValid(env))return json({error:"Invitation disabled"},403);
+  step="invite-token";
   const token=randomToken(),tokenHash=await digest(token);
+  step="invite-save";
   const result=await db.batch([db.prepare("DELETE FROM activation_tokens WHERE account_id IN (SELECT id FROM accounts WHERE id=? AND role='member' AND status='invited')").bind(id),db.prepare("INSERT INTO activation_tokens(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE id=? AND role='member' AND status='invited' RETURNING 1 AS affected").bind(tokenHash,now()+86400,id)]);
   if(!oneAffected(result[1]))return json({error:"Account not eligible"},409);
+  step="invite-display";
   return await adminPage(db,"招待コードを発行しました。",200,true,token);
  }
  if(path!=="/admin/suspend")return json({error:"Not found"},404);
@@ -1159,6 +1166,6 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc1",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc2",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }
 export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
