@@ -11,13 +11,13 @@ async function runRegression(source,sql,site,admin,migrations){
  class HeadersMock{constructor(v={}){this.v={...v}}get(k){const key=Object.keys(this.v).find(x=>x.toLowerCase()===k.toLowerCase());return key?this.v[key]:null}set(k,v){this.v[k]=v}}
  class ResponseMock{constructor(body,opts={}){this.body=body;this.status=opts.status??200;this.headers=opts.headers instanceof HeadersMock?opts.headers:new HeadersMock(opts.headers)}async json(){return JSON.parse(this.body)}}
  const fakeCrypto={getRandomValues:b=>b.fill(17),randomUUID:()=>"12345678-1234-1234-1234-123456789abc",subtle:{digest:async(alg,b)=>Uint8Array.from({length:32},(_,i)=>b[i%b.length]||0),timingSafeEqual:(a,b)=>eq(Array.from(new Uint8Array(a)),Array.from(new Uint8Array(b)))}};
- let role=null,missingTrigger=false,writes=0,network=[];
+ let role=null,missingTrigger=false,writes=0,network=[],sessionQuery="",sessionBind=[];
  const tables=[...sql.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map(x=>({name:x[1],type:"table"}));
  const triggers=[...sql.matchAll(/CREATE TRIGGER IF NOT EXISTS (\w+)/g)].map(x=>({name:x[1],type:"trigger"}));
- const db={prepare(q){const stmt={bind(){return stmt},async first(){if(q.includes("FROM sessions s JOIN accounts a"))return role?{id:"acct",member_id:"m",role}:null;if(q.includes("RETURNING attempts"))return {attempts:1};return null},async all(){if(q.includes("sqlite_master"))return {results:[...tables,...(missingTrigger?triggers.slice(1):triggers)]};return {results:[]}},async run(){writes++;return {meta:{changes:1}}}};return stmt},async batch(){writes++;throw Error("Unexpected batch")}};
+ const db={prepare(q){const stmt={bind(...args){if(q.includes("INSERT INTO sessions"))sessionBind=args;return stmt},async first(){if(q.includes("FROM sessions s JOIN accounts a")){sessionQuery=q;return role?{id:"acct",member_id:"m",role}:null;}if(q.includes("RETURNING attempts"))return {attempts:1};return null},async all(){if(q.includes("INSERT INTO sessions"))return {success:true,results:[{affected:1}]};if(q.includes("sqlite_master"))return {results:[...tables,...(missingTrigger?triggers.slice(1):triggers)]};return {results:[]}},async run(){writes++;return {meta:{changes:1}}}};return stmt},async batch(){writes++;throw Error("Unexpected batch")}};
  const fetchMock=async(url,opts)=>{network.push({url,method:opts?.method||"GET"});return {ok:true,json:async()=>({behind_by:0,status:"identical",merge_base_commit:{sha:"a".repeat(40)}})}};
  const js=source.replace("export default","const worker=").replaceAll("export async function","async function").replaceAll("export function","function");
- const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,profileEditableFields,applyProfilePatch,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
+ const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,kdfConfigValid,sessionCookie,sessionLifetime,createSession,readSession,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,profileEditableFields,applyProfilePatch,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
  new Function(site);new Function(admin);
  check("JS syntax: Worker, site and CMS",true);
  check("SQL contains all six migrations",migrations.length===6&&migrations.every(x=>sql.includes(x.trim())));
@@ -53,6 +53,18 @@ async function runRegression(source,sql,site,admin,migrations){
  check("maintenance denies collaboration publish",(await call("/admin/collab-publish","POST",maintenance)).status===503);
  check("publication disabled denies collaboration publish",(await call("/admin/collab-publish","POST",env)).status===403);
  check("no database mutations in rejected requests",writes===0);
+ check("100k compatibility configuration accepted",api.kdfConfigValid(env)&&api.kdfConfigValid({...env,PASSWORD_KDF_ITERATIONS:"100000"}));
+ check("unsupported KDF setting rejected",!api.kdfConfigValid({...env,PASSWORD_KDF_ITERATIONS:"600000"})&&!api.kdfConfigValid({...env,PASSWORD_KDF_ITERATIONS:"bad"}));
+ check("publication blocks unsupported KDF",!api.publicationReady({...enabled,PASSWORD_KDF_ITERATIONS:"600000"}));
+ const health=await (await call("/health")).json();
+ check("KDF production readiness not overstated",health.passwordKdfProductionReady===false&&health.productionEnabled===false);
+ check("health exposes auth limits",health.authIpLimitPer15Minutes===12&&health.authEmailLimitPer15Minutes===5);
+ check("admin session cookie expires in one hour",api.sessionLifetime("admin")===3600&&api.sessionCookie("x","admin").includes("Max-Age=3600"));
+ check("member session cookie expires in eight hours",api.sessionLifetime("member")===28800&&api.sessionCookie("x","member").includes("Max-Age=28800"));
+ check("cookie protection preserved",["Secure","HttpOnly","SameSite=Strict","Path=/"].every(x=>api.sessionCookie("x","admin").includes(x)));
+ await api.createSession(db,"acct","hash");check("role-specific server session lifetime",sessionBind[2]-sessionBind[1]===25200);
+ await api.readSession(db,"a".repeat(64));check("existing admin sessions also capped",sessionQuery.includes("s.created_at>datetime('now','-1 hour')"));
+ check("unsupported config visible in health",(await (await call("/health","GET",{...env,PASSWORD_KDF_ITERATIONS:"600000"})).json()).passwordKdfConfigValid===false);
  check("publish explicit opt-in",api.publicationReady(enabled)&&!api.publicationReady(env)&&!api.publicationReady(maintenance));
  check("recovery requires maintenance and write disabled",api.reconciliationReady(maintenance)&&!api.reconciliationReady(enabled)&&!api.reconciliationReady({...maintenance,PORTAL_PUBLICATION_ENABLED:"true"}));
  let blocked=false;try{await api.gitCall(maintenance,"/git/refs/heads/main","PATCH",{})}catch{blocked=true}check("recovery refuses Git writes",blocked&&network.length===0);
