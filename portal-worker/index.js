@@ -345,8 +345,11 @@ function encodeGitHubJson(data){
 }
 // Only explicitly member-created, currently published records can be changed by members.
 const scheduleUuid=id=>typeof id==="string"&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id);
-const scheduleOwned=(s,session)=>s?.scheduleSource==="member"&&s.published===true&&s.memberId===session.member_id&&scheduleUuid(s.id);
-const scheduleRelated=(s,member,uniqueName)=>s?.published===true&&(s.memberId?s.memberId===member.id:uniqueName&&s.talent===member.name);
+// Participation is independent of ownership: collabs are administered centrally.
+const scheduleParticipantIds=s=>[...new Set((Array.isArray(s?.memberIds)?s.memberIds:s?.memberId?[s.memberId]:[]).filter(id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id)))];
+const scheduleIsCollab=s=>s?.format==="collab"||scheduleParticipantIds(s).length+(Array.isArray(s?.guests)?s.guests.filter(g=>typeof g?.name==="string"&&g.name.trim()).length:0)>1;
+const scheduleOwned=(s,session)=>s?.scheduleSource==="member"&&s.published===true&&s.memberId===session.member_id&&scheduleUuid(s.id)&&!scheduleIsCollab(s)&&(s.format===undefined||s.format==="solo")&&(s.memberIds===undefined||(Array.isArray(s.memberIds)&&s.memberIds.length===1&&s.memberIds[0]===s.memberId))&&(s.guests===undefined||(Array.isArray(s.guests)&&s.guests.length===0));
+const scheduleRelated=(s,member,uniqueName)=>s?.published===true&&(Array.isArray(s.memberIds)||s.memberId?scheduleParticipantIds(s).includes(member.id):uniqueName&&s.talent===member.name);
 async function buildScheduleCommit(env,head,data){
  const blob=await gitBlob(env,encodeGitHubJson(data));
  const tree=await gitCall(env,"/git/trees","POST",{base_tree:head.tree,tree:[{path:"data/schedule.json",mode:"100644",type:"blob",sha:blob}]});
@@ -383,7 +386,7 @@ async function schedulePage(env,session,success=false){
  const revision='<input type="hidden" name="revision" value="'+esc(sha)+'">';
  const form=enabled?'<form method="post" action="/schedule/save">'+revision+scheduleFields()+'<button>配信予定を公開登録</button></form>':'<p class="portal-notice">公開登録・更新は最終検証まで停止しています。</p>';
  const rows=owned.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))).map(s=>'<article><strong>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'</strong><p>'+esc(s.platform||"")+'</p>'+(enabled?'<details><summary>編集する</summary><form method="post" action="/schedule/save">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'">'+scheduleFields(s)+'<button>変更を公開</button></form></details><form method="post" action="/schedule/delete">'+revision+'<input type="hidden" name="id" value="'+esc(s.id)+'"><label><input type="checkbox" name="confirm" value="yes" required>この配信予定を削除する</label><button>公開予定を削除</button></form>':"")+'</article>').join("");
- const old=legacy.map(s=>'<article>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'<p>運営登録・閲覧のみ</p></article>').join("");
+ const old=legacy.map(s=>'<article>'+esc(s.date)+' '+esc(s.time)+' '+esc(s.title)+'<p>'+(scheduleIsCollab(s)?"コラボ配信 / ":"")+'運営登録・閲覧のみ</p></article>').join("");
  return page("schedule",success?"GitHubへの更新が完了しました。公式サイトへの配信には反映時間がかかる場合があります。":"",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>SCHEDULE / TEST MODE</small><h2>'+esc(member.name)+'</h2><p>本人の配信予定を管理します。</p></div><h2>新規登録</h2>'+form+'<h2>本人の登録済み予定</h2>'+(rows||"<p>登録はありません。</p>")+'<h2>既存の公開予定（運営管理）</h2>'+(old||"<p>該当する予定はありません。</p>"));
 }
 async function mutateSchedule(env,session,form,path){
@@ -780,7 +783,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v23",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v24",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -921,5 +924,5 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v23",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v24",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
 }};
