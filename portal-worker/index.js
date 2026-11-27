@@ -198,7 +198,7 @@ async function profilePage(env,session,message="",status=200){
  const patch=JSON.parse(row.patch_json);
  const record=publicationRecordPatch(patch);
  const details=record?recordPatchDetail(record):PROFILE_FIELDS.filter(([k])=>typeof patch[k]==="string").map(([k,label])=>'<p><strong>'+esc(label)+'</strong></p><pre>'+esc(patch[k]||"（空欄に変更）")+'</pre>').join("")+(Object.hasOwn(patch,"links")?'<h3>公式リンク</h3>'+profileLinksDetail(patch.links):"");
- return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(row.updated_at)+' UTC</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
+ return '<article><strong>'+esc(profileStatus[row.status]||row.status)+'</strong> <small>'+esc(displayJst(row.updated_at))+'</small><details><summary>変更内容を見る</summary>'+details+'</details>'+(row.review_note?'<p>運営コメント：'+esc(row.review_note)+'</p>':"")+(["draft","pending","returned"].includes(row.status)?'<form method="post" action="/profile/withdraw"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>この申請を取り下げる</button></form>':"")+'</article>';
  }).join(""):"<p>申請履歴はまだありません。</p>";
  return page("profile",message,status,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>PROFILE REQUEST</small><h2>'+esc(member.name)+'</h2><p>プロフィールの変更内容を運営へ申請します。</p></div><p class="portal-notice">名前・期生・役職・公開設定は運営管理です。画像は別ページから提出できます。個人情報を入力しないでください。</p><h2>プロフィール編集</h2>'+editor+'<h2>申請履歴（最新30件）</h2>'+history);
 }
@@ -327,7 +327,7 @@ async function avatarPage(env,session){
  return '<section class="portal-tile"><h3>'+esc(label)+'</h3>'+(row?'<p>審査待ち・非公開</p><img class="avatar-preview" src="/avatars/image?slot='+slot+'&amp;v='+encodeURIComponent(row.id)+'" alt="提出画像"><form method="post" action="/avatars/withdraw"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="id" value="'+esc(row.id)+'"><button>提出を取り下げる</button></form>':'<p>未提出</p>')+'<form method="post" enctype="multipart/form-data" action="/avatars/upload"><input type="hidden" name="slot" value="'+slot+'"><input type="hidden" name="previous" value="'+esc(row?.id||"")+'"><label>画像を選択（512KiB以下・縦横2048px以内）<input type="file" name="image" accept="image/png,image/jpeg,image/webp" required></label><button>'+(row?"画像を差し替える":"画像を提出する")+'</button></form></section>';
  }).join("");
  const reviewed=(await db.prepare("SELECT request_id,state,note,updated_at FROM publication_jobs WHERE account_id=? AND kind='avatar' AND state IN ('published','returned') ORDER BY updated_at DESC LIMIT 30").bind(session.id).all()).results;
- const history=reviewed.map(j=>'<article><strong>'+(j.state==="published"?"公開済み":"差し戻し")+'</strong><p><small>'+esc(j.updated_at)+' UTC</small></p><pre>'+esc(j.note||"")+'</pre></article>').join("")||"<p>審査履歴はありません。</p>";
+ const history=reviewed.map(j=>'<article><strong>'+(j.state==="published"?"公開済み":"差し戻し")+'</strong><p><small>'+esc(displayJst(j.updated_at))+'</small></p><pre>'+esc(j.note||"")+'</pre></article>').join("")||"<p>審査履歴はありません。</p>";
  return page("avatars","",200,'<p><a href="/">ダッシュボードに戻る</a></p><div class="portal-hero"><small>AVATAR REQUEST</small><h2>'+esc(member.name)+'</h2><p>アイコンとアバターの提出・確認</p></div><p class="portal-notice">提出画像はD1に非公開保存されます。運営が内容を確認し承認した画像のみ公開されます。本人が権利を持つ画像のみ提出してください。位置情報などのメタデータを除去し、静止画に書き出してから提出してください。</p><h2>現在の公開画像</h2><div class="portal-grid">'+published+'</div><h2>新しい画像の提出</h2><div class="portal-grid">'+cards+'</div><h2>画像の審査履歴</h2>'+history);
 }
 async function uploadAvatar(env,session,form){
@@ -420,6 +420,18 @@ async function buildScheduleCommit(env,head,data){
  const commit=await gitCall(env,"/git/commits","POST",{message:"Update member schedule via portal",tree:tree.sha,parents:[head.sha]});
  if(!shaValid(commit.sha))throw Error("Invalid schedule commit");
  return commit.sha;
+}
+// D1 CURRENT_TIMESTAMP is UTC. Convert only at presentation, not in storage or expiry checks.
+function displayJst(value){
+ if(typeof value!=="string")return "日時不明";
+ const m=value.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d{1,3})?(Z)?$/);
+ if(!m)return "日時不明";
+ const normalized=m[1]+"T"+m[2]+(m[3]||"")+"Z";
+ const d=new Date(normalized);
+ if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,19)!==m[1]+"T"+m[2])return "日時不明";
+ const local=new Date(d.getTime()+9*3600000);
+ if(!Number.isFinite(local.getTime()))return "日時不明";
+ return local.toISOString().slice(0,19).replace("T"," ")+" JST";
 }
 const jstDate=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
 function validScheduleDate(s){
@@ -624,12 +636,12 @@ async function mutateActivity(db,session,form,path){
 }
 async function noticesPage(db,session){
  const rows=(await db.prepare("SELECT n.id,n.title,n.body,n.created_at,r.read_at FROM portal_notices n LEFT JOIN notice_reads r ON r.notice_id=n.id AND r.account_id=? WHERE n.published=1 ORDER BY n.created_at DESC,n.id DESC LIMIT 100").bind(session.id).all()).results;
- const list=rows.map(n=>'<article><strong>'+esc(n.title)+'</strong> <span class="portal-tag">'+(n.read_at?"既読":"未読")+'</span><p><small>'+esc(n.created_at)+' UTC</small></p><pre>'+esc(n.body)+'</pre>'+(n.read_at?"":'<form method="post" action="/notices/read">'+hInput("id",n.id)+'<button>既読にする</button></form>')+'</article>').join("");
+ const list=rows.map(n=>'<article><strong>'+esc(n.title)+'</strong> <span class="portal-tag">'+(n.read_at?"既読":"未読")+'</span><p><small>'+esc(displayJst(n.created_at))+'</small></p><pre>'+esc(n.body)+'</pre>'+(n.read_at?"":'<form method="post" action="/notices/read">'+hInput("id",n.id)+'<button>既読にする</button></form>')+'</article>').join("");
  return page("notices","",200,memberBack+'<p>運営からメンバーへの非公開のお知らせです。</p>'+(list||"<p>現在、お知らせはありません。</p>"));
 }
 async function applicationsPage(db,session){
  const rows=(await db.prepare("SELECT a.id,a.kind,a.body,a.status,a.review_note,a.created_at,j.state AS job_state FROM member_applications a LEFT JOIN collab_publication_jobs j ON j.request_id=a.id WHERE a.account_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 100").bind(session.id).all()).results;
- const list=rows.map(a=>'<article><strong>'+esc(applicationLabel(a))+'</strong> <span class="portal-tag">'+esc(collabStatus(a))+'</span><p><small>'+esc(a.created_at)+' UTC</small></p><pre>'+esc(applicationBody(a))+'</pre>'+(a.review_note?'<p>運営コメント：'+esc(a.review_note)+'</p>':"")+(a.status==="pending"&&a.job_state!=="processing"?'<form method="post" action="/applications/withdraw">'+hInput("id",a.id)+'<button>申請を取り下げる</button></form>':"")+'</article>').join("");
+ const list=rows.map(a=>'<article><strong>'+esc(applicationLabel(a))+'</strong> <span class="portal-tag">'+esc(collabStatus(a))+'</span><p><small>'+esc(displayJst(a.created_at))+'</small></p><pre>'+esc(applicationBody(a))+'</pre>'+(a.review_note?'<p>運営コメント：'+esc(a.review_note)+'</p>':"")+(a.status==="pending"&&a.job_state!=="processing"?'<form method="post" action="/applications/withdraw">'+hInput("id",a.id)+'<button>申請を取り下げる</button></form>':"")+'</article>').join("");
  return page("applications","",200,memberBack+'<p class="portal-notice">申請は運営への連絡です。受付だけでアカウントや公開設定が変更されることはありません。コラボ配信の申請は配信予定ページから行えます。</p><h2>新規申請</h2><form method="post" action="/applications/submit"><label>申請種別<select name="kind">'+Object.entries(applicationKinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join("")+'</select></label>'+textField("body","申請内容（必要な事項のみ）",1000)+'<button>申請する</button></form><h2>申請履歴</h2>'+(list||"<p>申請履歴はありません。</p>"));
 }
 async function operationsPage(env){
@@ -841,7 +853,7 @@ async function githubConnectionDiagnostic(env){
  const anonymous=await probe("anonymous-read",githubBaseHeaders(),false);
  const authenticated=format?await probe("authenticated-read",githubHeaders(env),false):{ok:false,githubReason:configured?"token-format":"token-missing"};
  const noStore=authenticated.ok?await probe("authenticated-no-store",githubHeaders(env),true):{ok:false,githubReason:"skipped"};
- return json({revision:"release-1.0-rc4",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
+ return json({revision:"release-1.0-rc5",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
 }
 async function reviewRegistry(env){
  const configured=publicationReady(env);
@@ -881,7 +893,7 @@ async function reviewPage(env){
  return '<article><h3>'+esc(m?.name||row.member_id)+'</h3><details open><summary>変更差分</summary>'+changes+'</details>'+form(row,"profile")+'</article>';
  }).join("");
  const a=avatars.results.map(row=>'<article><h3>'+esc(member(row.member_id)?.name||row.member_id)+' / '+esc(AVATAR_SLOTS.find(([k])=>k===row.slot)?.[1]||row.slot)+'</h3><img class="avatar-preview" src="/admin/review-image?id='+encodeURIComponent(row.id)+'" alt="審査対象画像">'+form(row,"avatar")+'</article>').join("");
- const history=jobs.results.map(j=>'<article><strong>'+esc(j.kind)+' / '+esc(j.state)+'</strong><p>'+esc(j.request_id)+'</p><small>'+esc(j.updated_at)+' UTC</small>'+(j.commit_sha?'<p>Git commit: '+esc(j.commit_sha)+'</p>':"")+(j.note?'<pre>'+esc(j.note)+'</pre>':"")+(j.state==="processing"&&j.commit_sha&&(enabled||reconciliationReady(env))?'<form method="post" action="/admin/reconcile">'+hInput("id",j.request_id)+'<button>GitHubの反映結果を確認</button></form>':"")+'</article>').join("");
+ const history=jobs.results.map(j=>'<article><strong>'+esc(j.kind)+' / '+esc(j.state)+'</strong><p>'+esc(j.request_id)+'</p><small>'+esc(displayJst(j.updated_at))+'</small>'+(j.commit_sha?'<p>Git commit: '+esc(j.commit_sha)+'</p>':"")+(j.note?'<pre>'+esc(j.note)+'</pre>':"")+(j.state==="processing"&&j.commit_sha&&(enabled||reconciliationReady(env))?'<form method="post" action="/admin/reconcile">'+hInput("id",j.request_id)+'<button>GitHubの反映結果を確認</button></form>':"")+'</article>').join("");
  return page("reviews","",200,adminBack+registryNotice+'<p class="portal-notice">'+(enabled?"承認すると公開GitHubへ反映します。":env.PORTAL_MAINTENANCE==="true"?"保守モード：新規公開・差し戻しは停止中です。照合のみ実施できます。":"公開処理は停止中です。差し戻しのみ可能です。")+'</p><h2>プロフィール変更申請</h2>'+(p||"<p>審査待ちはありません。</p>")+'<h2>画像提出</h2>'+(a||"<p>審査待ちはありません。</p>")+'<h2>公開・審査履歴（最新100件）</h2>'+(history||"<p>履歴はありません。</p>"));
 }
 async function adminReviewImage(db,id){
@@ -1002,7 +1014,7 @@ async function resetMemberAccount(env,session,form){
 }
 async function auditPage(db){
  const rows=(await db.prepare("SELECT actor_id,action,target_id,created_at FROM audit_log ORDER BY created_at DESC,id DESC LIMIT 200").all()).results;
- const list=rows.map(a=>'<article><strong>'+esc(a.action)+'</strong><p>実行者：'+esc(a.actor_id||"システム・実行者未記録")+' / 対象：'+esc(a.target_id||"")+'</p><small>'+esc(a.created_at)+' UTC</small></article>').join("");
+ const list=rows.map(a=>'<article><strong>'+esc(a.action)+'</strong><p>実行者：'+esc(a.actor_id||"システム・実行者未記録")+' / 対象：'+esc(a.target_id||"")+'</p><small>'+esc(displayJst(a.created_at))+'</small></article>').join("");
  return page("audit","",200,adminBack+'<p>重要操作の記録（最新200件）。パスワードや招待コードは記録しません。</p>'+(list||"<p>記録はありません。</p>"));
 }
 async function audit(db,actor,action,target){
@@ -1043,7 +1055,7 @@ async function handleRequest(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc4",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc5",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1211,6 +1223,6 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc4",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc5",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
 }
 export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
