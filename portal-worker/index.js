@@ -73,7 +73,7 @@ const PORTAL_NAV={
  member:[["home","/","HOME","ダッシュボード"],["profile","/profile","PROFILE","プロフィール"],["avatars","/avatars","AVATAR","画像管理"],["schedule","/schedule","SCHEDULE","配信予定"],["activity","/activity","ACTIVITY","活動・記念日"],["notices","/notices","NOTICES","お知らせ"],["applications","/applications","REQUESTS","各種申請"],["account","/account","ACCOUNT","アカウント設定"]],
  admin:[["admin","/admin","ACCOUNTS","アカウント管理"],["reviews","/admin/reviews","REVIEWS","プロフィール・画像審査"],["operations","/admin/operations","OPERATIONS","運営連絡・申請管理"],["audit","/admin/audit","AUDIT","監査履歴"],["account","/account","ACCOUNT","アカウント設定"]]
 };
-const PORTAL_TITLES={setup:"初期管理者登録",login:"ログイン",activate:"初回パスワード設定",home:"ダッシュボード",admin:"アカウント管理",profile:"プロフィール変更申請",avatars:"アバター画像管理",schedule:"配信スケジュール",activity:"活動記録・記念日",notices:"運営からのお知らせ",applications:"各種申請",operations:"運営連絡・申請管理",reviews:"プロフィール・画像審査",account:"アカウント設定",audit:"監査履歴"};
+const PORTAL_TITLES={csrf:"操作画面の再読み込み",setup:"初期管理者登録",login:"ログイン",activate:"初回パスワード設定",home:"ダッシュボード",admin:"アカウント管理",profile:"プロフィール変更申請",avatars:"アバター画像管理",schedule:"配信スケジュール",activity:"活動記録・記念日",notices:"運営からのお知らせ",applications:"各種申請",operations:"運営連絡・申請管理",reviews:"プロフィール・画像審査",account:"アカウント設定",audit:"監査履歴"};
 function portalRole(mode,role){
  if(mode==="account")return ["admin","member"].includes(role)?role:"";
  if(["admin","reviews","operations","audit"].includes(mode))return "admin";
@@ -101,7 +101,7 @@ article{border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px
 function page(mode,message="",status=200,content="",role=""){
  const nonce=randomToken(),csrf=randomToken(),kind=portalRole(mode,role),title=PORTAL_TITLES[mode]||"ポータル";
  const setup=mode==="setup",auth=!kind;
- const form=kind||mode==="activate"?content:'<p class="portal-auth-intro">'+(setup?"運営管理者の初期設定を行います。":"運営から発行されたアカウントでログインしてください。")+'</p><form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="20" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
+ const form=kind||mode==="activate"||mode==="csrf"?content:'<p class="portal-auth-intro">'+(setup?"運営管理者の初期設定を行います。":"運営から発行されたアカウントでログインしてください。")+'</p><form method="post" action="'+(setup?"/setup":"/login")+'">'+(setup?'<label>初期設定Secret<input name="secret" type="password" required autocomplete="off" maxlength="1024"></label>':'')+'<label>メールアドレス<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>パスワード<input name="password" type="password" required '+(setup?'minlength="20" autocomplete="new-password"':'autocomplete="current-password"')+' maxlength="1024"></label><button>'+(setup?"初期管理者を登録":"ログイン")+'</button></form>';
  const logout=kind?'<form method="post" action="/logout"><button>ログアウト</button></form>':"";
  const nav=kind?'<aside class="portal-sidebar"><small>'+(kind==="admin"?"ADMIN MENU":"MEMBER MENU")+'</small><nav class="portal-nav" aria-label="ポータルメニュー">'+PORTAL_NAV[kind].map(([id,url,en,ja])=>'<a href="'+url+'"'+(id===mode?' aria-current="page"':'')+'><small>'+en+'</small><span>'+ja+'</span></a>').join("")+'</nav><a class="portal-nav-footer" href="https://rinseishirasu.github.io/poppoo-official/" target="_blank" rel="noopener noreferrer">公式HPを開く ↗</a></aside>':"";
  const header='<a class="portal-skip" href="#portal-main">本文へ移動</a><header class="portal-header"><a class="portal-brand" href="'+(kind==="admin"?"/admin":"/")+'"><span class="portal-brand-mark" aria-hidden="true">P</span><span>POPPŌ<small>MEMBER PORTAL</small></span></a><div class="portal-header-actions"><span class="portal-mode">検証環境'+(kind==="admin"?" / 運営":"")+'</span>'+logout+'</div></header>';
@@ -967,7 +967,32 @@ async function audit(db,actor,action,target){
  await db.prepare("INSERT INTO audit_log(id,actor_id,action,target_id) VALUES (?,?,?,?)").bind(crypto.randomUUID(),actor,action,target).run();
 }
 function redirect(path,setCookie){const headers=new Headers({"Location":path,"Cache-Control":"no-store"});if(setCookie)headers.set("Set-Cookie",setCookie);return new Response(null,{status:303,headers});}
-export default {async fetch(request,env){
+// Request-local CSRF stabilization; no shared mutable Worker state.
+const csrfCookieName="__Host-poppoo_csrf";
+const csrfCookieValue=request=>{
+ const values=(request.headers.get("Cookie")||"").split(";").map(v=>v.trim()).filter(v=>v.startsWith(csrfCookieName+"="));
+ if(values.length!==1)return "";
+ const value=values[0].slice(csrfCookieName.length+1);
+ return /^[a-f0-9]{64}$/.test(value)?value:"";
+};
+const csrfCookieHeader=(token,age=900)=>csrfCookieName+"="+token+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age="+age;
+async function preserveCsrf(request,response){
+ const issued=response.headers.get("Set-Cookie")||"";
+ // Rotate on authentication state changes, including password changes.
+ if(response.status===303&&issued.startsWith("__Host-poppoo_session=")){
+  const headers=new Headers(response.headers);headers.append("Set-Cookie",csrfCookieHeader("",0));
+  return new Response(response.body,{status:response.status,headers});
+ }
+ const match=issued.match(/^__Host-poppoo_csrf=([a-f0-9]{64});/),existing=csrfCookieValue(request);
+ if(!match||!existing||!(response.headers.get("Content-Type")||"").startsWith("text/html"))return response;
+ // Reuse a valid browser token even after a failed POST. Generated tokens remain
+ // random on the initial page. A valid token is still required for every POST.
+ const html=await response.text();
+ const from='name="csrf" value="'+match[1]+'"',to='name="csrf" value="'+existing+'"';
+ const headers=new Headers(response.headers);headers.set("Set-Cookie",csrfCookieHeader(existing));
+ return new Response(html.replaceAll(from,to),{status:response.status,headers});
+}
+async function handleRequest(request,env){
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  let step="request";
  try{
@@ -976,7 +1001,7 @@ export default {async fetch(request,env){
  const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v30",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
+ return json({ok:schemaReady,stage:"release-validation",authenticationEnabled:true,revision:"release-validation-v31",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:false,maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env)},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(env.PORTAL_TEST_MODE!=="true"||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
@@ -1016,8 +1041,8 @@ export default {async fetch(request,env){
  const reader=request.body?.getReader();let size=0;const chunks=[];if(reader){while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>(upload?540672:path==="/profile/save"?65536:32768)){await reader.cancel();return json({error:"Request too large"},413);}chunks.push(value);}}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
  const form=upload?await new Request(request.url,{method:"POST",headers:{"Content-Type":contentType},body:bytes}).formData():new URLSearchParams(new TextDecoder().decode(bytes)),email=typeof form.get("email")==="string"?form.get("email").trim().toLowerCase():"",password=typeof form.get("password")==="string"?form.get("password"):"";
- const csrfCookie=(request.headers.get("Cookie")||"").match(/(?:^|;\s*)__Host-poppoo_csrf=([a-f0-9]{64})(?:;|$)/)?.[1];
- if(!csrfCookie||!await equalSecret(form.get("csrf"),csrfCookie))return json({error:"CSRF token invalid; reopen the form"},403);
+ const csrfCookie=csrfCookieValue(request),submitted=form.get("csrf");
+ if(!csrfCookie||typeof submitted!=="string"||!/^[a-f0-9]{64}$/.test(submitted)||!await equalSecret(submitted,csrfCookie))return page("csrf","安全確認の有効期限切れ、または画面とCookieの不一致により操作を中断しました。送信内容は保存されていません。",403,'<p><a href="/">ポータルを開き直す</a></p><p>入力し直してから再送信してください。</p>');
  if(path==="/logout"){await revokeSession(db,cookie(request));return redirect("/",clearSessionCookie());}
  if(path==="/account/password"){const session=await readSession(db,cookie(request));if(!session||(session.role!=="admin"&&env.PORTAL_TEST_MODE!=="true"))return json({error:"Forbidden"},403);return await changePassword(env,session,form);}
  if(path.startsWith("/avatars/")){
@@ -1131,5 +1156,6 @@ export default {async fetch(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v30",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
-}};
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-validation-v31",...(["schedule-read","schedule-publication"].includes(step)?diagnostic:{})},503);}
+}
+export default {async fetch(request,env){return preserveCsrf(request,await handleRequest(request,env));}};
