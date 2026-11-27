@@ -666,3 +666,5 @@
 .pop-member-card:has(>.member-favorite-button)>.pop-member-link{flex:1;min-width:0}
 .pop-directory #talent-grid.member-list-view .pop-member-card>.member-favorite-button{align-self:flex-end;width:auto;max-width:calc(100% - 20px);margin:0 10px 10px}
 .pop-favorites .favorite-event>div,.pop-favorites .favorite-event>strong{min-width:0;overflow-wrap:anywhere}
+
+.pop-profile .profile-voices{grid-column:1/-1}.profile-voice-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}.profile-voice-item{min-width:0;padding:12px;border:1px solid var(--member-border,#ddd);background:var(--member-surface,#fafafa);border-radius:10px}.profile-voice-item h3{margin:0 0 10px;font-size:1rem}.profile-voice-item audio{width:100%;max-width:100%;display:block}.profile-voice-error{font-size:.85rem;color:#555;margin:8px 0 0}.profile-voice-error[hidden]{display:none!important}.profile-voice-transcript summary{font-size:.85rem;min-height:44px;padding:10px 0;cursor:pointer}.profile-voice-transcript p{overflow-wrap:anywhere;line-height:1.75;margin:0}

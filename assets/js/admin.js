@@ -13,7 +13,7 @@ const singleton=k=>["home","settings"].includes(k);
 const SCHEMAS={
  settings:[["published","設定を有効にする","checkbox"],["operator","運営者名","text"],["representative","代表者","text"],["chair","盛り上げ会長","text"],["managementIds","ABOUT運営メンバー紹介","managementOrder"],["founded","設立・活動開始日（表示用）","text"],["base","活動拠点","text"],["aboutLead","コミュニティ紹介","textarea"],["communityPolicy","運営方針","textarea"],["joinIntro","参加案内の紹介文","textarea"],["requirements","募集対象（1行に1項目）","textarea"],["applicationUrl","応募窓口URL（HTTPS・任意）","url"],["contactUrl","お問い合わせ窓口URL（HTTPS・任意）","url"],["footerText","フッター紹介文","textarea"],["seoTitle","検索・SNS表示タイトル（トップページ）","text"],["seoDescription","検索・SNS表示説明文（トップページ）","textarea"],["seoImage","SNS共有画像パス（画像ライブラリからコピー）","text"]],
  home:[["published","設定を有効にする","checkbox"],["headline1","キャッチコピー1行目","text"],["headline2","キャッチコピー2行目","text"],["lead","紹介メッセージ","textarea"],["heroImage","メインビジュアル画像（任意）","image"],["featuredIds","ピックアップメンバー","memberSelect"],["notice","トップページのお知らせ（任意）","textarea"],["aboutText","コミュニティ紹介文","textarea"],["joinText","参加案内メッセージ","text"],...["News","Schedule","Members","About","Join"].map((v,i)=>["hide"+v,["最新情報","配信予定","メンバー","概要","参加案内"][i]+"を非表示","checkbox"])],
- talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["imageColor","イメージカラー（任意）","themeColor"],["cohort","期生","cohort"],["roles","コミュニティ内の役職（複数はカンマ区切り）","roles"],["affiliationAgency","所属事務所（任意）","agency"],["iconImage","プロフィールアイコン画像","image"],["avatarImages","アバター画像（先頭がメイン）","gallery"],["catchphrase","キャッチコピー","text"],["bio","自己紹介","textarea"],["achievements","活動実績（1行に「日付 | 内容 | 詳細」）","achievements"],["hiddenSections","公式サイトに表示しない項目","visibility"],["birthday","誕生日（例：1月1日）","text"],["debutDate","REALITYデビュー日","date"],["joinDate","ぽっぽー加入日","date"],["anniversaries","その他の記念日（1行に 日付 | 記念日名）","anniversaries"],["activityStatus","活動状況（例：活動中・休止中）","text"],["regularSchedule","定期配信（例：毎週金曜21:00）","text"],["fanName","ファンネーム","text"],["oshiMark","推しマーク","text"],["streamTag","配信タグ","text"],["fanArtTag","ファンアートタグ","text"],["likes","趣味・好きなもの","textarea"],["tags","主な配信ジャンル（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"]],
+ talents:[["id","ID","text",true],["published","公開する","checkbox"],["name","活動名","text",true],["imageColor","イメージカラー（任意）","themeColor"],["cohort","期生","cohort"],["roles","コミュニティ内の役職（複数はカンマ区切り）","roles"],["affiliationAgency","所属事務所（任意）","agency"],["iconImage","プロフィールアイコン画像","image"],["avatarImages","アバター画像（先頭がメイン）","gallery"],["catchphrase","キャッチコピー","text"],["bio","自己紹介","textarea"],["achievements","活動実績（1行に「日付 | 内容 | 詳細」）","achievements"],["hiddenSections","公式サイトに表示しない項目","visibility"],["birthday","誕生日（例：1月1日）","text"],["debutDate","REALITYデビュー日","date"],["joinDate","ぽっぽー加入日","date"],["anniversaries","その他の記念日（1行に 日付 | 記念日名）","anniversaries"],["activityStatus","活動状況（例：活動中・休止中）","text"],["regularSchedule","定期配信（例：毎週金曜21:00）","text"],["fanName","ファンネーム","text"],["oshiMark","推しマーク","text"],["streamTag","配信タグ","text"],["fanArtTag","ファンアートタグ","text"],["likes","趣味・好きなもの","textarea"],["tags","主な配信ジャンル（カンマ区切り）","tags"],["links","公式リンク（1行に「表示名 | URL」）","links"],["voiceIntro","自己紹介ボイス","voice"],["voiceIntroText","自己紹介ボイスの文字起こし（任意）","voiceText"],["voiceGreeting","挨拶ボイス","voice"],["voiceGreetingText","挨拶ボイスの文字起こし（任意）","voiceText"]],
  schedule:[["published","公開する","checkbox"],["memberId","参加メンバー","scheduleMember"],["talent","参加メンバー名","scheduleName",true],["date","配信日","date",true],["time","開始時刻","time",true],["title","配信タイトル","text",true],["platform","配信プラットフォーム","text"],["url","配信先URL（任意）","url"]],
  news:[["id","ID（自動生成）","newsId",true],["title","タイトル","text",true],["date","投稿日","date",true],["category","カテゴリー","newsCategory"],["body","本文","textarea",true],["summary","概要（任意・未入力時は本文から自動生成）","textarea"],["memberIds","関連メンバー","newsMembers"],["thumbnailImage","サムネイル画像（任意）","image"],["published","公開する","checkbox"]],
 };
@@ -47,10 +47,12 @@ function fieldHtml(field){
  if(type==="memberSelect")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><small>未選択の場合は公開メンバー全員を表示します。画像未設定のメンバーは代替アイコンで表示されます。</small>${data.talents.filter(t=>t.published===true).map(t=>`<label><input type="checkbox" name="${key}" value="${esc(t.id)}">${esc(t.name)}</label>`).join("")}</fieldset>`;
  if(type==="themeColor")return `<div class="admin-field admin-field-wide"><label>イメージカラー（任意）<input name="${key}" type="text" pattern="#[0-9a-fA-F]{6}" placeholder="#666666" maxlength="7"></label><label>カラーピッカー <input type="color" data-theme-picker value="#666666"></label><button type="button" class="admin-small-button" data-theme-clear>標準色に戻す</button><div class="admin-theme-preview" data-theme-preview><span class="admin-theme-swatch" aria-hidden="true"></span><div><strong>MEMBER PROFILE</strong><p>イメージカラーの表示見本</p><small data-theme-label></small></div></div><small>空欄の場合はニュートラルなグレーを使用します。本文・見出しは読みやすさを保つように自動調整します。</small></div>`;
  if(type==="checkbox")return `<label class="admin-check"><input name="${key}" type="checkbox"><span>${label}</span></label>`;
- if(type==="visibility")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>チェックした項目は公式サイトの該当表示・検索対象から除外します。GitHubの公開リポジトリに保存されたデータ自体は非公開になりません。機密情報は登録しないでください。</small><div class="admin-choice-grid">${[["bio","自己紹介"],["facts","基本プロフィール"],["personality","趣味・好きなもの"],["fan","ファン情報"],["gallery","アバターギャラリー"],["activity","活動状況・配信ジャンル・定期配信"],["achievements","活動実績"],["schedule","配信スケジュール"],["news","関連ニュース"],["links","公式リンク"]].map(([v,l])=>`<label><input type="checkbox" name="hiddenSections" value="${v}"><span>${l}</span></label>`).join("")}</div></fieldset>`;
+ if(type==="visibility")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>チェックした項目は公式サイトの該当表示・検索対象から除外します。GitHubの公開リポジトリに保存されたデータ自体は非公開になりません。機密情報は登録しないでください。</small><div class="admin-choice-grid">${[["bio","自己紹介"],["facts","基本プロフィール"],["personality","趣味・好きなもの"],["fan","ファン情報"],["gallery","アバターギャラリー"],["voice","ボイスプロフィール"],["activity","活動状況・配信ジャンル・定期配信"],["achievements","活動実績"],["schedule","配信スケジュール"],["news","関連ニュース"],["links","公式リンク"]].map(([v,l])=>`<label><input type="checkbox" name="hiddenSections" value="${v}"><span>${l}</span></label>`).join("")}</div></fieldset>`;
  if(type==="anniversaries")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="5" placeholder="2026-11-23 | 新ビジュアル公開"></textarea><small>YYYY-MM-DD または MM-DD と記念日名を入力してください。</small></label>`;
  if(type==="achievements")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="4" placeholder="2026-11-23 | 活動開始 | 架空事務所 ぽっぽーで活動開始"></textarea><small>日付は任意です。日付・内容・詳細を「 | 」で区切って入力します。公開メンバーの表示対象の活動実績は、ACTIVITY・TOP・サイト内検索にも掲載されます。</small></label>`;
  if(type==="cohort")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}（複数選択可）</legend><div class="admin-choice-grid">${["0期生",...Array.from({length:10},(_,i)=>(i+1)+"期生"),"その他"].map(v=>`<label><input type="checkbox" name="cohort" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
+ if(type==="voice")return `<div class="admin-field admin-field-wide admin-voice-field"><span>${label}</span><input type="file" name="${key}Audio" accept=".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/wav"><small>MP3・M4A・WAV、各5MB以下。アップロード時点で公開GitHubに保存されます。本人の掲載許諾を確認してください。</small><input type="hidden" name="${key}"><div data-voice-path="${key}"></div></div>`;
+ if(type==="voiceText")return `<label class="admin-field admin-field-wide"><span>${label}</span><textarea name="${key}" rows="3" maxlength="2000"></textarea><small>聞き取りが難しい方にも内容が伝わるよう、可能な範囲で入力してください。</small></label>`;
  if(type==="image")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif"><small>画像を選ぶとGitHubの ${key==="heroImage"?"assets/images/home/":key==="thumbnailImage"?"assets/images/news/":"assets/images/talents/"} にアップロードします。PNG・JPG・WebP・GIF、最大8MB。</small><input type="hidden" name="${key}"><span class="admin-image-path" data-image-path="${key}"></span></div>`;
  if(type==="gallery")return `<div class="admin-field admin-field-wide admin-image-field"><span>${label}</span><input type="file" name="${key}File" accept="image/png,image/jpeg,image/webp,image/gif" multiple><small>先頭の画像がメインアバター、2枚目以降がギャラリーになります。PNG・JPG・WebP・GIF、1枚8MB以下。画像は選択・アップロード時点で公開GitHubに保存されます。</small><input type="hidden" name="${key}"><div class="admin-gallery-path" data-image-path="${key}"></div></div>`;
  if(type==="textarea")return `<label class="admin-field admin-field-wide"><span>${label}${mark}</span><textarea name="${key}" rows="4"${req}></textarea></label>`;
@@ -150,7 +152,7 @@ function setupScheduleParticipants(form,item){
 }
 
 function renderForm(item={}){
- const form=$("content-form");form.reset();if(current==="talents")item=normalizedMemberProfile(item);const groups=[["基本情報","name id cohort roles affiliationAgency activityStatus"],["画像・カラー","iconImage avatarImages imageColor"],["自己紹介","catchphrase bio likes"],["記念日","birthday debutDate joinDate anniversaries"],["配信活動","tags regularSchedule achievements"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["公式リンク","links"],["公開設定","published hiddenSections"]];
+ const form=$("content-form");form.reset();if(current==="talents")item=normalizedMemberProfile(item);const groups=[["基本情報","name id cohort roles affiliationAgency activityStatus"],["画像・カラー","iconImage avatarImages imageColor"],["自己紹介","catchphrase bio likes"],["記念日","birthday debutDate joinDate anniversaries"],["配信活動","tags regularSchedule achievements"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["公式リンク","links"],["公開設定","published hiddenSections"],["ボイス","voiceIntro voiceIntroText voiceGreeting voiceGreetingText"]];
  const fields=$("form-fields"),tabs=$("cms-profile-tabs");tabs.hidden=current!=="talents";tabs.replaceChildren();
  if(current==="talents"){const used=new Set(groups.flatMap(g=>g[1].split(" ")));groups[0][1]+=" "+SCHEMAS[current].filter(f=>!used.has(f[0])).map(f=>f[0]).join(" ");fields.innerHTML=groups.map(([label,keys],i)=>'<section class="cms-profile-group admin-fields" data-profile-group="'+i+'" '+(i?'hidden':'')+'><h3 class="admin-field-wide">'+esc(label)+'</h3>'+keys.split(" ").filter(Boolean).map(key=>SCHEMAS[current].find(f=>f[0]===key)).filter(Boolean).map(fieldHtml).join("")+'</section>').join("");
  const select=i=>{fields.querySelectorAll("[data-profile-group]").forEach((p,j)=>p.hidden=i!==j);Array.from(tabs.children).forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)))};
@@ -176,6 +178,7 @@ function renderForm(item={}){
   else if(type==="anniversaries"){const rows=Array.isArray(item[key])?item[key]:item.anniversary?[{date:item.anniversary,title:"活動記念日"}]:[];el.value=rows.map(x=>[x.date,x.title].join(" | ")).join("\n")}
   else if(type==="achievements"){el.value=Array.isArray(item[key])?item[key].map(x=>[x.date||"",x.title||"",x.description||""].join(" | ")).join("\n"):(item[key]||"")}
   else if(type==="cohort"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];form.querySelectorAll('input[name="cohort"]').forEach(input=>input.checked=values.includes(input.value))}
+  else if(type==="voice"){el.value=item[key]||"";renderVoiceField(key,el.value,item.id||"")}
   else if(type==="image"){el.value=item[key]||"";renderSingleImage(key,el.value)}
   else if(type==="gallery"){const values=Array.isArray(item[key])?item[key]:item[key]?[item[key]]:[];el.value=JSON.stringify(values);renderGallery(el)}
   else if(type==="tags"||type==="roles")el.value=Array.isArray(item[key])?item[key].join(", "):(item[key]||"");
@@ -280,7 +283,7 @@ function clearListFilters(){$("cms-search").value="";$("cms-visibility").value="
 $("cms-list-reset").addEventListener("click",()=>{clearListFilters();renderList();$("cms-search").focus()});
 let formDirty=false;
 function editorMode(open){$("cms-workspace-title").textContent=LABELS[current]+(open?"を編集":"の管理");$("cms-workspace-hint").textContent=open?"入力 → 下書きを保存 → 公開": "登録済みデータの確認・編集・公開";$("clear-button").hidden=!open;$("cms-other-actions").open=false;document.querySelector(".admin-form-actions").hidden=!open;$("publish-button").hidden=open&&!singleton(current);document.querySelector(".admin-editor").hidden=!open;document.querySelector(".admin-list-panel").hidden=open&&!singleton(current);$("cms-new-record").hidden=singleton(current)||open;$("cms-back-list").hidden=!open||singleton(current);}
-function allowDiscard(){if(imageBusy||publishing){status("画像処理・公開中は編集画面を切り替えられません。");return false}return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
+function allowDiscard(){if(imageBusy||publishing){status("画像・音声処理・公開中は編集画面を切り替えられません。");return false}return !formDirty||confirm("未保存の入力内容を破棄しますか？")}
 $("content-form").addEventListener("input",()=>{formDirty=true;updateProfileSummary()});
  $("content-form").addEventListener("change",updateProfileSummary);
 $("cms-new-record").onclick=()=>{editing=-1;renderForm();formDirty=false;editorMode(true)};
@@ -320,7 +323,7 @@ function formObject(){
   else if(type==="links")obj[key]=parseProfileLinks(el.value);
   else obj[key]=el.value.trim();
  }
- if(current==="talents"){obj.profileFormat=2;const old=data.talents[editing];if(old&&Array.isArray(old.hiddenSections))obj.hiddenSections=[...new Set([...obj.hiddenSections,...old.hiddenSections.filter(k=>["message","credit"].includes(k))])];}
+ if(current==="talents"){for(const [key,,transcript] of VOICE_SLOTS){for(const field of [key,transcript])if(!obj[field]&&data.talents[editing]?.[field]===undefined)delete obj[field]}obj.profileFormat=2;const old=data.talents[editing];if(old&&Array.isArray(old.hiddenSections))obj.hiddenSections=[...new Set([...obj.hiddenSections,...old.hiddenSections.filter(k=>["message","credit"].includes(k))])];}
  if(current==="schedule"){const form=$("content-form");obj.memberIds=JSON.parse(form.elements.namedItem("scheduleMemberIds").value||"[]");obj.guests=JSON.parse(form.elements.namedItem("scheduleGuests").value||"[]");obj.format=form.elements.namedItem("scheduleFormat").value;obj.memberId=obj.memberIds[0]||"";obj.talent=data.talents.find(t=>t?.id===obj.memberId)?.name||"";}
  return obj;
 }
@@ -351,9 +354,43 @@ function validateDataset(kind,items){
   if(kind==="talents"&&item.cohort!==undefined&&!Array.isArray(item.cohort))item.cohort=item.cohort?[item.cohort]:[];
   if(kind==="talents")for(const key of ["iconImage","avatarImage"])if(item[key]&&!/^(https:\/\/|assets\/images\/talents\/)/i.test(item[key]))return (i+1)+"件目: 画像の保存先が正しくありません。";
   if(kind==="talents"&&item.avatarImages!==undefined&&(!Array.isArray(item.avatarImages)||item.avatarImages.some(v=>typeof v!=="string"||!/^(https:\/\/|assets\/images\/talents\/)/i.test(v))))return (i+1)+"件目: アバターギャラリーの画像データを確認してください。";
-  if(kind==="talents"){const error=profileLinkError(item.links);if(error)return (i+1)+"件目: "+error;}
+  if(kind==="talents"){const error=profileLinkError(item.links)||memberVoiceError(item);if(error)return (i+1)+"件目: "+error;}
  }
  return "";
+}
+
+function renderVoiceField(key,path,id){
+ const note=$("content-form").querySelector('[data-voice-path="'+key+'"]');if(!note)return;note.replaceChildren();if(!path){note.textContent="音声未登録";return}
+ const label=document.createElement("small");label.textContent=path;note.append(label);
+ if(validVoicePath(id,path)){const audio=document.createElement("audio");audio.controls=true;audio.preload="none";audio.src=path;audio.setAttribute("aria-label",VOICE_SLOTS.find(v=>v[0]===key)?.[1]||"ボイス");audio.addEventListener("error",()=>{const msg=document.createElement("p");msg.textContent="音声を取得できません。公開サイトへの反映後に再確認してください。";audio.after(msg)},{once:true});note.append(audio)}
+ const remove=document.createElement("button");remove.type="button";remove.className="admin-small-button danger";remove.textContent="掲載解除";remove.onclick=()=>{if(imageBusy||publishing||!confirm("音声の掲載を解除します。保存・公開後に反映されます。元ファイルは公開GitHubに残ります。"))return;const el=$("content-form").elements.namedItem(key);el.value="";renderVoiceField(key,"",id);formDirty=true;status("音声の掲載を解除しました。下書きを保存してください。")};note.append(remove);
+}
+function voiceFileType(name,bytes){
+ const ext=String(name).toLowerCase().match(/\.(mp3|m4a|wav)$/)?.[1];if(!ext||bytes.length<12)return "";
+ const ascii=(offset,length)=>String.fromCharCode(...bytes.subarray(offset,offset+length));
+ if(ext==="mp3"&&(ascii(0,3)==="ID3"||(bytes[0]===255&&(bytes[1]&224)===224)))return ext;
+ if(ext==="m4a"&&ascii(4,4)==="ftyp")return ext;
+ if(ext==="wav"&&ascii(0,4)==="RIFF"&&ascii(8,4)==="WAVE")return ext;
+ return "";
+}
+async function uploadMemberVoice(input){
+ if(imageBusy||publishing||!dataReady||current!=="talents"){input.value="";return}
+ if(!authReady()){input.value="";status("音声をGitHubへ保存するにはログインしてください。");return}
+ const form=$("content-form"),key=input.name.replace(/Audio$/,""),id=(form.elements.namedItem("id")?.value||"").trim(),hidden=form.elements.namedItem(key),file=input.files?.[0];
+ if(!file)return;
+ if(!VOICE_SLOTS.some(v=>v[0]===key)||!hidden||!/^[A-Za-z0-9_-]+$/.test(id)){input.value="";status("先にメンバーIDを入力してください。");return}
+ if(file.size<=0||file.size>5*1024*1024||!/\.(mp3|m4a|wav)$/i.test(file.name)){input.value="";status("MP3・M4A・WAV形式の5MB以下の音声を選択してください。");return}
+ if(!confirm("音声はアップロード時点で公開GitHubに保存されます。非公開設定でもファイルに直接アクセスできます。本人・権利者の掲載許諾を確認しましたか？")){input.value="";return}
+ imageBusy=true;updateAuthUI();input.disabled=true;status("ボイスをGitHubへアップロードしています...");
+ try{
+ const bytes=new Uint8Array(await file.arrayBuffer()),ext=voiceFileType(file.name,bytes);if(!ext)throw Error("音声ファイルの形式を確認してください。");
+ const path="assets/audio/talents/"+id+"/"+key+"-"+crypto.randomUUID()+"."+ext;
+ let binary="";for(let j=0;j<bytes.length;j+=8192)binary+=String.fromCharCode(...bytes.subarray(j,j+8192));
+ const put=await githubRequest("/repos/"+REPO+"/contents/"+path.split("/").map(encodeURIComponent).join("/"),{method:"PUT",body:JSON.stringify({message:"Upload member voice "+key+" for "+id,content:btoa(binary),branch:BRANCH})});
+ if(!put.ok)throw Error("音声のアップロードに失敗しました ("+put.status+")");
+ if(!hidden.isConnected){status("音声ファイルは保存されましたが、編集欄には登録されていません。");return}
+ hidden.value=path;renderVoiceField(key,path,id);formDirty=true;status("音声をGitHubに保存しました。下書き保存・公開でプロフィールに反映します。");
+ }catch(e){status(e.message||"音声のアップロードに失敗しました。")}finally{imageBusy=false;updateAuthUI();input.disabled=false;input.value=""}
 }
 async function uploadTalentImage(input){
  if(imageBusy||publishing||!dataReady){input.value="";return}
@@ -412,9 +449,9 @@ $("form-fields").addEventListener("click",e=>{
  if(gallery)unlinkImage("avatarImages",Number(gallery.dataset.galleryDelete));
  if(single&&["iconImage","avatarImage","thumbnailImage","heroImage"].includes(single.dataset.imageDelete))unlinkImage(single.dataset.imageDelete);
 });
-$("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
+$("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="Audio"]'))uploadMemberVoice(e.target);else if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
- e.preventDefault();if(!dataReady||publishing||imageBusy){status("読み込み・公開・画像処理中は保存できません。");return}const obj=formObject();
+ e.preventDefault();if(!dataReady||publishing||imageBusy){status("読み込み・公開・メディア処理中は保存できません。");return}const obj=formObject();
  if(current==="schedule"){
  const previous=editing>=0?data.schedule[editing]:null;
  const invalid=scheduleParticipantError(obj,data.talents);if(invalid){status("保存できません: "+invalid);return}
@@ -424,7 +461,7 @@ $("content-form").addEventListener("submit",e=>{
  if(previous?.scheduleSource==="member"&&obj.scheduleSource==="admin"&&!confirm("この予定は運営管理へ切り替わり、本人の編集・削除が停止されます。よろしいですか？"))return;
  if(obj.scheduleSource==="member"){delete obj.memberIds;delete obj.guests;delete obj.format;}
  }
- if(current==="talents"){const error=profileLinkError(obj.links);if(error){status("保存できません: "+error);const field=$("content-form").elements.namedItem("links"),group=field?.closest("[data-profile-group]");if(group&&group.hidden)$("cms-profile-tabs").children[Number(group.dataset.profileGroup)]?.click();field?.focus();return}}
+ if(current==="talents"){const voiceError=memberVoiceError(obj);if(voiceError){status("保存できません: "+voiceError);return}const error=profileLinkError(obj.links);if(error){status("保存できません: "+error);const field=$("content-form").elements.namedItem("links"),group=field?.closest("[data-profile-group]");if(group&&group.hidden)$("cms-profile-tabs").children[Number(group.dataset.profileGroup)]?.click();field?.focus();return}}
  if(current==="talents"&&editing>=0&&data.talents[editing]?.id!==obj.id){status("登録済みメンバーのIDは関連ニュース・配信予定との紐づけを保つため変更できません。");return}
  if(current==="talents"&&obj.anniversaries?.some(x=>{const m=x.date.match(/^(?:(\d{4})[-/])?(\d{1,2})(?:月|[-/])(\d{1,2})日?$/);if(!m||!x.title)return true;const d=new Date(Date.UTC(Number(m[1]||2000),Number(m[2])-1,Number(m[3])));return d.getUTCMonth()!==Number(m[2])-1||d.getUTCDate()!==Number(m[3])})){status("その他の記念日の日付・名称が不正です。");return}
  
@@ -564,7 +601,7 @@ function checkData(sets,paths=null){
  if(kind==="schedule"&&x.scheduleSource!==undefined&&(!["admin","member"].includes(x.scheduleSource)||x.scheduleSource==="member"&&(x.published!==true||typeof x.memberId!=="string"||!x.memberId||typeof x.id!=="string"||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/).test(x.id))))issue("error","配信予定の管理区分が不正です");
  if(kind==="schedule"&&x.id){if(!/^[A-Za-z0-9_-]+$/.test(x.id))issue("error","配信予定IDが不正です");if(ids.has(x.id))issue("error","配信予定IDが重複しています");ids.add(x.id)}
  if(kind==="schedule"){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time||""))issue("error","開始時刻が不正です");const error=scheduleParticipantError(x,members);if(error)issue("error",error);const ids=scheduleParticipantIds(x,members);if(!ids.length)issue("warning","登録メンバーに一致する名前がありません");for(const id of ids){const t=members.find(m=>m.id===id);if(!t)issue("warning","参加メンバーIDが見つかりません: "+id);else if(x.published===true&&t.published!==true)issue("warning","非公開メンバーへの関連付けがあります: "+id)}}
- if(kind==="talents"){const error=profileLinkError(x.links);if(error)issue("error",error);}
+ if(kind==="talents"){const error=profileLinkError(x.links)||memberVoiceError(x);if(error)issue("error",error);for(const [key,label] of VOICE_SLOTS)if(validVoicePath(x.id,x[key])&&paths&&!paths.has(x[key]))issue("warning",label+"の音声がGitHubに見つかりません: "+x[key]);}
  if(kind==="talents"&&x.imageColor&&!/^#[0-9a-f]{6}$/i.test(x.imageColor))issue("error","イメージカラーは #RRGGBB 形式で指定してください");
  if(kind==="settings"&&Array.isArray(x.managementIds))for(const id of x.managementIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しない運営メンバーID: "+id);
  if(kind==="home"&&Array.isArray(x.featuredIds))for(const id of x.featuredIds)if(!members.some(t=>t.id===id&&t.published===true))issue("warning","公開メンバーに存在しないピックアップID: "+id);
@@ -573,9 +610,9 @@ function checkData(sets,paths=null){
  }return issues;
 }
 function showCheck(issues,note){$("cms-check-status").textContent="エラー "+issues.filter(x=>x.level==="error").length+"件 / 警告 "+issues.filter(x=>x.level==="warning").length+"件。"+note;$("cms-check-results").replaceChildren(...issues.map(x=>{const p=document.createElement("p");p.className="cms-check-"+x.level;p.textContent=(x.level==="error"?"エラー":"警告")+" | "+LABELS[x.kind]+(x.index>=0?" "+(x.index+1)+"件目":"")+" | "+x.message;return p}))}
-$("cms-check-open").onclick=()=>{$("cms-check-panel").hidden=false;showCheck(checkData(data),"画像の存在確認は未実施です。");$("cms-check-panel").scrollIntoView({block:"start"})};
+$("cms-check-open").onclick=()=>{$("cms-check-panel").hidden=false;showCheck(checkData(data),"画像・音声の存在確認は未実施です。");$("cms-check-panel").scrollIntoView({block:"start"})};
 $("cms-check-close").onclick=()=>{$("cms-check-panel").hidden=true};
-$("cms-check-run").onclick=async()=>{const button=$("cms-check-run");button.disabled=true;let paths=null,note="画像の存在確認は未実施です。";try{if(authReady()){const r=await githubRequest("/repos/"+REPO+"/git/trees/"+BRANCH+"?recursive=1");if(!r.ok)throw Error("GitHub取得失敗");const tree=await r.json();if(tree.truncated||!Array.isArray(tree.tree))throw Error("一覧不完全");paths=new Set(tree.tree.filter(x=>x.type==="blob").map(x=>x.path));note="GitHub内の画像パスを確認しました。外部画像は未確認です。"}}catch(e){note="画像確認を完了できませんでした: "+e.message}finally{showCheck(checkData(data,paths),note);button.disabled=false}};
+$("cms-check-run").onclick=async()=>{const button=$("cms-check-run");button.disabled=true;let paths=null,note="画像・音声の存在確認は未実施です。";try{if(authReady()){const r=await githubRequest("/repos/"+REPO+"/git/trees/"+BRANCH+"?recursive=1");if(!r.ok)throw Error("GitHub取得失敗");const tree=await r.json();if(tree.truncated||!Array.isArray(tree.tree))throw Error("一覧不完全");paths=new Set(tree.tree.filter(x=>x.type==="blob").map(x=>x.path));note="GitHub内の画像・音声パスを確認しました。外部画像は未確認です。"}}catch(e){note="画像確認を完了できませんでした: "+e.message}finally{showCheck(checkData(data,paths),note);button.disabled=false}};
 const mediaPanel=$("cms-media-panel");let mediaFiles=[],mediaBusy=false;
 const mediaPath=p=>/^assets\/(?:image|images)\/[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif)$/i.test(p)&&!p.split("/").includes("..");
 function mediaRefs(path){const out=[];for(const [source,sets] of [["編集中",data],["読み込み時の公開データ",baseline]])for(const k of Object.keys(FILES))for(const item of sets[k]||[]){for(const field of ["iconImage","avatarImage","avatarImages","thumbnailImage","heroImage","seoImage"]){const v=item[field];if(v===path||(Array.isArray(v)&&v.includes(path)))out.push(source+" / "+LABELS[k]+" / "+(item.name||item.title||item.id||"設定")+" / "+field)}}return out}

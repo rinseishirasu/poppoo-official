@@ -266,3 +266,5 @@
 .admin-page .cms-record-change{display:inline-block;font-size:.75rem;padding:3px 7px;border:1px solid #c8c8c8;border-radius:5px;background:#f2f2f2;color:#333;font-weight:750}
 @media(max-width:760px){.admin-page .cms-list-filters select,.admin-page .cms-list-filters input:not([type=checkbox]){font-size:16px}.admin-page .cms-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-page .cms-metric{min-width:0;padding:9px}.admin-page .cms-metric small{overflow-wrap:anywhere}.admin-page .cms-metric strong{font-size:1.4rem}}
 @media(max-width:380px){.admin-page .cms-metrics{grid-template-columns:minmax(0,1fr)}}
+
+.admin-page .admin-voice-field [data-voice-path]{display:grid;gap:10px;min-width:0;overflow-wrap:anywhere}.admin-page .admin-voice-field audio{width:100%;max-width:420px}.admin-page .admin-voice-field button{justify-self:start;min-height:44px}.admin-page .admin-voice-field input[type=file]{width:100%;min-width:0}

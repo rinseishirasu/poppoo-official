@@ -85,6 +85,12 @@ function scheduleParticipantError(s,members){
 }
 
 // Read old profiles without rewriting their saved data or exposing hidden legacy fields.
+const VOICE_SLOTS=[["voiceIntro","自己紹介ボイス","voiceIntroText"],["voiceGreeting","挨拶ボイス","voiceGreetingText"]];
+function validVoicePath(id,path){return typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id)&&typeof path==="string"&&path.startsWith("assets/audio/talents/"+id+"/")&&/^[A-Za-z0-9_-]+\.(mp3|m4a|wav)$/.test(path.slice(("assets/audio/talents/"+id+"/").length))}
+function memberVoiceError(t){
+ for(const [key,label,transcript] of VOICE_SLOTS){if(t[key]!==undefined&&t[key]!==""&&!validVoicePath(t.id,t[key]))return label+"の保存先が正しくありません。";if(t[transcript]!==undefined&&(typeof t[transcript]!=="string"||t[transcript].length>2000))return label+"の文字起こしは2000文字以内で入力してください。";}return "";
+}
+function publicMemberVoices(t){if(!t||t.published!==true||t.hiddenSections?.includes?.("voice"))return [];return VOICE_SLOTS.filter(([key])=>validVoicePath(t.id,t[key])).map(([key,label,transcript])=>({label,path:t[key],text:typeof t[transcript]==="string"?t[transcript].trim():""}))}
 function normalizedMemberProfile(t){
  if(!t||typeof t!=="object")return t;
  const hidden=new Set(Array.isArray(t.hiddenSections)?t.hiddenSections:[]);
