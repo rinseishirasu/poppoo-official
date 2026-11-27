@@ -17,7 +17,7 @@ async function runRegression(source,sql,site,admin,migrations){
  const db={prepare(q){const stmt={bind(){return stmt},async first(){if(q.includes("FROM sessions s JOIN accounts a"))return role?{id:"acct",member_id:"m",role}:null;if(q.includes("RETURNING attempts"))return {attempts:1};return null},async all(){if(q.includes("sqlite_master"))return {results:[...tables,...(missingTrigger?triggers.slice(1):triggers)]};return {results:[]}},async run(){writes++;return {meta:{changes:1}}}};return stmt},async batch(){writes++;throw Error("Unexpected batch")}};
  const fetchMock=async(url,opts)=>{network.push({url,method:opts?.method||"GET"});return {ok:true,json:async()=>({behind_by:0,status:"identical",merge_base_commit:{sha:"a".repeat(40)}})}};
  const js=source.replace("export default","const worker=").replaceAll("export async function","async function").replaceAll("export function","function");
- const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
+ const api=new Function("TextEncoder","TextDecoder","URL","URLSearchParams","Headers","Response","crypto","fetch",js+";return {worker,publicationReady,reconciliationReady,gitCall,imageMime,sharePageHtml,sitemapXml,profileEditableFields,applyProfilePatch,scheduleOwned,scheduleRelated,collabDuplicate,collabStatus,recordPublication,recordPublicationBase,page};")(Encoder,Decoder,URLMock,Params,HeadersMock,ResponseMock,fakeCrypto,fetchMock);
  new Function(site);new Function(admin);
  check("JS syntax: Worker, site and CMS",true);
  check("SQL contains all six migrations",migrations.length===6&&migrations.every(x=>sql.includes(x.trim())));
@@ -40,6 +40,18 @@ async function runRegression(source,sql,site,admin,migrations){
  check("maintenance blocks member GET",(await call("/profile","GET",maintenance)).status===503);
  check("maintenance blocks member POST",(await call("/schedule/save","POST",maintenance)).status===503);
  check("maintenance blocks admin approval",(await call("/admin/review","POST",maintenance)).status===503);
+ role=null;
+ check("anonymous denied collaboration publish",(await call("/admin/collab-publish","POST",enabled)).status===403);
+ role="member";
+ check("member denied collaboration publish",(await call("/admin/collab-publish","POST",enabled)).status===403);
+ check("member denied collaboration reconciliation",(await call("/admin/collab-reconcile","POST",enabled)).status===403);
+ check("test off denies collaboration submission",(await call("/schedule/collab","POST",{...env,PORTAL_TEST_MODE:"false"})).status===403);
+ check("cross-origin collaboration submission denied",(await call("/schedule/collab","POST",env,"https://other.example")).status===403);
+ check("CSRF invalid collaboration submission denied",(await call("/schedule/collab","POST",env,origin,"b".repeat(64))).status===403);
+ role="admin";
+ check("admin denied member collaboration submission",(await call("/schedule/collab","POST",enabled)).status===403);
+ check("maintenance denies collaboration publish",(await call("/admin/collab-publish","POST",maintenance)).status===503);
+ check("publication disabled denies collaboration publish",(await call("/admin/collab-publish","POST",env)).status===403);
  check("no database mutations in rejected requests",writes===0);
  check("publish explicit opt-in",api.publicationReady(enabled)&&!api.publicationReady(env)&&!api.publicationReady(maintenance));
  check("recovery requires maintenance and write disabled",api.reconciliationReady(maintenance)&&!api.reconciliationReady(enabled)&&!api.reconciliationReady({...maintenance,PORTAL_PUBLICATION_ENABLED:"true"}));
@@ -48,6 +60,8 @@ async function runRegression(source,sql,site,admin,migrations){
  const m={id:"m",name:"Member",published:true,catchphrase:"<script>alert(1)</script>"};
  const generated=api.sharePageHtml("talents",m),other=new Function(site.slice(site.indexOf("const SHARE_BASE="),site.indexOf("// Share public URLs only"))+";return {sharePageHtml,sitemapXml};")();
  check("metadata generator matches public site",eq(generated,other.sharePageHtml("talents",m)));
+ for(const [kind,fixture] of [["talents",{...m,profileFormat:2,avatarImages:[],avatarImage:"assets/image/legacy.png"}],["talents",{...m,hiddenSections:["gallery"],avatarImages:["assets/image/gallery.png"],iconImage:"assets/image/icon.png"}],["news",{id:"news",title:"test",body:"本文",published:true,date:"2026-12-01"}]])check("current metadata parity "+kind+" "+(fixture.profileFormat||fixture.hiddenSections||"news"),eq(api.sharePageHtml(kind,fixture),other.sharePageHtml(kind,fixture)));
+
  check("sitemap generator matches public site",api.sitemapXml([m],[])===other.sitemapXml([m],[]));
  check("metadata escapes markup",!generated.content.includes("<script>alert(1)</script>"));
  const id="12345678-1234-1234-1234-123456789abc",schedule={id,memberId:"m",published:true,scheduleSource:"member"};
@@ -58,6 +72,10 @@ async function runRegression(source,sql,site,admin,migrations){
  check("collab pending result not marked published",api.collabStatus({status:"pending",job_state:"processing"}).includes("確認待ち"));
  check("collab public status",api.collabStatus({status:"accepted",job_state:"published"})==="公開登録済み");
  check("atomic collab finalization trigger",sql.includes("collab_finish_application")&&sql.includes("RAISE(ABORT,'collab application changed')"));
+ check("legacy profile fields not offered in format 2",!api.profileEditableFields({profileFormat:2}).some(([k])=>k==="hobbies"));
+ check("current profile fields offered",api.profileEditableFields({profileFormat:2}).some(([k])=>k==="bio"));
+ let deniedLegacy=false;try{api.applyProfilePatch({profileFormat:2},{hobbies:"old"})}catch{deniedLegacy=true}check("legacy field write denied for format 2",deniedLegacy);
+ check("ordinary profile change preserves operator fields",api.applyProfilePatch({profileFormat:2,roles:["member"]},{bio:"new"}).roles[0]==="member");
  const record=api.recordPublication({kind:"anniversary",event_date:"2026-11-26",title:"Anniversary",description:"Private"});
  check("anniversary memo not published",!Object.hasOwn(record,"description"));
  const jpeg=Uint8Array.from([255,216,255,192,0,11,8,0,1,0,1,1,1,17,0,255,218,0,8,1,1,0,0,63,0,12,255,0,11,255,217]);
