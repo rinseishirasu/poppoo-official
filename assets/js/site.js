@@ -1,15 +1,32 @@
+// Public UI language foundation (M1). Content and CMS data remain in Japanese.
+const PUBLIC_LANGUAGES={ja:"日本語",en:"English"};
+const PUBLIC_UI={
+ ja:{members:"メンバー",schedule:"配信予定",news:"お知らせ",about:"ぽっぽーについて",join:"参加案内",home:"ぽっぽー トップページ",search:"検索",siteSearch:"サイト内検索",menuOpen:"メニューを開く",menuClose:"メニューを閉じる",navigation:"メインナビゲーション",language:"表示言語",skip:"本文へ移動",contents:"コンテンツ",guide:"ご案内",community:"コミュニティについて",memberList:"参加メンバー",anniversary:"記念日カレンダー",activity:"メンバーの活動実績",contact:"お問い合わせ",policy:"プライバシー・サイトポリシー",memberLogin:"メンバーログイン",footerLogin:"メンバー専用ログイン",backTop:"ページ上部へ",footerLine1:"「好き」を配信に。「個性」を輝きに。",footerLine2:"一人ひとりの個性と、自分らしい配信活動を応援します。"},
+ en:{members:"Members",schedule:"Schedule",news:"News",about:"About",join:"Join us",home:"Poppoo home",search:"Search",siteSearch:"Site search",menuOpen:"Open menu",menuClose:"Close menu",navigation:"Main navigation",language:"Display language",skip:"Skip to content",contents:"Explore",guide:"Information",community:"About our community",memberList:"Our members",anniversary:"Anniversaries",activity:"Member achievements",contact:"Contact",policy:"Privacy & site policy",memberLogin:"Member login",footerLogin:"Member login (Japanese)",backTop:"Back to top",footerLine1:"Turn your passion into streams. Let your individuality shine.",footerLine2:"We support every member’s individuality and creative journey."}
+};
+const PUBLIC_LANGUAGE_KEY="poppoo-public-language-v1";
+function supportedPublicLanguage(value){return typeof value==="string"&&Object.prototype.hasOwnProperty.call(PUBLIC_LANGUAGES,value)}
+function resolvePublicLanguage(requested,saved,enabled=true){return !enabled?"ja":supportedPublicLanguage(requested)?requested:supportedPublicLanguage(saved)?saved:"ja"}
+function publicUiText(key,lang){return PUBLIC_UI[lang]?.[key]??PUBLIC_UI.ja[key]??key}
+function readPublicLanguage(url,storage,enabled){if(!enabled)return "ja";let saved=null;try{saved=storage?.getItem(PUBLIC_LANGUAGE_KEY)}catch{}const lang=resolvePublicLanguage(url.searchParams.get("lang"),saved,true);if(supportedPublicLanguage(url.searchParams.get("lang")))try{storage?.setItem(PUBLIC_LANGUAGE_KEY,lang)}catch{}return lang}
+function publicLanguageUrl(url,lang){const result=new URL(url.href);if(supportedPublicLanguage(lang))result.searchParams.set("lang",lang);return result}
 const navItems = [
- ["メンバー","talents.html"],["配信予定","schedule.html"],["お知らせ","news.html"],["ぽっぽーについて","about.html"],["参加案内","audition.html"]
+ ["members","talents.html"],["schedule","schedule.html"],["news","news.html"],["about","about.html"],["join","audition.html"]
 ];
 // Dedicated member login; keep separate from public membership applications and CMS.
 const MEMBER_PORTAL_URL="https://poppoo-member-portal.rinsei-shirasu.workers.dev/";
 const memberPortalLink=(placement)=>placement==="nav"
- ?'<a class="pop-member-portal-link" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>メンバーログイン</span></a>'
- :'<a class="pop-footer-member-portal" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer">メンバー専用ログイン</a>';
+ ?'<a class="pop-member-portal-link" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>'+ui("memberLogin")+'</span></a>'
+ :'<a class="pop-footer-member-portal" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer">'+ui("footerLogin")+'</a>';
 const pageFile=location.pathname.split("/").pop()||"index.html";
 const shareRoute=pageFile.match(/^share-(member|news)-([A-Za-z0-9_-]+)\.html$/);
 const current=shareRoute?(shareRoute[1]==="member"?"talent.html":"news-detail.html"):pageFile;
 const publicDetailId=()=>shareRoute?shareRoute[2]:new URLSearchParams(location.search).get("id");
+const publicLanguageEnabled=current!=="admin.html"&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview");
+let publicLanguageStorage=null;try{if(publicLanguageEnabled)publicLanguageStorage=window.localStorage}catch{}
+const publicLanguage=readPublicLanguage(new URL(location.href),publicLanguageStorage,publicLanguageEnabled);
+const ui=key=>publicUiText(key,publicLanguage);
+const publicLanguagePicker=()=>publicLanguageEnabled?`<label class="pop-language-control"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a16 16 0 0 1 0 18M12 3a16 16 0 0 0 0 18"/></svg><select id="pop-language-select" aria-label="${ui("language")}">${Object.entries(PUBLIC_LANGUAGES).map(([code,label])=>`<option value="${code}" lang="${code}" ${code===publicLanguage?"selected":""}>${label}</option>`).join("")}</select></label>`:"";
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
 const sharedStyle=document.createElement("link");sharedStyle.rel="stylesheet";sharedStyle.href="assets/css/shared-renewal.css";document.head.append(sharedStyle);
 const mainContent=document.querySelector("main");
@@ -17,18 +34,21 @@ if(current!=="admin.html"){const theme=document.querySelector('meta[name="theme-
 if(mainContent){
  if(!mainContent.id)mainContent.id="main-content";
  mainContent.setAttribute("tabindex","-1");
- const skip=document.createElement("a");skip.className="pop-skip-link";skip.href="#"+mainContent.id;skip.textContent="本文へ移動";
+ const skip=document.createElement("a");skip.className="pop-skip-link";skip.href="#"+mainContent.id;skip.textContent=ui("skip");skip.lang=publicLanguage;
  document.body.prepend(skip);
 }
 const header = document.querySelector("#site-header");
 if (header) {
-  header.innerHTML = `<div class="container header-inner pop-header"><a class="brand" href="index.html" aria-label="ぽっぽー トップページ"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><a class="pop-search-link" href="search.html" aria-label="サイト内検索" title="サイト内検索" ${current==="search.html"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>検索</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="メニューを開く">☰</button><nav class="nav" id="main-navigation" aria-label="メインナビゲーション">${navItems.map(([n,u])=>`<a href="${u}" ${navCurrent===u?'aria-current="page"':u==="talents.html"&&["anniversary.html","activity.html","favorites.html"].includes(current)?'aria-current="location"':""}>${n}</a>`).join("")}${memberPortalLink("nav")}</nav></div>`;
+  header.innerHTML = `<div class="container header-inner pop-header"><a class="brand" href="index.html" aria-label="${ui("home")}"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name" lang="ja">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><a class="pop-search-link" href="search.html" aria-label="${ui("siteSearch")}" title="${ui("siteSearch")}" ${current==="search.html"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>${ui("search")}</span></a>${publicLanguagePicker()}<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="${ui("menuOpen")}">☰</button><nav class="nav" id="main-navigation" aria-label="${ui("navigation")}">${navItems.map(([n,u])=>`<a href="${u}" ${navCurrent===u?'aria-current="page"':u==="talents.html"&&["anniversary.html","activity.html","favorites.html"].includes(current)?'aria-current="location"':""}>${ui(n)}</a>`).join("")}${memberPortalLink("nav")}</nav></div>`;
+  header.lang=publicLanguage;
+  const languageSelect=header.querySelector("#pop-language-select");
+  languageSelect?.addEventListener("change",()=>{const lang=languageSelect.value;if(!supportedPublicLanguage(lang)||lang===publicLanguage)return;try{publicLanguageStorage?.setItem(PUBLIC_LANGUAGE_KEY,lang)}catch{}location.assign(publicLanguageUrl(new URL(location.href),lang).href)});
   const btn = header.querySelector(".menu-toggle"), nav = header.querySelector(".nav");
-  const setMenu=(open)=>{nav.classList.toggle("open",open);btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"✕":"☰";btn.setAttribute("aria-label",open?"メニューを閉じる":"メニューを開く");};
+  const setMenu=(open)=>{nav.classList.toggle("open",open);btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"✕":"☰";btn.setAttribute("aria-label",ui(open?"menuClose":"menuOpen"));};
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
   nav.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("open")){setMenu(false);btn.focus()}});
-  const desktop=matchMedia("(min-width:1001px)");
+  const desktop=matchMedia("(min-width:1281px)");
   desktop.addEventListener("change",()=>setMenu(false));
   const syncHeaderHeight=()=>document.documentElement.style.setProperty("--public-header-height",Math.ceil(header.getBoundingClientRect().height)+"px");
   syncHeaderHeight();if(typeof ResizeObserver==="function"){const observer=new ResizeObserver(syncHeaderHeight);observer.observe(header)}else window.addEventListener("resize",syncHeaderHeight,{passive:true});
@@ -38,10 +58,14 @@ if (header) {
   window.addEventListener("scroll",updateHeader,{passive:true});updateHeader();
 }
 const footer = document.querySelector("#site-footer");
-if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>「好き」を配信に。「個性」を輝きに。<br>一人ひとりの個性と、自分らしい配信活動を応援します。</p></div><div><strong>コンテンツ</strong><div class="footer-links"><a href="about.html">コミュニティについて</a><a href="talents.html">参加メンバー</a><a href="schedule.html">配信予定</a><a href="anniversary.html">記念日カレンダー</a><a href="activity.html">メンバーの活動実績</a><a href="news.html">お知らせ</a></div></div><div><strong>ご案内</strong><div class="footer-links"><a href="audition.html">参加案内</a><a href="contact.html">お問い合わせ</a><a href="search.html">サイト内検索</a><a href="policy.html">プライバシー・サイトポリシー</a>${memberPortalLink("footer")}</div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">ページ上部へ <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
+if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="footer-grid"><div><a class="brand" href="index.html"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name" lang="ja">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><p>${ui("footerLine1")}<br>${ui("footerLine2")}</p></div><div><strong>${ui("contents")}</strong><div class="footer-links"><a href="about.html">${ui("community")}</a><a href="talents.html">${ui("memberList")}</a><a href="schedule.html">${ui("schedule")}</a><a href="anniversary.html">${ui("anniversary")}</a><a href="activity.html">${ui("activity")}</a><a href="news.html">${ui("news")}</a></div></div><div><strong>${ui("guide")}</strong><div class="footer-links"><a href="audition.html">${ui("join")}</a><a href="contact.html">${ui("contact")}</a><a href="search.html">${ui("siteSearch")}</a><a href="policy.html">${ui("policy")}</a>${memberPortalLink("footer")}</div></div></div><div class="pop-footer-bottom"><button type="button" class="pop-back-top">${ui("backTop")} <span aria-hidden="true">↑</span></button><div class="copyright">© ${new Date().getFullYear()} 架空事務所 ぽっぽー. All rights reserved.</div></div></div>`;
 
-if(footer){footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
+if(footer){footer.lang=publicLanguage;footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
 
+// Keep mixed-language content honest until the page translations are complete.
+if(publicLanguageEnabled&&publicLanguage==="en"&&mainContent){const note=document.createElement("p");note.className="pop-language-notice";note.lang="en";note.textContent="English navigation is available. Some page content is still in Japanese.";mainContent.prepend(note)}
+// When storage is unavailable, keep explicit language selection on ordinary internal navigation.
+if(publicLanguageEnabled){document.addEventListener("click",e=>{if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;const a=e.target.closest?.("a[href]");if(!a||a.target&&a.target!=="_self"||a.hasAttribute("download"))return;const href=a.getAttribute("href");if(!href||href.startsWith("#"))return;try{const url=new URL(href,location.href),here=new URL(location.href);if(url.origin!==here.origin||url.pathname.slice(0,url.pathname.lastIndexOf("/")+1)!==here.pathname.slice(0,here.pathname.lastIndexOf("/")+1)||!url.pathname.endsWith(".html")||url.pathname.endsWith("/admin.html")||url.searchParams.has("cmsPreview")||url.searchParams.has("lang"))return;let saved=null;try{saved=publicLanguageStorage?.getItem(PUBLIC_LANGUAGE_KEY)}catch{}if(saved!==publicLanguage){e.preventDefault();location.assign(publicLanguageUrl(url,publicLanguage).href)}}catch{}})}
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
@@ -337,5 +361,5 @@ function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","
  const href=url("applicationUrl"),box=document.querySelector(".audition-status");if(href&&box){const p=document.createElement("p");p.textContent="参加申込みは下記の外部窓口からご確認ください。";box.replaceChildren(p);link(box,href,"応募窓口へ");}
  }
  if(current==="contact.html"){const href=url("contactUrl"),box=document.querySelector(".contact-status");if(href&&box){const p=document.createElement("p");p.textContent="お問い合わせは下記の外部窓口をご利用ください。";box.replaceChildren(p);link(box,href,"お問い合わせ窓口へ");}}
- set(".pop-footer .footer-grid>div:first-child p","footerText");
+ set(".pop-footer .footer-grid>div:first-child p","footerText");if(config.footerText?.trim()){const customFooter=document.querySelector(".pop-footer .footer-grid>div:first-child p");if(customFooter)customFooter.lang="ja"}
 })();
