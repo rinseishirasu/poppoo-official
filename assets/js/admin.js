@@ -53,6 +53,55 @@ function memberCohortError(item,previous,open){
  if(removed.length)return "受付終了済みの登録期生は変更できません: "+removed.join("・");
  return "";
 }
+// M3: translations are separate from original content and structural fields.
+const TRANSLATION_LANGUAGES=[["en","English（英語）"],["ko","한국어（韓国語）"],["zh-Hant","繁體中文（繁体字）"],["zh-Hans","简体中文（簡体字）"],["id","Bahasa Indonesia（インドネシア語）"],["th","ไทย（タイ語）"]];
+const TRANSLATION_FIELDS={
+ talents:[["name","活動名（外国語表記）",120],["catchphrase","キャッチコピー",500],["bio","自己紹介",10000],["likes","趣味・好きなもの",4000],["affiliationAgency","所属事務所",300],["activityStatus","活動状況",300],["regularSchedule","定期配信",1000],["fanName","ファンネーム",300],["voiceIntroText","自己紹介ボイスの文字起こし",2000],["voiceGreetingText","挨拶ボイスの文字起こし",2000]],
+ news:[["title","記事タイトル",500],["summary","概要",2000],["body","記事本文",30000]],
+ schedule:[["title","配信タイトル",500]],
+ home:[["headline1","キャッチコピー1行目",500],["headline2","キャッチコピー2行目",500],["lead","紹介メッセージ",4000],["notice","トップページのお知らせ",4000],["aboutText","コミュニティ紹介文",4000],["joinText","参加案内メッセージ",4000]],
+ settings:[["operator","運営者名",300],["representative","代表者（外国語表記）",120],["chair","盛り上げ会長（外国語表記）",120],["base","活動拠点",500],["aboutLead","コミュニティ紹介",10000],["communityPolicy","運営方針",10000],["joinIntro","参加案内の紹介文",10000],["requirements","募集対象（1行に1項目）",10000],["footerText","フッター紹介文",2000],["seoTitle","検索・SNS表示タイトル",500],["seoDescription","検索・SNS表示説明文",2000]]
+};
+const translationObject=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
+function translationError(kind,value){
+ if(value===undefined)return "";
+ if(!translationObject(value))return "翻訳データの形式が不正です。";
+ const fields=TRANSLATION_FIELDS[kind]||[];
+ for(const [lang,entry] of Object.entries(value)){
+  if(!TRANSLATION_LANGUAGES.some(x=>x[0]===lang)||!translationObject(entry))return "翻訳の言語またはデータ形式が不正です。";
+  for(const [key,text] of Object.entries(entry)){const field=fields.find(f=>f[0]===key);if(!field||typeof text!=="string"||text.length>field[2])return "翻訳項目・文字数を確認してください："+lang+" / "+key;}
+ }
+ return "";
+}
+function collectTranslations(kind,rows){
+ const result={};
+ for(const [lang,key,value] of rows){
+  if(!TRANSLATION_LANGUAGES.some(x=>x[0]===lang)||!TRANSLATION_FIELDS[kind]?.some(f=>f[0]===key)||typeof value!=="string")continue;
+  const text=value.trim();if(!text)continue;
+  (result[lang]??={})[key]=text;
+ }
+ return result;
+}
+function translationEditorHtml(kind){
+ const fields=TRANSLATION_FIELDS[kind]||[];
+ return '<details class="admin-translation-editor admin-field-wide" data-translation-editor><summary>翻訳管理（多言語）</summary><p class="admin-form-guide">日本語の原文は変更しません。未入力の翻訳は原文を使用する予定です。現在は登録準備段階のため、公開ページの翻訳文表示は次期改修で有効になります。</p><p class="small">翻訳文もデータ公開時に公開GitHubへ保存されます。非公開情報を入力しないでください。</p><label class="admin-translation-language">編集言語<select data-translation-language>'+TRANSLATION_LANGUAGES.map(([code,label])=>'<option value="'+code+'">'+esc(label)+'</option>').join("")+'</select></label><p data-translation-progress role="status"></p>'+TRANSLATION_LANGUAGES.map(([code,label],i)=>'<section class="admin-translation-panel" data-translation-panel="'+code+'" '+(i?'hidden':'')+'><h3>'+esc(label)+'</h3>'+fields.map(([key,name,max])=>'<label class="admin-field"><span>'+esc(name)+'</span><small class="admin-translation-source" data-translation-source="'+key+'"></small><textarea data-translation-lang="'+code+'" data-translation-key="'+key+'" lang="'+code+'" rows="'+(max>2000?5:2)+'" maxlength="'+max+'"></textarea><small>最大 '+max+' 文字・空欄で原文表示</small></label>').join("")+'</section>').join("")+'</details>';
+}
+function setupTranslationEditor(form,kind,item){
+ const box=form.querySelector("[data-translation-editor]");if(!box)return;
+ const selector=box.querySelector("[data-translation-language]"),inputs=[...box.querySelectorAll("[data-translation-lang]")],panels=[...box.querySelectorAll("[data-translation-panel]")];
+ const old=translationObject(item.translations)?item.translations:{};
+ for(const input of inputs){const value=old[input.dataset.translationLang]?.[input.dataset.translationKey];input.value=typeof value==="string"?value:""}
+ const refresh=()=>{
+  const lang=selector.value;
+  for(const panel of panels)panel.hidden=panel.dataset.translationPanel!==lang;
+  const active=inputs.filter(el=>el.dataset.translationLang===lang),filled=active.filter(el=>el.value.trim()).length;
+  box.querySelector("[data-translation-progress]").textContent="入力済み "+filled+" / "+active.length+" 項目（空欄は原文）";
+  for(const source of box.querySelectorAll("[data-translation-source]")){const key=source.dataset.translationSource,field=form.elements.namedItem(key),value=typeof field?.value==="string"?field.value:typeof item[key]==="string"?item[key]:"";source.textContent=value.trim()?"原文："+value.trim():"原文：未入力";}
+ };
+ selector.addEventListener("input",e=>e.stopPropagation());selector.addEventListener("change",refresh);
+ // A single delegated handler on the replaceable editor; original fields refresh on opening/switching.
+ box.addEventListener("input",refresh);box.addEventListener("toggle",()=>{if(box.open)refresh()});refresh();
+}
 function fieldHtml(field){
  const [key,label,type,required]=field,req=required?" required":"",mark=required?' <span class="admin-required-label">必須</span>':"";
  if(type==="managementOrder")return `<fieldset class="admin-choice-group admin-field-wide"><legend>${label}</legend><small>掲載するメンバーを追加し、上下ボタンで表示順を設定できます。公開設定が有効なメンバーのみ公式HPに掲載されます。全員を除外すると掲載なしになります。</small><input type="hidden" name="${key}"><div data-management-list></div><label>追加するメンバー<select data-management-select><option value="">メンバーを選択</option></select></label><button type="button" class="admin-small-button" data-management-add>追加</button><button type="button" class="admin-small-button" data-management-default>初期の4名に戻す</button></fieldset>`;
@@ -171,12 +220,14 @@ function setupScheduleParticipants(form,item){
 }
 
 function renderForm(item={}){
- const form=$("content-form");form.reset();if(current==="talents")item=normalizedMemberProfile(item);const groups=[["基本情報","name id cohort roles affiliationAgency activityStatus"],["画像・カラー","iconImage avatarImages imageColor"],["自己紹介","catchphrase bio likes"],["記念日","birthday debutDate joinDate anniversaries"],["配信活動","tags regularSchedule achievements"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["公式リンク","links"],["公開設定","published hiddenSections"],["ボイス","voiceIntro voiceIntroText voiceGreeting voiceGreetingText"]];
+ const form=$("content-form");form.reset();if(current==="talents")item=normalizedMemberProfile(item);const groups=[["基本情報","name id cohort roles affiliationAgency activityStatus"],["画像・カラー","iconImage avatarImages imageColor"],["自己紹介","catchphrase bio likes"],["記念日","birthday debutDate joinDate anniversaries"],["配信活動","tags regularSchedule achievements"],["ファン情報","fanName oshiMark streamTag fanArtTag"],["公式リンク","links"],["公開設定","published hiddenSections"],["ボイス","voiceIntro voiceIntroText voiceGreeting voiceGreetingText"],["翻訳管理",""]];
  const fields=$("form-fields"),tabs=$("cms-profile-tabs");tabs.hidden=current!=="talents";tabs.replaceChildren();
  if(current==="talents"){const used=new Set(groups.flatMap(g=>g[1].split(" ")));groups[0][1]+=" "+SCHEMAS[current].filter(f=>!used.has(f[0])).map(f=>f[0]).join(" ");fields.innerHTML=groups.map(([label,keys],i)=>'<section class="cms-profile-group admin-fields" data-profile-group="'+i+'" '+(i?'hidden':'')+'><h3 class="admin-field-wide">'+esc(label)+'</h3>'+keys.split(" ").filter(Boolean).map(key=>SCHEMAS[current].find(f=>f[0]===key)).filter(Boolean).map(fieldHtml).join("")+'</section>').join("");
  const select=i=>{fields.querySelectorAll("[data-profile-group]").forEach((p,j)=>p.hidden=i!==j);Array.from(tabs.children).forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)))};
  groups.forEach(([label],i)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=()=>select(i);tabs.append(b)});select(0);
  }else fields.innerHTML=SCHEMAS[current].map(fieldHtml).join("");
+ const translationTarget=current==="talents"?fields.querySelector('[data-profile-group="9"]'):fields;
+ if(translationTarget){translationTarget.insertAdjacentHTML("beforeend",translationEditorHtml(current));if(current==="talents")translationTarget.querySelector("[data-translation-editor]").open=true;}
  if(form._profileInvalidHandler)form.removeEventListener("invalid",form._profileInvalidHandler,true);form._profileInvalidHandler=e=>{const group=e.target.closest("[data-profile-group]");if(group&&group.hidden)tabs.children[Number(group.dataset.profileGroup)]?.click()};form.addEventListener("invalid",form._profileInvalidHandler,true);
  for(const [key,,type] of SCHEMAS[current]){
   const el=form.elements.namedItem(key);if(!el&&!["memberSelect","newsMembers","cohort","cohortPolicy"].includes(type))continue;
@@ -211,6 +262,7 @@ function renderForm(item={}){
   else if(type==="links")el.value=Array.isArray(item[key])?item[key].map(x=>(x.label||"")+" | "+(x.url||"")).join("\n"):"";
   else el.value=item[key]??"";
  }
+ setupTranslationEditor(form,current,item);
  if(current==="news"){const date=form.elements.namedItem("date");if(!item.id&&!item.date)date.value=new Date(Date.now()+9*3600000).toISOString().slice(0,10);const body=form.elements.namedItem("body"),summary=form.elements.namedItem("summary");body.rows=10;summary.rows=3;const note=document.createElement("small");note.textContent="空欄の場合、記事一覧・SNS共有用の概要は本文から自動生成します。";summary.closest("label")?.append(note);}
  if(current==="talents"){
  const id=form.elements.namedItem("id");if(id&&editing>=0&&item.id){id.readOnly=true;const hint=form.querySelector("[data-id-hint]");if(hint)hint.textContent="登録済みID（変更不可）。配信予定や関連ニュースとの紐づけに使用します。"}
@@ -352,6 +404,8 @@ function formObject(){
  }
  if(current==="talents"){for(const [key,,transcript] of VOICE_SLOTS){for(const field of [key,transcript])if(!obj[field]&&data.talents[editing]?.[field]===undefined)delete obj[field]}obj.profileFormat=2;const old=data.talents[editing];if(old&&Array.isArray(old.hiddenSections))obj.hiddenSections=[...new Set([...obj.hiddenSections,...old.hiddenSections.filter(k=>["message","credit"].includes(k))])];}
  if(current==="schedule"){const form=$("content-form");obj.memberIds=JSON.parse(form.elements.namedItem("scheduleMemberIds").value||"[]");obj.guests=JSON.parse(form.elements.namedItem("scheduleGuests").value||"[]");obj.format=form.elements.namedItem("scheduleFormat").value;obj.memberId=obj.memberIds[0]||"";obj.talent=data.talents.find(t=>t?.id===obj.memberId)?.name||"";}
+ const translationRows=[...$("content-form").querySelectorAll("[data-translation-lang]")].map(el=>[el.dataset.translationLang,el.dataset.translationKey,el.value]);
+ const translations=collectTranslations(current,translationRows);if(Object.keys(translations).length||data[current][editing]?.translations!==undefined)obj.translations=translations;
  return obj;
 }
 function validateDataset(kind,items){
@@ -361,6 +415,7 @@ function validateDataset(kind,items){
  for(let i=0;i<items.length;i++){
   const item=items[i];
   if(!item||typeof item!=="object"||Array.isArray(item))return (i+1)+"件目のデータ形式が正しくありません。";
+  const translationInvalid=translationError(kind,item.translations);if(translationInvalid)return (i+1)+"件目: "+translationInvalid;
   for(const [key,label,,required] of SCHEMAS[kind])if(required&&(!String(item[key]??"").trim()))return (i+1)+"件目:「"+label+"」を入力してください。";
   if(["talents","news"].includes(kind)){
    if(!/^[A-Za-z0-9_-]+$/.test(item.id||""))return (i+1)+"件目: IDは半角英数字・ハイフン・アンダースコアで入力してください。";
@@ -481,6 +536,7 @@ $("form-fields").addEventListener("click",e=>{
 $("form-fields").addEventListener("change",e=>{if(e.target.matches('input[type="file"][name$="Audio"]'))uploadMemberVoice(e.target);else if(e.target.matches('input[type="file"][name$="File"]'))uploadTalentImage(e.target)});
 $("content-form").addEventListener("submit",e=>{
  e.preventDefault();if(!dataReady||publishing||imageBusy){status("読み込み・公開・メディア処理中は保存できません。");return}const obj=formObject();
+ const translationInvalid=translationError(current,obj.translations);if(translationInvalid){status("保存できません: "+translationInvalid);return}
  if(current==="schedule"){
  const previous=editing>=0?data.schedule[editing]:null;
  const invalid=scheduleParticipantError(obj,data.talents);if(invalid){status("保存できません: "+invalid);return}
@@ -623,6 +679,7 @@ function checkData(sets,paths=null){
  items.forEach((x,i)=>{
  if(!x||typeof x!=="object"||Array.isArray(x)){add(kind,i,"error","レコード形式が不正です");return}
  const issue=(level,msg)=>add(kind,i,level,msg);
+ const translationInvalid=translationError(kind,x.translations);if(translationInvalid)issue("error",translationInvalid);
  for(const [key,label,,required] of SCHEMAS[kind])if(required&&(typeof x[key]!=="string"||!x[key].trim()))issue("error",label+"が未入力または不正です");
  if(typeof x.published!=="boolean")issue("warning","公開設定が未指定または不正です");
  if(["talents","news"].includes(kind)){if(!/^[A-Za-z0-9_-]+$/.test(x.id||""))issue("error","ID形式が不正です");if(ids.has(x.id))issue("error","IDが重複しています");ids.add(x.id)}

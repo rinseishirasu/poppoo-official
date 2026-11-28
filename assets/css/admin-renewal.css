@@ -273,3 +273,15 @@
 
 /* Cohort registration policy is independent of public-site settings. */
 .admin-page .admin-cohort-policy .admin-choice-grid label{align-items:center;min-height:48px}.admin-page .admin-cohort-policy .admin-choice-grid label>span{display:grid;gap:2px}.admin-page .admin-cohort-policy [data-cohort-choice-status]{font-size:.7rem;color:#666}.admin-page .admin-cohort-policy label:has(input:checked) [data-cohort-choice-status]{color:#333;font-weight:700}.admin-page .admin-cohort-policy [data-cohort-policy-current],.admin-page .admin-cohort-policy [data-cohort-policy-count]{font-size:.85rem;overflow-wrap:anywhere;margin:8px 0}.admin-page .admin-cohort-policy .admin-form-guide{margin:0 0 8px}
+
+/* M3 translation editor */
+.admin-page .admin-translation-editor{min-width:0;border:1px solid #ddd;border-radius:10px;padding:14px;margin-block:12px;background:#fff}
+.admin-page .admin-translation-editor>summary{cursor:pointer;font-weight:750;min-height:36px;padding-block:6px}
+.admin-page .admin-translation-language{display:grid;gap:5px;margin-block:12px;max-width:380px}
+.admin-page .admin-translation-language select{width:100%;min-height:44px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;padding:8px;font:inherit}
+.admin-page .admin-translation-panel{display:grid;gap:14px;min-width:0}
+.admin-page .admin-translation-panel[hidden]{display:none!important}
+.admin-page .admin-translation-panel h3{margin:0;font-size:1rem}
+.admin-page .admin-translation-panel textarea{width:100%;min-width:0;resize:vertical}
+.admin-page .admin-translation-source{white-space:pre-wrap;overflow-wrap:anywhere;max-height:130px;overflow:auto;background:#f6f6f6;border-radius:6px;padding:6px 8px;color:#444;display:block}
+.admin-page [data-translation-progress]{font-size:.85rem;font-weight:700;color:#444}
