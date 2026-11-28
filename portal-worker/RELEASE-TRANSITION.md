@@ -18,3 +18,9 @@
 
 ## RC7 Discord通知導入記録（2026-11-28）
 運営者報告により、0007追加マイグレーション、Discord Webhook作成、Secretと有効化変数設定、Workerデプロイ、Cron Triggers（5分間隔）設定が完了。healthはrevision=release-1.0-rc7、ok=true、schemaReady=true、productionEnabled=true、memberModeEnabled=true、publicationEnabled=true、discordEnabled=true、discordWebhookConfigured=true。模擬・静的回帰試験152/152、運営者による実環境通知試験6/6正常（Discord受信、申請区分・メンバーID、JST、未審査件数、送信済み履歴、審査画面リンク）。RC7を通知機能導入済みとして記録する。実環境での通知全種類、障害時再送・Cronによる補助送信・公開書き込みの試験は今回の報告範囲外。認証仕様およびKDFの残存課題は変更なし。コード・公開データには本記録による変更なし。
+
+## RC8 個別メッセージ・活動状況集計導入記録（2026-11-28）
+運営者報告により、healthはrevision=release-1.0-rc8、ok=true、schemaReady=true、productionEnabled=true、memberModeEnabled=true、publicationEnabled=true、discordEnabled=true、discordWebhookConfigured=true、directMessagesEnabled=true、activityReportEnabled=true。模擬・静的回帰試験166/166。運営者による実環境動作試験16/16正常。
+- 個別メッセージ8/8：運営からメンバーへの送信、逆方向送信、会話履歴、既読・未読、ダッシュボード未読件数、JST、別メンバー会話の閲覧制限、運営専用画面のアクセス制限。
+- 活動状況集計8/8：ページ表示、公開メンバー数、アカウント登録・利用状況、配信予定件数、活動記録件数、対象月切替、審査待ち件数、最終ログイン日時。
+RC8の追加機能を導入済みとして記録する。今回の結果は運営者報告に基づき、全機能の負荷・障害復旧・外部連携回帰試験を実施したことを意味しない。既存認証仕様およびKDF残存課題は変更なし。今回の記録に伴うコード・公開データの変更なし。
