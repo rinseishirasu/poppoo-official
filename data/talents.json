@@ -529,5 +529,36 @@
     "tags": [],
     "links": [],
     "profileFormat": 2
+  },
+  {
+    "id": "thukithan",
+    "published": false,
+    "name": "ﾄｩｷﾃｬﾝ",
+    "imageColor": "",
+    "cohort": [
+      "2期生"
+    ],
+    "roles": [],
+    "affiliationAgency": "",
+    "iconImage": "",
+    "avatarImages": [],
+    "catchphrase": "",
+    "bio": "",
+    "achievements": [],
+    "hiddenSections": [],
+    "birthday": "",
+    "debutDate": "2026-09-21",
+    "joinDate": "2026-11-28",
+    "anniversaries": [],
+    "activityStatus": "",
+    "regularSchedule": "",
+    "fanName": "",
+    "oshiMark": "",
+    "streamTag": "",
+    "fanArtTag": "",
+    "likes": "",
+    "tags": [],
+    "links": [],
+    "profileFormat": 2
   }
 ]
