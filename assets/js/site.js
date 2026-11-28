@@ -234,8 +234,10 @@ function anniversaryRecords(talents,settings){
 function anniversaryOccurrence(record,year){
  if(record.year!==null&&year<record.year+Number(["debut","join","community"].includes(record.kind)))return null;
  const d=new Date(Date.UTC(year,record.month-1,record.day));
- if(d.getUTCMonth()!==record.month-1||d.getUTCDate()!==record.day)return null;
- return {...record,date:d.toISOString().slice(0,10),title:record.name+"の"+(record.year!==null&&["debut","join","community"].includes(record.kind)?(record.kind==="debut"?"デビュー":record.kind==="join"?"加入":"設立")+(year-record.year)+"周年":record.label)};
+ // February 29 anniversaries are observed on March 1 in common years only.
+ const shifted=record.month===2&&record.day===29&&d.getUTCMonth()===2&&d.getUTCDate()===1;
+ if(!shifted&&(d.getUTCMonth()!==record.month-1||d.getUTCDate()!==record.day))return null;
+ return {...record,month:d.getUTCMonth()+1,day:d.getUTCDate(),shifted,date:d.toISOString().slice(0,10),title:record.name+"の"+(record.year!==null&&["debut","join","community"].includes(record.kind)?(record.kind==="debut"?"デビュー":record.kind==="join"?"加入":"設立")+(year-record.year)+"周年":record.label)};
 }
 function nextAnniversaryEvents(records,today){
  const start=Number(today.slice(0,4)),out=[];

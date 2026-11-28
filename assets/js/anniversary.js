@@ -12,7 +12,7 @@ const days=e=>Math.round((Date.parse(e.date)-Date.parse(today))/86400000);
 function eventRow(e,countdown){
  const a=make("a","anniversary-event");a.href=e.href;
  const date=make("time","anniversary-event-date",e.date.replaceAll("-","/"));date.dateTime=e.date;
- const info=make("div","anniversary-event-info");info.append(make("span","anniversary-kind "+e.kind,labels[e.kind]),make("strong","",e.title));a.append(date,info);
+ const info=make("div","anniversary-event-info");info.append(make("span","anniversary-kind "+e.kind,labels[e.kind]),make("strong","",e.title));if(e.shifted)info.append(make("small","anniversary-shift-note","2月29日の記念日（平年は3月1日）"));a.append(date,info);
  if(countdown)a.append(make("span","anniversary-countdown-label",days(e)===0?"本日":days(e)+"日後"));return a;
 }
 function upcomingAnniversaryGroups(events,limit=3){

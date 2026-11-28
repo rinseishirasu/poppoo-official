@@ -69,3 +69,5 @@
 .anniversary-day-group{scroll-margin-top:96px}
 @media(max-width:760px){.anniversary-filter-panel .anniversary-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.anniversary-filter-panel button{grid-column:1/-1}.anniversary-filter-panel .anniversary-controls label{font-size:.78rem}.anniversary-filter-panel select{padding:8px 5px}.anniversary-upcoming-heading{gap:6px}.anniversary-jump{font-size:.75rem;padding:6px 8px}}
 @media(max-width:340px){.anniversary-filter-panel .anniversary-controls{grid-template-columns:minmax(0,1fr)}}
+
+.anniversary-event-info .anniversary-shift-note{display:block;font-size:.72rem;line-height:1.5;color:#666;overflow-wrap:anywhere}
