@@ -1,8 +1,7 @@
 (async()=>{
- const [rawTalents,news,schedule]=await Promise.all([
-  loadData("data/talents.json"),loadData("data/news.json"),loadData("data/schedule.json")
+ const [talents,news,schedule]=await Promise.all([
+  loadPublicData("data/talents.json"),loadPublicData("data/news.json"),loadPublicData("data/schedule.json")
  ]);
- const talents=rawTalents.map(normalizedMemberProfile);
  const unavailable=(el,label,back="")=>{
  if(!el)return;el.replaceChildren();
  const box=document.createElement("div");box.className="empty-state";box.setAttribute("role","status");
@@ -51,7 +50,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const sectionVisible=(t,key)=>!Array.isArray(t.hiddenSections)||!t.hiddenSections.includes(key);
  const publicStatus=t=>sectionVisible(t,"activity")&&typeof t.activityStatus==="string"?t.activityStatus.trim():"";
  const searchText=v=>String(v??"").normalize("NFKC").toLocaleLowerCase("ja-JP").replace(/[ァ-ヶ]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-96)).trim();
- const memberSearch=t=>searchText([t.name,t.catchphrase,...cohorts(t),...roles(t),...(sectionVisible(t,"activity")&&Array.isArray(t.tags)?t.tags:[]),sectionVisible(t,"bio")?t.bio:"",sectionVisible(t,"facts")?t.affiliationAgency:"",sectionVisible(t,"personality")?t.likes:"",publicStatus(t)].join(" "));
+ const memberSearch=t=>searchText([t.name,t.catchphrase,...originalContentText(t,["name","catchphrase",...(sectionVisible(t,"bio")?["bio"]:[]),...(sectionVisible(t,"facts")?["affiliationAgency"]:[]),...(sectionVisible(t,"personality")?["likes"]:[]),...(sectionVisible(t,"activity")?["activityStatus"]:[])]),...cohorts(t),...roles(t),...(sectionVisible(t,"activity")&&Array.isArray(t.tags)?t.tags:[]),sectionVisible(t,"bio")?t.bio:"",sectionVisible(t,"facts")?t.affiliationAgency:"",sectionVisible(t,"personality")?t.likes:"",publicStatus(t)].join(" "));
  const attachMemberFallback=container=>container.querySelectorAll(".pop-member-art img").forEach(img=>{
  const fallback=()=>{if(!img.isConnected)return;const node=document.createElement("span");node.className="pop-member-placeholder";node.setAttribute("aria-hidden","true");node.textContent=img.alt?.slice(0,1)||"P";img.replaceWith(node)};
  img.addEventListener("error",fallback,{once:true});if(img.complete&&!img.naturalWidth)fallback();
@@ -69,7 +68,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const heroColors=document.querySelector("#home-member-colors");
  if(heroColors){const colors=[...new Set(published(talents).map(t=>typeof t.imageColor==="string"&&/^#[0-9a-f]{6}$/i.test(t.imageColor)?t.imageColor.toLowerCase():"").filter(Boolean))];heroColors.replaceChildren(...colors.map(color=>{const span=document.createElement("span");span.style.setProperty("--identity-color",color);return span}));heroColors.hidden=!colors.length;}
  const featured=document.querySelector("#home-featured"),heroMemberIds=new Set();
- const home=featured?(await loadData("data/home.json")).find(x=>x?.published===true):null;
+ const home=featured?(await loadPublicData("data/home.json")).find(x=>x?.published===true):null;
  if(home){const set=(selector,value)=>{const el=document.querySelector(selector);if(el&&typeof value==="string"&&value.trim())el.textContent=value};const h=document.querySelector(".pop-hero-copy h1");if(h&&(home.headline1||home.headline2)){const span=h.querySelector("span");if(home.headline1&&h.firstChild?.nodeType===3)h.firstChild.textContent=home.headline1;if(span&&home.headline2)span.textContent=home.headline2}set(".pop-hero-copy p",home.lead);set(".pop-about-grid p",home.aboutText);set(".pop-join h2",home.joinText);for(const key of ["News","Schedule","Members","About","Join"])if(home["hide"+key]===true){const el=document.querySelector(".pop-"+key.toLowerCase());if(el)el.style.display="none"}if(home.notice?.trim()){const p=document.createElement("p");p.className="container pop-home-notice";p.textContent=home.notice;document.querySelector(".pop-hero").after(p)}}
  const heroImage=home&&/^assets\/images\/home\/[A-Za-z0-9_-]+\.(png|jpg|webp|gif)$/.test(home.heroImage||"")?home.heroImage:"";
  if(featured&&heroImage){const label=document.querySelector(".pop-stage-label");if(label)label.textContent=publicText("メインビジュアル");const img=document.createElement("img");img.src=heroImage;img.alt="ぽっぽー メインビジュアル";img.className="pop-custom-hero";img.addEventListener("error",()=>{img.src="assets/image/poppoo-icon.png";img.alt="ぽっぽー公式アイコン";img.classList.remove("pop-custom-hero");if(label)label.textContent="ぽっぽー"},{once:true});featured.replaceChildren(img)}
@@ -80,7 +79,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const q=document.querySelector("#talent-search"),filter=document.querySelector("#cohort-filter"),role=document.querySelector("#role-filter"),activity=document.querySelector("#activity-filter"),genre=document.querySelector("#genre-filter"),sort=document.querySelector("#member-sort"),reset=document.querySelector("#member-reset"),count=document.querySelector("#member-count"),active=document.querySelector("#member-active-filters"),viewButtons=[...document.querySelectorAll("[data-member-view]")],all=published(talents);
  const memberTags=t=>(sectionVisible(t,"activity")&&Array.isArray(t.tags)?t.tags:[]).filter(v=>typeof v==="string"&&v.trim());
  const options=(el,values)=>{if(el)[...new Set(values.filter(v=>typeof v==="string"&&v.trim()))].sort((a,b)=>a.localeCompare(b,"ja",{numeric:true})).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.append(o)})};
- options(filter,all.flatMap(cohorts));options(role,all.flatMap(roles));options(activity,all.map(publicStatus));options(genre,all.flatMap(memberTags));
+ options(filter,all.flatMap(cohorts));options(role,all.flatMap(roles));options(activity,all.map(t=>publicStatus(originalPublicRecord(t))));if(activity)for(const option of activity.options){if(!option.value)continue;const member=all.find(t=>publicStatus(originalPublicRecord(t))===option.value);if(member)option.textContent=publicStatus(member)||option.value}options(genre,all.flatMap(memberTags));
  const fields=[["q",q,"検索"],["cohort",filter,"期生"],["role",role,"役職"],["status",activity,"活動状況"],["genre",genre,"ジャンル"],["sort",sort,"表示順"]];
  const params=new URLSearchParams(location.search);let view=params.get("view")==="list"?"list":"grid";
  for(const [key,el] of fields){const value=params.get(key);if(!el||value===null)continue;if(el.tagName==="SELECT"){if([...el.options].some(o=>o.value===value))el.value=value}else el.value=value}
@@ -90,7 +89,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const directoryCard=t=>{const tags=memberTags(t).slice(0,3);const card=talentCard(t);return tags.length?card.replace('<span class="pop-member-more">','<div class="member-card-genres">'+tags.map(tag=>'<span>'+escapeHtml(tag)+'</span>').join("")+'</div><span class="pop-member-more">'):card};
  const render=()=>{
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean),group=filter?.value||"",job=role?.value||"",state=activity?.value||"",tag=genre?.value||"";
- const list=all.filter(t=>(!group||cohorts(t).includes(group))&&(!job||roles(t).includes(job))&&(!state||publicStatus(t)===state)&&(!tag||memberTags(t).includes(tag))&&terms.every(v=>memberSearch(t).includes(v)));
+ const list=all.filter(t=>(!group||cohorts(t).includes(group))&&(!job||roles(t).includes(job))&&(!state||publicStatus(originalPublicRecord(t))===state)&&(!tag||memberTags(t).includes(tag))&&terms.every(v=>memberSearch(t).includes(v)));
  if(sort?.value==="name")list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ja"));
  if(sort?.value==="cohort")list.sort((a,b)=>rank(a)-rank(b)||0);
  if(sort?.value==="joined")list.sort((a,b)=>(validDay(b.joinDate)?b.joinDate:"").localeCompare(validDay(a.joinDate)?a.joinDate:""));
@@ -128,7 +127,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
 
  const render=()=>{
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
- const list=all.filter(n=>(!memberFilter?.value||newsMemberIds(n).includes(memberFilter.value))&&(!cat?.value||newsCategory(n.category)===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,newsCategory(n.category)].join(" ")).includes(term)));
+ const list=all.filter(n=>(!memberFilter?.value||newsMemberIds(n).includes(memberFilter.value))&&(!cat?.value||newsCategory(n.category)===cat.value)&&(!year?.value||yearOf(n)===year.value)&&terms.every(term=>searchText([n.title,n.summary,n.body,...originalContentText(n,["title","summary","body"]),newsCategory(n.category)].join(" ")).includes(term)));
  if(sort?.value==="old")list.reverse();
  if(count)count.textContent=publicEnglish?"Showing "+Math.min(limit,list.length)+" of "+list.length+" results":list.length+"件中 "+Math.min(limit,list.length)+"件を表示";
  nl.innerHTML=list.length?list.slice(0,limit).map(n=>isHome?'<a class="home-news-row" href="news-detail.html?id='+encodeURIComponent(n.id)+'"><div class="home-news-meta"><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time><span class="home-news-category">'+escapeHtml(publicText(newsCategory(n.category)))+'</span></div><strong>'+escapeHtml(n.title||"お知らせ")+'</strong><span aria-hidden="true">→</span></a>':newsCard(n)).join(""):'<div class="empty-state">'+(all.length?publicText("条件に一致するお知らせはありません。"):"現在、お知らせはありません。")+'</div>';
@@ -171,7 +170,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const row=s=>{const url=safeExternalLink(s.url||""),t=scheduleMember(s),color=t?memberColor(t):"#666666",time=String(s.time||"");return '<article class="schedule-item" style="--schedule-member-color:'+color+'"><div class="schedule-date">'+""+'<span class="schedule-time">'+escapeHtml(time||publicText("時間未定"))+'</span></div><div class="schedule-program"><div class="schedule-title">'+escapeHtml(s.title||"配信")+'</div><div class="schedule-meta">'+schedulePeopleHtml(s)+collabLabel(s)+' <span class="schedule-platform-label">'+escapeHtml(media(s))+'</span></div></div>'+(url?'<a class="schedule-link" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">'+publicText("配信ページを見る ↗")+'</a>':day?'<span class="schedule-link-pending">'+publicText("配信先リンク未登録")+'</span>':"")+'</article>'};
  const render=()=>{
  const terms=searchText(q?.value||"").split(/\s+/).filter(Boolean);
- const matching=all.filter(s=>(!member?.value||memberKeys(s).includes(member.value))&&(!platform?.value||media(s)===platform.value)&&(!format?.value||scheduleFormat(s)===format.value)&&terms.every(term=>searchText([s.title,name(s),media(s),scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信"].join(" ")).includes(term)));
+ const matching=all.filter(s=>(!member?.value||memberKeys(s).includes(member.value))&&(!platform?.value||media(s)===platform.value)&&(!format?.value||scheduleFormat(s)===format.value)&&terms.every(term=>searchText([s.title,...originalContentText(s,["title"]),name(s),...schedulePeople(s).filter(p=>p.id).map(p=>originalPublicRecord(talents.find(t=>t.id===p.id))?.name||""),media(s),scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信"].join(" ")).includes(term)));
  const list=matching.filter(s=>(period==="all"||period==="today"&&s.date===todayJST||period==="tomorrow"&&s.date===tomorrow||period==="week"&&s.date<=endDay)&&(!day?.value||s.date===day.value));
  if(count)count.textContent=publicEnglish?list.length+" / "+all.length+" upcoming streams":list.length+"件 / 今後の公開予定 "+all.length+"件";if(reset)reset.hidden=period==="all"&&![member,day,platform,format,q].some(el=>el?.value.trim());
  buttons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.period===period&&!day?.value)));
@@ -192,7 +191,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
   const t=published(talents).find(x=>x.id===id);
   if(t){
    setDetailCanonical("talents",t.id);
-   const palette=applyMemberPalette(profile,t.imageColor);profile.classList.add("member-themed");document.title=t.name+" | メンバー | 架空事務所 ぽっぽー";
+   const palette=applyMemberPalette(profile,t.imageColor);profile.classList.add("member-themed");document.title=t.name+" | "+publicText("メンバー")+" | 架空事務所 ぽっぽー";
    const hidden=new Set(Array.isArray(t.hiddenSections)?t.hiddenSections:[]);
    const visible=(key,html)=>hidden.has(key)?"":html;
    const hasProfileValue=value=>typeof value==="string"?value.trim().length>0:Boolean(value);
@@ -266,7 +265,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const linkedSection=linked.length?'<section class="news-linked-members"><h2>'+publicText("関連メンバー")+'</h2><div class="news-linked-grid">'+linked.map(t=>'<a href="talent.html?id='+encodeURIComponent(t.id)+'">'+escapeHtml(t.name)+' →</a>').join("")+'</div></section>':"";
  const articleLink=(x,label)=>x?'<a href="news-detail.html?id='+encodeURIComponent(x.id)+'"><small>'+label+'</small><strong>'+escapeHtml(x.title)+'</strong></a>':'<span></span>';
  const body=String(n.body||"").split(/\r?\n/).map(line=>line?"<p>"+escapeHtml(line)+"</p>":"").join("");
- article.innerHTML='<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">'+escapeHtml(category)+'</span><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time></div><h1>'+escapeHtml(n.title)+'</h1>'+(newsImage(n)?'<img class="pop-news-cover" src="'+escapeHtml(newsImage(n))+'" alt="">':"")+(newsLead(n)?'<p class="detail-summary">'+escapeHtml(newsLead(n))+'</p>':"")+'<div class="prose news-prose">'+body+'</div>'+linkedSection+'<div class="news-detail-footer"><details class="pop-page-share-disclosure news-share-disclosure" id="news-share-disclosure"><summary>'+publicText("この記事を共有")+'</summary><div id="news-share"></div></details><a class="text-link" href="news.html">'+publicText("← お知らせ一覧へ戻る")+'</a></div></article>'+(newer||older?'<nav class="news-neighbor-nav" aria-label="前後の記事">'+articleLink(newer,publicText("← 新しい記事"))+articleLink(older,publicText("古い記事 →"))+'</nav>':"")+(related.length?'<section class="news-related"><h2>'+publicText("同じカテゴリーのお知らせ")+'</h2><div class="cards news-related-grid">'+related.map(newsCard).join("")+'</div></section>':"");
+ article.innerHTML='<article class="detail-article news-detail-article"><div class="news-detail-heading"><span class="eyebrow">'+escapeHtml(publicText(category))+'</span><time datetime="'+escapeHtml(n.date||"")+'">'+dateLabel(n.date)+'</time></div><h1>'+escapeHtml(n.title)+'</h1>'+(newsImage(n)?'<img class="pop-news-cover" src="'+escapeHtml(newsImage(n))+'" alt="">':"")+(newsLead(n)?'<p class="detail-summary">'+escapeHtml(newsLead(n))+'</p>':"")+'<div class="prose news-prose">'+body+'</div>'+linkedSection+'<div class="news-detail-footer"><details class="pop-page-share-disclosure news-share-disclosure" id="news-share-disclosure"><summary>'+publicText("この記事を共有")+'</summary><div id="news-share"></div></details><a class="text-link" href="news.html">'+publicText("← お知らせ一覧へ戻る")+'</a></div></article>'+(newer||older?'<nav class="news-neighbor-nav" aria-label="前後の記事">'+articleLink(newer,publicText("← 新しい記事"))+articleLink(older,publicText("古い記事 →"))+'</nav>':"")+(related.length?'<section class="news-related"><h2>'+publicText("同じカテゴリーのお知らせ")+'</h2><div class="cards news-related-grid">'+related.map(newsCard).join("")+'</div></section>':"");
  const newsShare=article.querySelector("#news-share");mountPublicShare(newsShare,{page:"news-detail.html",id:n.id,title:n.title+" | 架空事務所 ぽっぽー",label:publicText("共有方法を選ぶ")});if(newsShare.hidden)article.querySelector("#news-share-disclosure").hidden=true;
  }else {const robots=document.createElement("meta");robots.name="robots";robots.content="noindex,follow";document.head.append(robots);article.innerHTML='<div class="empty-state news-detail-empty"><span class="eyebrow">NEWS</span><h1>'+publicText("記事が見つかりませんでした")+'</h1><p>'+publicText("記事が公開されていないか、掲載を終了している可能性があります。")+'</p><a class="btn secondary" href="news.html">'+publicText("お知らせ一覧へ戻る")+'</a></div>';}
  }
@@ -285,7 +284,7 @@ function publicFavoriteMembers(members,ids){const selected=new Set(validFavorite
  const upcoming=published(schedule).filter(s=>scheduleIsPublic(s,talents)&&validDay(s.date)&&s.date>=todayJST&&scheduleParticipantIds(s,talents).some(id=>ids.has(id))).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||"").localeCompare(String(b.time||"")));
  if(datasetFailed("data/schedule.json"))empty(targets.schedule,publicText("配信予定を取得できませんでした。"));
  else if(!upcoming.length)empty(targets.schedule,publicText("現在、掲載中の配信予定はありません。"));
- else targets.schedule.innerHTML=upcoming.map(s=>'<article class="favorite-event"><time datetime="'+escapeHtml(s.date)+'">'+dateLabel(s.date)+' '+escapeHtml(s.time||"")+'</time><div><strong>'+escapeHtml(s.title||"配信")+'</strong><div class="schedule-meta">'+schedulePeopleHtml(s)+collabLabel(s)+'</div></div><a class="text-link" href="schedule.html?day='+encodeURIComponent(s.date)+'&amp;q='+encodeURIComponent(s.title||"")+'">'+publicText("予定を見る →")+'</a></article>').join("");
+ else targets.schedule.innerHTML=upcoming.map(s=>'<article class="favorite-event"><time datetime="'+escapeHtml(s.date)+'">'+dateLabel(s.date)+' '+escapeHtml(s.time||"")+'</time><div><strong>'+escapeHtml(s.title||"配信")+'</strong><div class="schedule-meta">'+schedulePeopleHtml(s)+collabLabel(s)+'</div></div><a class="text-link" href="schedule.html?day='+encodeURIComponent(s.date)+'&amp;q='+encodeURIComponent(originalPublicRecord(s).title||"")+'">'+publicText("予定を見る →")+'</a></article>').join("");
  const anniversaries=nextAnniversaryEvents(anniversaryRecords(selected,[]).filter(e=>e.id&&ids.has(e.id)),todayJST);
  if(!anniversaries.length)empty(targets.anniversary,publicText("公開されている記念日はありません。"));
  else targets.anniversary.innerHTML=anniversaries.map(e=>'<article class="favorite-event"><time datetime="'+escapeHtml(e.date)+'">'+dateLabel(e.date)+'</time><strong>'+escapeHtml(publicAnniversaryTitle(e))+'</strong><a class="text-link" href="anniversary.html?member='+encodeURIComponent(e.id)+'&amp;month='+e.date.slice(0,7)+'">'+publicText("記念日を見る →")+'</a></article>').join("");

@@ -10,10 +10,10 @@ const validId=id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id);
 const validDate=d=>typeof d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
 function buildIndex(sets,today){
  const rows=[],add=(kind,title,detail,href,keywords=[],date="")=>{if(!title)return;rows.push({kind,title,detail,href,date,hay:normalize([title,detail,labels[kind],publicText(labels[kind]),...keywords].join(" ")),titleKey:normalize(title)})};
- const members=published(sets.talents).filter(t=>validId(t.id)&&text(t.name)).map(normalizedMemberProfile);
+ const members=displayPublicMembers(published(sets.talents).filter(t=>validId(t.id)&&text(t.name)));
  const names=new Map(members.map(t=>[t.id,t.name]));
  for(const t of members){
- const href="talent.html?id="+encodeURIComponent(t.id),cohorts=strings(t.cohort),roles=strings(t.roles),tags=visible(t,"activity")?strings(t.tags):[],keywords=[...cohorts,...roles,...tags];
+ const href="talent.html?id="+encodeURIComponent(t.id),cohorts=strings(t.cohort),roles=strings(t.roles),tags=visible(t,"activity")?strings(t.tags):[],keywords=[...cohorts,...roles,...tags,...originalContentText(t,["name","catchphrase",...(visible(t,"bio")?["bio"]:[]),...(visible(t,"facts")?["affiliationAgency"]:[]),...(visible(t,"personality")?["likes"]:[]),...(visible(t,"fan")?["fanName"]:[]),...(visible(t,"activity")?["activityStatus","regularSchedule"]:[])])];
  if(visible(t,"bio"))keywords.push(text(t.bio));
  if(visible(t,"facts"))keywords.push(text(t.affiliationAgency));
  if(visible(t,"personality"))keywords.push(text(t.likes));
@@ -25,17 +25,17 @@ function buildIndex(sets,today){
  add("member",t.name,detail||"参加メンバーのプロフィール",href,keywords);
 
  }
- for(const n of published(sets.news).filter(x=>validId(x.id)&&text(x.title))){
+ for(const n of published(sets.news).filter(x=>validId(x.id)&&text(x.title)).map(n=>displayPublicRecord("news",n))){
  const linked=(Array.isArray(n.memberIds)?n.memberIds:[]).map(id=>names.get(id)).filter(Boolean);
- add("news",n.title,[text(n.date),newsCategory(n.category),newsExcerpt(n)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...linked],text(n.date));
+ add("news",n.title,[text(n.date),newsCategory(n.category),newsExcerpt(n)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...originalContentText(n,["title","summary","body"]),...linked],text(n.date));
  }
- for(const s of published(sets.schedule).filter(x=>scheduleIsPublic(x,sets.talents)&&validDate(x.date)&&x.date>=today)){
- const people=scheduleParticipants(s,sets.talents),name=people.map(p=>p.name).join("・")||"参加メンバー",platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";
- const first=people.find(p=>p.id),href="schedule.html?day="+encodeURIComponent(s.date)+(first?"&member="+encodeURIComponent(first.id):"")+"&q="+encodeURIComponent(text(s.title));
- add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform,format].join(" ・ "),href,[...people.map(p=>p.name),platform,format],s.date);
+ for(const s of published(sets.schedule).filter(x=>scheduleIsPublic(x,sets.talents)&&validDate(x.date)&&x.date>=today).map(s=>displayPublicRecord("schedule",s))){
+ const people=scheduleParticipants(s,members),name=people.map(p=>p.name).join("・")||"参加メンバー",platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";
+ const first=people.find(p=>p.id),href="schedule.html?day="+encodeURIComponent(s.date)+(first?"&member="+encodeURIComponent(first.id):"")+"&q="+encodeURIComponent(text(originalPublicRecord(s).title));
+ add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform,format].join(" ・ "),href,[...people.map(p=>p.name),...people.filter(p=>p.id).map(p=>originalPublicRecord(members.find(t=>t.id===p.id))?.name||""),...originalContentText(s,["title"]),platform,format],s.date);
  }
- for(const r of publicActivityRecords(sets.talents))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
- const settings=published(sets.settings)[0]||{};
+ for(const r of publicActivityRecords(members))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
+ const settings=displayPublicRecord("settings",published(sets.settings)[0])||{};
  const basic=[
  ["ぽっぽーについて","REALITYで活動する配信者の交流コミュニティ","about.html#about-us",[text(settings.aboutLead),"架空事務所 ぽっぽー Vライバー 個性 専属 マネジメント"]],
  ["名前の由来","ぽっぽーに込めた想い","about.html#about-name",["汽車 汽笛"]],
@@ -50,10 +50,10 @@ function buildIndex(sets,today){
  ["公開プロフィール・掲載情報","掲載データと非表示設定の取り扱い","policy.html#publication",["公開リポジトリ 訂正 削除 プロフィール コラボ 個人情報"]]
  ];
  for(const [title,detail,href,keywords] of basic)add("info",publicText(title),publicText(detail),href,[title,detail,...keywords]);
- for(const e of nextAnniversaryEvents(anniversaryRecords(sets.talents,sets.settings),today)){
- const title=e.name+"の"+e.label;
+ for(const e of nextAnniversaryEvents(anniversaryRecords(members,sets.settings),today)){
+ const title=publicAnniversaryTitle(e);
  const url="anniversary.html?month="+e.date.slice(0,7)+(e.id?"&member="+encodeURIComponent(e.id):"");
- add("anniversary",title,e.month+"月"+e.day+"日 ・ 次回 "+e.date,url,[e.title,"記念日 周年"],e.date);
+ add("anniversary",title,e.month+"月"+e.day+"日 ・ 次回 "+e.date,url,[e.title,originalPublicRecord(members.find(t=>t.id===e.id))?.name||"","記念日 周年"],e.date);
  }
 
  return rows;

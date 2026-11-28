@@ -2,7 +2,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const calendar=$("anniversary-calendar"),home=$("home-anniversary-list");if(!calendar&&!home)return;
-const [talents,settings]=await Promise.all([loadData("data/talents.json"),loadData("data/settings.json")]);
+const [talents,settings]=await Promise.all([loadPublicData("data/talents.json"),loadPublicData("data/settings.json")]);
 const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10),[thisYear,thisMonth]=today.split("-").map(Number),records=anniversaryRecords(talents,settings);
 const labels={birthday:publicText("誕生日"),debut:publicText("デビュー"),join:publicText("加入"),other:publicText("その他"),community:publicText("設立")};
 const failed=datasetFailed("data/talents.json"),settingsFailed=datasetFailed("data/settings.json");

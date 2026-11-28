@@ -24,7 +24,8 @@ const current=shareRoute?(shareRoute[1]==="member"?"talent.html":"news-detail.ht
 const publicDetailId=()=>shareRoute?shareRoute[2]:new URLSearchParams(location.search).get("id");
 const publicLanguageEnabled=current!=="admin.html"&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview");
 let publicLanguageStorage=null;try{if(publicLanguageEnabled)publicLanguageStorage=window.localStorage}catch{}
-const publicLanguage=readPublicLanguage(new URL(location.href),publicLanguageStorage,publicLanguageEnabled);
+const verifiedLanguagePreview=(()=>{try{return window.parent!==window&&new URLSearchParams(location.search).has("cmsPreview")&&window.frameElement?.id==="cms-preview-frame"&&window.parent.location.pathname.endsWith("/admin.html")}catch{return false}})();
+const publicLanguage=verifiedLanguagePreview?resolvePublicLanguage(new URLSearchParams(location.search).get("lang"),null,true):readPublicLanguage(new URL(location.href),publicLanguageStorage,publicLanguageEnabled);
 const ui=key=>publicUiText(key,publicLanguage);
 // M2: translate authored interface text only, before CMS content is loaded.
 const PUBLIC_EN_TEXT={
@@ -320,7 +321,7 @@ const publicLanguagePicker=()=>publicLanguageEnabled?`<label class="pop-language
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
 const sharedStyle=document.createElement("link");sharedStyle.rel="stylesheet";sharedStyle.href="assets/css/shared-renewal.css";document.head.append(sharedStyle);
 const mainContent=document.querySelector("main");
-if(publicLanguageEnabled)translateStaticPublic(mainContent);
+if(publicLanguageEnabled||verifiedLanguagePreview)translateStaticPublic(mainContent);
 if(current!=="admin.html"){const theme=document.querySelector('meta[name="theme-color"]');if(theme)theme.content="#f6f6f6";}
 if(mainContent){
  if(!mainContent.id)mainContent.id="main-content";
@@ -354,7 +355,7 @@ if (footer) footer.innerHTML = `<div class="container pop-footer"><div class="fo
 if(footer){footer.lang=publicLanguage;footer.querySelector(".pop-back-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));footer.querySelectorAll(".footer-links a").forEach(a=>{if(a.getAttribute("href")===navCurrent)a.setAttribute("aria-current","page")})}
 
 // Keep mixed-language content honest until the page translations are complete.
-if(publicLanguageEnabled&&publicLanguage==="en"&&mainContent){const note=document.createElement("p");note.className="pop-language-notice";note.lang="en";note.textContent="English interface. Member-provided information and articles may remain in Japanese.";mainContent.prepend(note)}
+if(publicLanguageEnabled&&publicLanguage==="en"&&mainContent){const note=document.createElement("p");note.className="pop-language-notice";note.lang="en";note.textContent="English interface. Content without a registered translation is shown in Japanese.";mainContent.prepend(note)}
 // When storage is unavailable, keep explicit language selection on ordinary internal navigation.
 if(publicLanguageEnabled){document.addEventListener("click",e=>{if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;const a=e.target.closest?.("a[href]");if(!a||a.target&&a.target!=="_self"||a.hasAttribute("download"))return;const href=a.getAttribute("href");if(!href||href.startsWith("#"))return;try{const url=new URL(href,location.href),here=new URL(location.href);if(url.origin!==here.origin||url.pathname.slice(0,url.pathname.lastIndexOf("/")+1)!==here.pathname.slice(0,here.pathname.lastIndexOf("/")+1)||!url.pathname.endsWith(".html")||url.pathname.endsWith("/admin.html")||url.searchParams.has("cmsPreview")||url.searchParams.has("lang"))return;let saved=null;try{saved=publicLanguageStorage?.getItem(PUBLIC_LANGUAGE_KEY)}catch{}if(saved!==publicLanguage){e.preventDefault();location.assign(publicLanguageUrl(url,publicLanguage).href)}}catch{}})}
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
@@ -377,19 +378,36 @@ function newsLead(item){
  return summary&&!normalize(body).startsWith(normalize(summary))?summary:"";
 }
 
+// M4: render a localized copy; retain the original for identity, filtering and search.
+const CONTENT_TRANSLATION_FIELDS={"talents":["name","catchphrase","bio","likes","affiliationAgency","activityStatus","regularSchedule","fanName","voiceIntroText","voiceGreetingText"],"news":["title","summary","body"],"schedule":["title"],"home":["headline1","headline2","lead","notice","aboutText","joinText"],"settings":["operator","representative","chair","base","aboutLead","communityPolicy","joinIntro","requirements","footerText","seoTitle","seoDescription"]};
+const originalPublicRecords=new WeakMap();
+function originalPublicRecord(record){return record&&originalPublicRecords.get(record)||record}
+function translatedContentValue(kind,record,key,lang){
+ if(lang==="ja"||!["en","ko","zh-Hant","zh-Hans","id","th"].includes(lang)||!CONTENT_TRANSLATION_FIELDS[kind]?.includes(key))return "";
+ const entry=record?.translations?.[lang],value=entry&&Object.prototype.hasOwnProperty.call(entry,key)?entry[key]:undefined;
+ return typeof value==="string"&&value.trim()?value.trim():"";
+}
+function localizedPublicRecord(kind,record,lang){
+ if(!record||typeof record!=="object"||record.published!==true||lang==="ja")return record;
+ const original=originalPublicRecord(record),out={...original};
+ for(const key of CONTENT_TRANSLATION_FIELDS[kind]||[]){const text=translatedContentValue(kind,original,key,lang);if(text)out[key]=text}
+ originalPublicRecords.set(out,original);return out;
+}
+function originalContentText(record,keys){const original=originalPublicRecord(record);return keys.map(key=>typeof original?.[key]==="string"?original[key]:"")}
+
 // Participation is independent of editing ownership. Legacy schedules remain readable.
 function scheduleParticipantIds(s,members=[]){
  const ids=Array.isArray(s?.memberIds)?s.memberIds:s?.memberId?[s.memberId]:[];
  const valid=[...new Set(ids.filter(id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id)))];
  if(valid.length||Array.isArray(s?.memberIds)||s?.memberId)return valid;
- const matches=members.filter(t=>t?.id&&t.name===s?.talent);return matches.length===1?[matches[0].id]:[];
+ const matches=members.filter(t=>t?.id&&originalPublicRecord(t).name===s?.talent);return matches.length===1?[matches[0].id]:[];
 }
 function scheduleGuestUrl(value){if(typeof value!=="string"||!/^https?:\/\/[^/\s\\]/i.test(value)||/[\s\\]/.test(value))return "";try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)&&!u.username&&!u.password?u.href:""}catch{return ""}}
 function scheduleGuests(s){return (Array.isArray(s?.guests)?s.guests:[]).filter(g=>g&&typeof g.name==="string"&&g.name.trim()).map(g=>({name:g.name.trim(),url:scheduleGuestUrl(g.url)}))}
 function scheduleFormat(s){return s?.format==="collab"||scheduleParticipantIds(s).length+scheduleGuests(s).length>1?"collab":"solo"}
 function scheduleParticipants(s,members=[],publicOnly=true){
  const ids=scheduleParticipantIds(s,members),people=ids.map(id=>members.find(t=>t?.id===id)).filter(t=>t&&(!publicOnly||t.published===true)).map(t=>({id:t.id,name:t.name||t.id,url:""}));
- if(!ids.length&&!s?.memberId&&!Array.isArray(s?.memberIds)&&typeof s?.talent==="string"&&s.talent.trim()&&!members.some(t=>t?.name===s.talent))people.push({id:"",name:s.talent.trim(),url:""});
+ if(!ids.length&&!s?.memberId&&!Array.isArray(s?.memberIds)&&typeof s?.talent==="string"&&s.talent.trim()&&!members.some(t=>originalPublicRecord(t)?.name===s.talent))people.push({id:"",name:s.talent.trim(),url:""});
  return [...people,...scheduleGuests(s).map(g=>({...g,id:"",guest:true}))];
 }
 function scheduleIsPublic(s,members=[]){return s?.published===true&&scheduleParticipants(s,members).some(p=>!p.guest)}
@@ -618,6 +636,11 @@ async function loadData(file){
  }catch{failedDatasets.add(file);return []}
 }
 function datasetFailed(file){return failedDatasets.has(file)}
+function displayPublicRecord(kind,record){return localizedPublicRecord(kind,record,publicLanguage)}
+function displayPublicMembers(records){return records.map(normalizedMemberProfile).map(t=>displayPublicRecord("talents",t))}
+function contentLanguage(kind,record,key){return translatedContentValue(kind,originalPublicRecord(record),key,publicLanguage)?publicLanguage:"ja"}
+async function loadPublicData(file){const rows=await loadData(file),kind=file.match(/^data\/(talents|news|schedule|home|settings)\.json$/)?.[1];return kind==="talents"?displayPublicMembers(rows):kind?rows.map(row=>displayPublicRecord(kind,row)):rows}
+
 function cardTalent(t){return `<article class="card"><div class="talent-art">${escapeHtml(t.name?.slice(0,1)||"P")}</div><div class="card-body"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.catchphrase||(!t.hiddenSections?.includes?.("bio")?normalizedMemberProfile(t).bio:"")||"プロフィール準備中です。")}</p><p style="margin-top:14px"><a class="text-link" href="talent.html?id=${encodeURIComponent(t.id)}">プロフィールを見る →</a></p></div></article>`}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
@@ -636,11 +659,11 @@ function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","
 /* Optional public site settings; static content remains the default. */
 (async()=>{
  if(current==="admin.html")return;
- const s=(await loadData("data/settings.json")).find(x=>x?.published===true);if(!s)return;
- const set=(selector,key)=>{const el=document.querySelector(selector);if(el&&typeof s[key]==="string"&&s[key].trim()){el.textContent=s[key];el.lang="ja";el.style.whiteSpace="pre-line"}};
+ const s=(await loadPublicData("data/settings.json")).find(x=>x?.published===true);if(!s)return;
+ const set=(selector,key)=>{const el=document.querySelector(selector);if(el&&typeof s[key]==="string"&&s[key].trim()){el.textContent=s[key];el.lang=contentLanguage("settings",s,key);el.style.whiteSpace="pre-line"}};
  if(current==="about.html"){
  const fields={"運営者名":"operator","代表者":"representative","盛り上げ会長":"chair","設立・活動開始":"founded","活動拠点":"base"};
- document.querySelectorAll(".about-overview .info-box").forEach(el=>{const label=el.querySelector("strong"),key=Object.keys(fields).find(k=>publicText(k)===label?.textContent),field=fields[key];if(field&&typeof s[field]==="string"&&s[field].trim())el.replaceChildren(label,document.createTextNode(s[field]))});
+ document.querySelectorAll(".about-overview .info-box").forEach(el=>{const label=el.querySelector("strong"),key=Object.keys(fields).find(k=>publicText(k)===label?.textContent),field=fields[key];if(field&&typeof s[field]==="string"&&s[field].trim()){const value=document.createElement("span");value.textContent=s[field];value.lang=contentLanguage("settings",s,field);el.replaceChildren(label,value)}});
  set(".about-lead","aboutLead");
  set("#about-community .about-policy-intro","communityPolicy");
  }
@@ -648,9 +671,13 @@ function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","
  const link=(el,href,label)=>{const a=document.createElement("a");a.className="pop-link";a.href=href;a.target="_blank";a.rel="noopener noreferrer";a.textContent=publicText(label);el.append(a)};
  if(current==="audition.html"){
  set(".audition-lead p","joinIntro");
- const list=document.querySelector(".audition-checklist");if(list&&s.requirements?.trim()){list.replaceChildren(...s.requirements.split(/\r?\n/).filter(v=>v.trim()).map(v=>{const li=document.createElement("li");li.textContent=v;return li}))}
+ const list=document.querySelector(".audition-checklist");if(list&&s.requirements?.trim()){list.replaceChildren(...s.requirements.split(/\r?\n/).filter(v=>v.trim()).map(v=>{const li=document.createElement("li");li.textContent=v;li.lang=contentLanguage("settings",s,"requirements");return li}))}
  const href=url("applicationUrl"),box=document.querySelector(".audition-status");if(href&&box){const p=document.createElement("p");p.textContent=publicText("参加申込みは下記の外部窓口からご確認ください。");box.replaceChildren(p);link(box,href,"応募窓口へ");}
  }
  if(current==="contact.html"){const href=url("contactUrl"),box=document.querySelector(".contact-status");if(href&&box){const p=document.createElement("p");p.textContent=publicText("お問い合わせは下記の外部窓口をご利用ください。");box.replaceChildren(p);link(box,href,"お問い合わせ窓口へ");}}
- set(".pop-footer .footer-grid>div:first-child p","footerText");if(s.footerText?.trim()){const customFooter=document.querySelector(".pop-footer .footer-grid>div:first-child p");if(customFooter)customFooter.lang="ja"}
+ if(current==="index.html"&&publicLanguage!=="ja"){
+ const title=translatedContentValue("settings",originalPublicRecord(s),"seoTitle",publicLanguage),description=translatedContentValue("settings",originalPublicRecord(s),"seoDescription",publicLanguage);
+ if(title)document.title=title;if(description){const meta=document.querySelector('meta[name="description"]');if(meta)meta.content=description}
+ }
+ set(".pop-footer .footer-grid>div:first-child p","footerText");if(s.footerText?.trim()){const customFooter=document.querySelector(".pop-footer .footer-grid>div:first-child p");if(customFooter)customFooter.lang=contentLanguage("settings",s,"footerText")}
 })();

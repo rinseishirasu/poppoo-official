@@ -2,7 +2,7 @@
 "use strict";
 const $=id=>document.getElementById(id),home=$("home-activity-list"),timeline=$("activity-timeline");
 if(!home&&!timeline)return;
-const talents=await loadData("data/talents.json"),records=publicActivityRecords(talents);
+const talents=await loadPublicData("data/talents.json"),records=publicActivityRecords(talents);
 const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el};
 const empty=(el,msg)=>el.replaceChildren(make("p","empty-state",msg));
 const dateText=r=>r.date||publicText("日付未登録");
@@ -27,7 +27,7 @@ try{const u=new URL(location.href);for(const [key,el] of fields){const value=el.
 
 function render(){
  const terms=normalize(q.value).split(/\s+/).filter(Boolean);
- const list=records.filter(r=>(!member.value||r.memberId===member.value)&&(!year.value||r.dateKey.slice(0,4)===year.value)&&terms.every(t=>normalize([r.title,r.name,r.description,r.date].join(" ")).includes(t)));
+ const list=records.filter(r=>(!member.value||r.memberId===member.value)&&(!year.value||r.dateKey.slice(0,4)===year.value)&&terms.every(t=>normalize([r.title,r.name,r.description,r.date,originalPublicRecord(talents.find(t=>t.id===r.memberId))?.name].join(" ")).includes(t)));
  if(sort.value==="old")list.sort((a,b)=>Number(!a.dateKey)-Number(!b.dateKey)||a.dateKey.localeCompare(b.dateKey)||a.name.localeCompare(b.name,"ja"));
  status.textContent=publicEnglish?"Showing "+Math.min(limit,list.length)+" of "+list.length+" matching / "+records.length+" total":list.length+"件中 "+Math.min(limit,list.length)+"件を表示 / 全"+records.length+"件";timeline.replaceChildren();more.hidden=list.length<=limit;syncFilters();
  if(!list.length){empty(timeline,records.length?publicText("条件に一致する活動実績はありません。"):publicText("現在、掲載中の活動実績はありません。"));return}
