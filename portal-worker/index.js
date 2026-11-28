@@ -71,16 +71,17 @@ async function equalSecret(a,b){
 }
 const PORTAL_NAV={
  member:[["home","/","HOME","ダッシュボード"],["profile","/profile","PROFILE","プロフィール"],["avatars","/avatars","AVATAR","画像管理"],["schedule","/schedule","SCHEDULE","配信予定"],["activity","/activity","ACTIVITY","活動・記念日"],["notices","/notices","NOTICES","お知らせ"],["messages","/messages","MESSAGES","個別メッセージ"],["applications","/applications","REQUESTS","各種申請"],["account","/account","ACCOUNT","アカウント設定"]],
- admin:[["admin","/admin","ACCOUNTS","アカウント管理"],["reviews","/admin/reviews","REVIEWS","プロフィール・画像審査"],["operations","/admin/operations","OPERATIONS","運営連絡・申請管理"],["notificationLog","/admin/notifications","DISCORD","通知履歴"],["adminMessages","/admin/messages","MESSAGES","個別メッセージ"],["activityReport","/admin/activity-report","REPORT","活動状況集計"],["audit","/admin/audit","AUDIT","監査履歴"],["account","/account","ACCOUNT","アカウント設定"]]
+ admin:[["admin","/admin","ACCOUNTS","アカウント管理"],["reviews","/admin/reviews","REVIEWS","プロフィール・画像審査"],["operations","/admin/operations","OPERATIONS","運営連絡・申請管理"],["notificationLog","/admin/notifications","DISCORD","通知履歴"],["adminMessages","/admin/messages","MESSAGES","個別メッセージ"],["activityReport","/admin/activity-report","REPORT","活動状況集計"],["tasks","/admin/tasks","TASKS","運営タスク"],["dossier","/admin/dossier","MEMBERS","メンバーカルテ"],["audit","/admin/audit","AUDIT","監査履歴"],["account","/account","ACCOUNT","アカウント設定"]]
 };
-const PORTAL_TITLES={csrf:"操作画面の再読み込み",setup:"初期管理者登録",login:"ログイン",activate:"初回パスワード設定",home:"ダッシュボード",admin:"アカウント管理",profile:"プロフィール変更申請",avatars:"アバター画像管理",schedule:"配信スケジュール",activity:"活動記録・記念日",notices:"運営からのお知らせ",applications:"各種申請",operations:"運営連絡・申請管理",reviews:"プロフィール・画像審査",account:"アカウント設定",audit:"監査履歴",notificationLog:"Discord通知履歴",messages:"個別メッセージ",adminMessages:"個別メッセージ",activityReport:"活動状況集計"};
+const PORTAL_TITLES={csrf:"操作画面の再読み込み",setup:"初期管理者登録",login:"ログイン",activate:"初回パスワード設定",home:"ダッシュボード",admin:"アカウント管理",profile:"プロフィール変更申請",avatars:"アバター画像管理",schedule:"配信スケジュール",activity:"活動記録・記念日",notices:"運営からのお知らせ",applications:"各種申請",operations:"運営連絡・申請管理",reviews:"プロフィール・画像審査",account:"アカウント設定",audit:"監査履歴",notificationLog:"Discord通知履歴",messages:"個別メッセージ",adminMessages:"個別メッセージ",activityReport:"活動状況集計",tasks:"運営タスク管理",dossier:"メンバーカルテ"};
 function portalRole(mode,role){
  if(mode==="account")return ["admin","member"].includes(role)?role:"";
- if(["admin","reviews","operations","audit","notificationLog","adminMessages","activityReport"].includes(mode))return "admin";
+ if(["admin","reviews","operations","audit","notificationLog","adminMessages","activityReport","tasks","dossier"].includes(mode))return "admin";
  if(["home","profile","avatars","schedule","activity","notices","applications","messages"].includes(mode))return "member";
  return "";
 }
 const PORTAL_STYLE=/* css */"\
+.chat-thread{display:flex;flex-direction:column;gap:12px;padding:12px;background:var(--soft);border-radius:12px}.chat-bubble{max-width:88%;margin:0;padding:12px 16px;border-radius:16px;overflow-wrap:anywhere}.chat-bubble pre{white-space:pre-wrap;background:transparent;padding:0;margin:6px 0}.chat-own{align-self:flex-end;background:#dcecff}.chat-incoming{align-self:flex-start;background:#fff}.chat-bubble small{display:block;text-align:right}.chat-bubble button{font-size:.8rem;padding:5px 10px;min-height:32px}.task-meta{display:flex;gap:8px;flex-wrap:wrap}\
 :root{color-scheme:light;--ink:#142f56;--muted:#526b85;--blue:#176bb2;--line:#d9e6f2;--soft:#eff6fd;--paper:#fff}\
 *{box-sizing:border-box}html{scroll-padding-top:16px}body{margin:0;background:#f2f7fc;color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.65}\
 a{color:var(--blue);text-underline-offset:3px}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #176bb2;outline-offset:3px}\
@@ -108,7 +109,7 @@ function page(mode,message="",status=200,content="",role=""){
  const heading='<div class="portal-page-heading"><small>'+esc(mode.toUpperCase())+'</small><h1>'+esc(title)+'</h1></div>';
  const notice=message?'<p class="portal-status'+(status>=400?' is-error':'')+'" role="'+(status>=400?'alert':'status')+'">'+esc(message)+'</p>':"";
  const body=header+'<div class="'+(auth?'portal-auth':'portal-shell')+'">'+nav+'<main id="portal-main" tabindex="-1">'+heading+notice+form+'</main></div><footer class="portal-footer">架空事務所 ぽっぽー / POPPŌ CREATOR COMMUNITY</footer>';
- return new Response('<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#142f56"><title>'+esc(title)+' | POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">'+PORTAL_STYLE+'</style></head><body>'+body.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+'</body></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ return new Response('<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#142f56"><title>'+esc(title)+' | POPPŌ MEMBER PORTAL</title><style nonce="'+nonce+'">'+PORTAL_STYLE+'</style></head><body>'+body.replace(/(<form[^>]*>)/g,'$1<input type="hidden" name="csrf" value="'+csrf+'">')+((mode==="messages"||mode==="adminMessages")?'<script nonce="'+nonce+'">'+CHAT_SCRIPT+'</script>':"")+'</body></html>',{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow","X-Content-Type-Options":"nosniff","Set-Cookie":"__Host-poppoo_csrf="+csrf+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900","Referrer-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; img-src 'self' https://rinseishirasu.github.io; style-src 'nonce-"+nonce+"'; "+((mode==="messages"||mode==="adminMessages")?"script-src 'nonce-"+nonce+"'; connect-src 'self'; ":"")+"form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 async function publishedMembers(env){
@@ -395,21 +396,25 @@ async function privateAvatar(db,session,slot,version){
  return new Response(data,{headers:{"Content-Type":row.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Cross-Origin-Resource-Policy":"same-origin","Referrer-Policy":"no-referrer","X-Robots-Tag":"noindex, nofollow"}});
 }
 // Optional Discord transport; durable enqueue is committed with the submission.
-const notificationLabels={profile:"プロフィール変更",activity:"活動実績掲載",anniversary:"記念日掲載",icon:"アイコン画像",avatar:"アバター画像",collab:"コラボ配信",pause:"活動休止",resume:"活動再開",leave:"退所",other:"その他の申請"};
+const notificationLabels={message:"個別メッセージ",profile:"プロフィール変更",activity:"活動実績掲載",anniversary:"記念日掲載",icon:"アイコン画像",avatar:"アバター画像",collab:"コラボ配信",pause:"活動休止",resume:"活動再開",leave:"退所",other:"その他の申請"};
 const discordWebhookValid=v=>typeof v==="string"&&/^https:\/\/discord\.com\/api\/webhooks\/[0-9]{15,25}\/[A-Za-z0-9_-]{20,200}$/.test(v);
 const notificationEnabled=env=>env.PORTAL_DISCORD_ENABLED==="true"&&discordWebhookValid(env.DISCORD_WEBHOOK_URL)&&productionReady(env);
-const notificationLink=k=>"https://poppoo-member-portal.rinsei-shirasu.workers.dev/admin/"+(["profile","activity","anniversary","icon","avatar"].includes(k)?"reviews":"operations");
+const notificationLink=k=>"https://poppoo-member-portal.rinsei-shirasu.workers.dev/admin/"+(k==="message"?"messages":["profile","activity","anniversary","icon","avatar"].includes(k)?"reviews":"operations");
 function notificationPayload(row){
- return {username:"ぽっぽー運営システム",allowed_mentions:{parse:[]},embeds:[{title:"新しい審査依頼が届きました",color:5793266,fields:[{name:"申請区分",value:notificationLabels[row.kind]||"申請"},{name:"公開メンバーID",value:/^[A-Za-z0-9_-]{1,100}$/.test(row.member_id)?row.member_id:"確認してください"},{name:"申請日時",value:displayJst(row.created_at)}],description:"[運営管理画面で確認する]("+notificationLink(row.kind)+")",footer:{text:"POPPŌ MEMBER PORTAL / "+row.id}}]};
+ return {username:"ぽっぽー運営システム",allowed_mentions:{parse:[]},embeds:[{title:row.kind==="message"?"新着個別メッセージが届きました":"新しい審査依頼が届きました",color:5793266,fields:[{name:row.kind==="message"?"通知区分":"申請区分",value:notificationLabels[row.kind]||"申請"},{name:"公開メンバーID",value:/^[A-Za-z0-9_-]{1,100}$/.test(row.member_id)?row.member_id:"確認してください"},{name:row.kind==="message"?"受信日時":"申請日時",value:displayJst(row.created_at)}],description:"[運営管理画面で確認する]("+notificationLink(row.kind)+")",footer:{text:"POPPŌ MEMBER PORTAL / "+row.id}}]};
 }
-async function deliverNotifications(env,onlyId=""){
+async function deliverNotifications(env,onlyId="",queue=""){
  if(!notificationEnabled(env))return;
+ await Promise.all((queue?[queue]:["review","message"]).map(k=>deliverNotificationQueue(env,onlyId,k)));
+}
+async function deliverNotificationQueue(env,onlyId,queue){
+ const table=queue==="message"?"message_notifications":"review_notifications",kind=queue==="message"?"'message' AS kind":"kind";
  const db=env.DB;
- await db.prepare("UPDATE review_notifications SET state='uncertain',last_result='delivery-unknown',updated_at=CURRENT_TIMESTAMP WHERE state='sending' AND claimed_at<?").bind(now()-120).run();
- const rows=(await db.prepare("SELECT id FROM review_notifications WHERE state='pending' AND (?='' OR id=?) ORDER BY created_at,id LIMIT 3").bind(onlyId,onlyId).all()).results;
+ await db.prepare("UPDATE "+table+" SET state='uncertain',last_result='delivery-unknown',updated_at=CURRENT_TIMESTAMP WHERE state='sending' AND claimed_at<?").bind(now()-120).run();
+ const rows=(await db.prepare("SELECT id FROM "+table+" WHERE state='pending' AND (?='' OR id=?) ORDER BY created_at,id LIMIT 3").bind(onlyId,onlyId).all()).results;
  for(const item of rows){
  const claim=crypto.randomUUID();
- const row=await db.prepare("UPDATE review_notifications SET state='sending',claim_id=?,claimed_at=?,attempts=attempts+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND state='pending' RETURNING id,kind,member_id,created_at").bind(claim,now(),item.id).first();
+ const row=await db.prepare("UPDATE "+table+" SET state='sending',claim_id=?,claimed_at=?,attempts=attempts+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND state='pending' RETURNING id,"+kind+",member_id,created_at").bind(claim,now(),item.id).first();
  if(!row)continue;
  let state="uncertain",result="transport";
  try{
@@ -418,7 +423,7 @@ async function deliverNotifications(env,onlyId=""){
  else if(res.status>=400&&res.status<500){state="failed";result="http-"+res.status;}
  else{state="uncertain";result="http-"+res.status;}
  }catch{}
- await db.prepare("UPDATE review_notifications SET state=?,last_result=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND state='sending' AND claim_id=?").bind(state,result,item.id,claim).run();
+ await db.prepare("UPDATE "+table+" SET state=?,last_result=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND state='sending' AND claim_id=?").bind(state,result,item.id,claim).run();
  }
 }
 async function notificationDashboard(db){
@@ -434,16 +439,16 @@ async function notificationDashboard(db){
  }catch{return '<p>未審査件数を取得できません。</p><p><a href="/admin/notifications">Discord通知履歴</a></p>';}
 }
 async function notificationPage(env){
- const rows=(await env.DB.prepare("SELECT id,kind,member_id,state,attempts,last_result,created_at,updated_at,claimed_at FROM review_notifications ORDER BY created_at DESC,id DESC LIMIT 100").all()).results;
+ const rows=(await env.DB.prepare("SELECT id,kind,member_id,state,attempts,last_result,created_at,updated_at,claimed_at FROM review_notifications UNION ALL SELECT id,'message' AS kind,member_id,state,attempts,last_result,created_at,updated_at,claimed_at FROM message_notifications ORDER BY created_at DESC,id DESC LIMIT 100").all()).results;
  const labels={pending:"送信待ち",sending:"送信中",sent:"送信済み",failed:"送信失敗",uncertain:"送信結果不明"};
  const active=notificationEnabled(env);
- return page("notificationLog","",200,adminBack+'<p class="portal-notice">'+(active?"Discord通知：有効":"Discord通知：停止中または未設定")+'</p><p>申請本文・画像・メールアドレスは通知しません。送信結果不明の場合は、Discordを確認してから再送してください。</p>'+rows.map(r=>'<article><strong>'+esc(notificationLabels[r.kind]||r.kind)+' / '+esc(labels[r.state]||r.state)+'</strong><p>'+esc(r.member_id)+' / 試行 '+esc(r.attempts)+' 回</p><small>'+esc(displayJst(r.created_at))+' / '+esc(r.last_result)+'</small>'+(active&&(["pending","failed","uncertain"].includes(r.state)||r.state==="sending"&&r.claimed_at<now()-120)?'<form method="post" action="/admin/notification-retry">'+hInput("id",r.id)+'<label><input type="checkbox" name="confirm" value="yes" required>Discordの受信状況を確認しました</label><button>送信・再送</button></form>':"")+'</article>').join("")+(rows.length?"":"<p>通知履歴はありません。</p>"));
+ return page("notificationLog","",200,adminBack+'<p class="portal-notice">'+(active?"Discord通知：有効":"Discord通知：停止中または未設定")+'</p><p>申請本文・メッセージ本文・画像・メールアドレスは通知しません。送信結果不明の場合は、Discordを確認してから再送してください。</p>'+rows.map(r=>'<article><strong>'+esc(notificationLabels[r.kind]||r.kind)+' / '+esc(labels[r.state]||r.state)+'</strong><p>'+esc(r.member_id)+' / 試行 '+esc(r.attempts)+' 回</p><small>'+esc(displayJst(r.created_at))+' / '+esc(r.last_result)+'</small>'+(active&&(["pending","failed","uncertain"].includes(r.state)||r.state==="sending"&&r.claimed_at<now()-120)?'<form method="post" action="/admin/notification-retry">'+hInput("id",r.id)+hInput("queue",r.kind==="message"?"message":"review")+'<label><input type="checkbox" name="confirm" value="yes" required>Discordの受信状況を確認しました</label><button>送信・再送</button></form>':"")+'</article>').join("")+(rows.length?"":"<p>通知履歴はありません。</p>"));
 }
 async function retryNotification(env,session,form){
- const id=form.get("id");if(!notificationEnabled(env)||!safeId(id)||form.get("confirm")!=="yes")return json({error:"Retry unavailable"},403);
- const result=await env.DB.prepare("UPDATE review_notifications SET state='pending',last_result='',claim_id=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND (state IN ('pending','failed','uncertain') OR (state='sending' AND claimed_at<?)) AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(id,now()-120,session.id).all();
+ const id=form.get("id"),queue=form.get("queue")||"review";if(!["review","message"].includes(queue)||!notificationEnabled(env)||!safeId(id)||form.get("confirm")!=="yes")return json({error:"Retry unavailable"},403);
+ const result=await env.DB.prepare("UPDATE "+(queue==="message"?"message_notifications":"review_notifications")+" SET state='pending',last_result='',claim_id=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND (state IN ('pending','failed','uncertain') OR (state='sending' AND claimed_at<?)) AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') RETURNING 1 AS affected").bind(id,now()-120,session.id).all();
  if(!oneAffected(result))return json({error:"Notification unavailable"},409);
- try{await deliverNotifications(env,id)}catch{}
+ try{await deliverNotifications(env,id,queue)}catch{}
  return redirect("/admin/notifications");
 }
 
@@ -455,6 +460,17 @@ async function unreadMessages(db,session){
  const q=session.role==="admin"?"SELECT COUNT(*) AS n FROM direct_messages WHERE sender_role='member' AND read_at IS NULL":"SELECT COUNT(*) AS n FROM direct_messages WHERE member_account_id=? AND sender_role='admin' AND read_at IS NULL";
  const stmt=db.prepare(q);return Number((await (session.role==="admin"?stmt:stmt.bind(session.id)).first())?.n||0);
 }
+async function messageVersion(db,id){
+ const r=await db.prepare("SELECT COALESCE(MAX(seq),0) AS seq,COALESCE(SUM(CASE WHEN read_at IS NULL THEN 1 ELSE 0 END),0) AS unread FROM direct_messages WHERE member_account_id=?").bind(id).first();
+ return String(r?.seq||0)+":"+String(r?.unread||0);
+}
+async function messageUpdates(env,session,url){
+ const id=session.role==="admin"?url.searchParams.get("member"):session.id;
+ if(!safeId(id))return json({error:"Not found"},404);
+ if(!await env.DB.prepare("SELECT id FROM accounts WHERE id=? AND role='member'").bind(id).first())return json({error:"Not found"},404);
+ return json({version:await messageVersion(env.DB,id)});
+}
+const CHAT_SCRIPT="(()=>{const chat=document.querySelector('[data-chat-refresh]');if(!chat)return;const idle=()=>!document.hidden&&!document.querySelector('textarea[name=body]')?.value&&!['TEXTAREA','INPUT','BUTTON','SELECT'].includes(document.activeElement?.tagName);let busy=false;setInterval(async()=>{if(busy||!idle())return;busy=true;try{const r=await fetch(chat.dataset.chatRefresh,{credentials:'same-origin',cache:'no-store'});if(r.ok){const d=await r.json();if(d.version!==chat.dataset.version&&idle())location.reload();}}catch{}finally{busy=false;}},30000);})();";
 async function messagesPage(env,session,url){
  const db=env.DB,admin=session.role==="admin",mode=admin?"adminMessages":"messages";
  const id=admin?(url.searchParams.get("member")||""):session.id;
@@ -469,17 +485,21 @@ async function messagesPage(env,session,url){
  if(!target||(!admin&&target.status!=="active"))return json({error:"Not found"},404);
  const cursor=url.searchParams.get("before");
  if(cursor!==null&&(!/^[1-9]\d{0,14}$/.test(cursor)||!Number.isSafeInteger(Number(cursor))))return json({error:"Invalid cursor"},400);
+ const version=cursor===null?await messageVersion(db,id):"";
  const rows=(await db.prepare("SELECT seq,id,sender_role,body,created_at,read_at FROM direct_messages WHERE member_account_id=? AND (? IS NULL OR seq<?) ORDER BY seq DESC LIMIT 51").bind(id,cursor===null?null:Number(cursor),cursor===null?null:Number(cursor)).all()).results;
  const shown=rows.slice(0,50),base=messagePath(session.role,id);
- const history=shown.slice().reverse().map(r=>'<article><strong>'+esc(r.sender_role==="admin"?"ぽっぽー運営":"メンバー")+'</strong> <small>'+esc(displayJst(r.created_at))+' / '+(r.read_at?"既読":"未読")+'</small><pre>'+esc(r.body)+'</pre>'+(r.sender_role===messageRecipientRole(session.role)&&!r.read_at?'<form method="post" action="'+(admin?"/admin/messages/read":"/messages/read")+'">'+hInput("member",id)+hInput("id",r.id)+'<button>既読にする</button></form>':"")+'</article>').join("");
+ const history=shown.slice().reverse().map(r=>'<article class="chat-bubble '+(r.sender_role===session.role?"chat-own":"chat-incoming")+'"><strong>'+esc(r.sender_role==="admin"?"ぽっぽー運営":"メンバー")+'</strong><pre>'+esc(r.body)+'</pre><small>'+esc(displayJst(r.created_at))+' / '+(r.read_at?"既読":"未読")+'</small>'+(r.sender_role===messageRecipientRole(session.role)&&!r.read_at?'<form method="post" action="'+(admin?"/admin/messages/read":"/messages/read")+'">'+hInput("member",id)+hInput("id",r.id)+'<button>既読にする</button></form>':"")+'</article>').join("");
  const compose=target.status==="active"?'<form method="post" action="'+(admin?"/admin/messages/send":"/messages/send")+'">'+hInput("member",id)+hInput("id",crypto.randomUUID())+textField("body","メッセージ（2000文字以内）",2000)+'<p>パスワード・招待コードなどの機密情報は入力しないでください。</p><button>送信する</button></form>':"<p>停止中・初回設定待ちのアカウントへの送信はできません。</p>";
- return page(mode,"",200,header+'<h2>'+esc(admin?target.member_id:"ぽっぽー運営")+'とのメッセージ</h2><p class="portal-notice">運営スタッフと対象メンバーのみ閲覧できます。添付・削除・外部通知は未対応です。</p>'+(cursor?'<p><a href="'+base+'">最新のメッセージへ</a></p>':"")+(rows.length>50?'<p><a href="'+base+(admin?"&amp;":"?")+'before='+shown[shown.length-1].seq+'">以前のメッセージを表示</a></p>':"")+(history||"<p>メッセージはまだありません。</p>")+compose);
+ return page(mode,"",200,header+'<h2>'+esc(admin?target.member_id:"ぽっぽー運営")+'とのメッセージ</h2><p class="portal-notice">運営スタッフと対象メンバーのみ閲覧できます。添付・削除は未対応です。メンバーからの新着は運営Discordへ本文なしで通知します。</p>'+(cursor?'<p><a href="'+base+'">最新のメッセージへ</a></p>':"")+(rows.length>50?'<p><a href="'+base+(admin?"&amp;":"?")+'before='+shown[shown.length-1].seq+'">以前のメッセージを表示</a></p>':"")+'<div class="chat-thread"'+(!cursor?' data-chat-refresh="'+esc(admin?"/admin/messages/updates?member="+encodeURIComponent(id):"/messages/updates")+'" data-version="'+esc(version)+'"':"")+'>'+(history||"<p>メッセージはまだありません。</p>")+'</div>'+(shown.length?'<form method="post" action="'+(admin?"/admin/messages/read-all":"/messages/read-all")+'">'+hInput("member",id)+hInput("through",shown[0].seq)+'<button>ここまでの受信メッセージを一括既読</button></form>':"")+'<p><a href="'+base+'">最新に更新</a>（最新画面は入力中を除き30秒ごとに確認）</p>'+compose);
 }
 async function mutateMessages(env,session,form,path){
  const db=env.DB,admin=session.role==="admin",member=admin?form.get("member"):session.id,id=form.get("id");
- if(!safeId(member)||!safeId(id))return json({error:"Invalid message"},400);
+ if(!safeId(member)||(!path.endsWith("/read-all")&&!safeId(id)))return json({error:"Invalid message"},400);
  if(!admin&&form.get("member")!==member)return json({error:"Forbidden"},403);
- if(path.endsWith("/read")){
+ if(path.endsWith("/read-all")){
+ const through=form.get("through");if(typeof through!=="string"||!/^[1-9]\d{0,14}$/.test(through)||!Number.isSafeInteger(Number(through)))return json({error:"Invalid message range"},400);
+ await db.prepare("UPDATE direct_messages SET read_at=CURRENT_TIMESTAMP WHERE member_account_id=? AND seq<=? AND sender_role=? AND read_at IS NULL AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role=? AND status='active')").bind(member,Number(through),messageRecipientRole(session.role),session.id,session.role).run();
+ }else if(path.endsWith("/read")){
  const result=await db.prepare("UPDATE direct_messages SET read_at=CURRENT_TIMESTAMP WHERE id=? AND member_account_id=? AND sender_role=? AND read_at IS NULL AND EXISTS(SELECT 1 FROM accounts WHERE id=? AND role=? AND status='active') RETURNING 1 AS affected").bind(id,member,messageRecipientRole(session.role),session.id,session.role).all();
  if(!oneAffected(result))return json({error:"Message unavailable or already read"},409);
  }else{
@@ -511,6 +531,69 @@ async function activityReport(env,url){
  const cards=[["登録済みアカウント",rows.length],["有効",rows.filter(r=>r.status==="active").length],["初回設定待ち",rows.filter(r=>r.status==="invited").length],["利用停止",rows.filter(r=>r.status==="suspended").length],["公開メンバー",members?members.length:"取得不可"],["月内の公開配信予定",schedules?schedules.length:"取得不可"]].map(([l,v])=>'<div class="portal-metric"><small>'+esc(l)+'</small><strong>'+esc(v)+'</strong></div>').join("");
  const detail=[...map.values()].map(r=>'<article><h3>'+esc(members?.find(m=>m.id===r.member_id)?.name||r.member_id)+'</h3><p>メンバーID：'+esc(r.member_id)+' / '+esc(({active:"有効",invited:"初回設定待ち",suspended:"利用停止",unregistered:"未発行"})[r.status]||r.status)+'</p><p>活動状況（公式HP）：'+esc(members?members.find(m=>m.id===r.member_id)?.activityStatus||"未設定・対象外":"取得不可")+'</p><p>月内の公開配信予定：'+esc(count(r.member_id))+' / 活動記録：'+esc(r.activities??"対象外")+'</p><p>現在の審査待ち：プロフィール '+esc(r.profile_pending??"対象外")+' / 画像 '+esc(r.image_pending??"対象外")+' / その他 '+esc(r.app_pending??"対象外")+'</p><small>最終ログイン成功：'+esc(r.last_login?displayJst(r.last_login):"記録なし")+'</small></article>').join("");
  return page("activityReport","",200,adminBack+'<p>ポータル・公式HP内の登録情報を集計します。REALITYの実配信回数・視聴者数・収益は取得しません。</p><form method="get" action="/admin/activity-report"><label>集計月<input type="month" name="month" value="'+esc(range.month)+'" required></label><button>表示</button></form><div class="portal-metrics">'+cards+'</div>'+(!members||!schedules?'<p class="portal-notice">公式HPの一部情報を取得できません。取得できた項目のみ表示します。</p>':"")+'<h2>メンバー別集計</h2><p>配信予定は参加者ごとに集計するため、コラボは複数メンバーに計上されます。活動記録は登録件数のみ、申請は現在の件数です。</p>'+(detail||"<p>集計対象がありません。</p>"));
+}
+
+const taskStatuses={open:"未着手",doing:"対応中",done:"完了",cancelled:"取消"};
+const taskPriorities={high:"高",normal:"通常",low:"低"};
+const accountLabels={active:"有効",invited:"初回設定待ち",suspended:"利用停止"};
+const taskOption=(v,label,selected)=>'<option value="'+esc(v)+'"'+(v===selected?" selected":"")+'>'+esc(label)+'</option>';
+function taskValues(form){
+ const title=getText(form,"title",150,true),body=getText(form,"body",2000),priority=form.get("priority"),status=form.get("status"),due=form.get("due_date"),assignee=form.get("assignee")||"",member=form.get("member")||"";
+ if(title===null||body===null||!Object.hasOwn(taskPriorities,priority)||!Object.hasOwn(taskStatuses,status)||typeof due!=="string"||(due!==""&&!dateValid(due))||(assignee&&!safeId(assignee))||(member&&!safeId(member)))return null;
+ return {title,body,priority,status,due,assignee:assignee||null,member:member||null};
+}
+function taskForm(row,admins,members){
+ const adminOptions=taskOption("","未割当",row.assignee_id||"")+admins.map(a=>taskOption(a.id,a.email+(a.status!=="active"?"（停止中）":""),row.assignee_id)).join("");
+ const memberOptions=taskOption("","指定なし",row.member_account_id||"")+members.map(a=>taskOption(a.id,a.member_id,row.member_account_id)).join("");
+ return '<form method="post" action="/admin/tasks/save">'+hInput("id",row.id||"")+hInput("version",row.version||0)+inputField("title","タスク名",150,row.title||"")+textField("body","運営内部メモ",2000,row.body||"")+'<label>優先度<select name="priority">'+Object.entries(taskPriorities).map(([k,v])=>taskOption(k,v,row.priority||"normal")).join("")+'</select></label><label>進捗<select name="status">'+Object.entries(taskStatuses).map(([k,v])=>taskOption(k,v,row.status||"open")).join("")+'</select></label><label>期限（JST）<input type="date" name="due_date" value="'+esc(row.due_date||"")+'"></label><label>担当者<select name="assignee">'+adminOptions+'</select></label><label>関連メンバー<select name="member">'+memberOptions+'</select></label><button>'+(row.id?"変更を保存":"タスクを登録")+'</button></form>';
+}
+async function tasksPage(env,url){
+ const filter=url.searchParams.get("member")||"",status=url.searchParams.get("status")||"active";
+ if((filter&&!safeId(filter))||!["active","all","open","doing","done","cancelled"].includes(status))return json({error:"Invalid filter"},400);
+ const db=env.DB,[a,m,r]=await Promise.all([db.prepare("SELECT id,email,status FROM accounts WHERE role='admin' ORDER BY email").all(),db.prepare("SELECT id,member_id,status FROM accounts WHERE role='member' ORDER BY member_id").all(),db.prepare("SELECT t.*,a.email AS assignee_email,m.member_id FROM operations_tasks t LEFT JOIN accounts a ON a.id=t.assignee_id LEFT JOIN accounts m ON m.id=t.member_account_id WHERE (?='' OR t.member_account_id=?) AND (?='all' OR (?='active' AND t.status IN ('open','doing')) OR t.status=?) ORDER BY CASE t.status WHEN 'doing' THEN 0 WHEN 'open' THEN 1 ELSE 2 END,CASE t.priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END,CASE WHEN t.due_date='' THEN 1 ELSE 0 END,t.due_date,t.updated_at DESC LIMIT 101").bind(filter,filter,status,status,status).all()]);
+ const rows=r.results.slice(0,100);
+ const list=rows.map(t=>'<article><h3>'+esc(t.title)+'</h3><div class="task-meta"><span class="portal-tag">'+esc(taskStatuses[t.status])+'</span><span class="portal-tag">優先度 '+esc(taskPriorities[t.priority])+'</span>'+((t.status==="open"||t.status==="doing")&&t.due_date&&t.due_date<jstDate()?'<span class="portal-tag">期限超過</span>':"")+'</div><p>担当：'+esc(t.assignee_email||"未割当")+' / 期限：'+esc(t.due_date||"未設定")+' / 関連：'+esc(t.member_id||"なし")+'</p><pre>'+esc(t.body)+'</pre><small>更新：'+esc(displayJst(t.updated_at))+'</small><details><summary>編集</summary>'+taskForm(t,a.results,m.results)+'</details></article>').join("");
+ const filters=[["active","未完了"],["all","すべて"],...Object.entries(taskStatuses)].map(([k,v])=>'<a href="/admin/tasks?status='+k+(filter?'&amp;member='+encodeURIComponent(filter):"")+'">'+esc(v)+'</a>').join("　");
+ const memberFilters='<a href="/admin/tasks?status='+status+'">全員</a>　'+m.results.map(x=>'<a href="/admin/tasks?status='+status+'&amp;member='+encodeURIComponent(x.id)+'">'+esc(x.member_id)+'</a>').join("　");
+ return page("tasks","",200,adminBack+'<p>運営専用。タスクとメモはメンバー・公式HP・Discordに公開されません。</p><details><summary>新規タスクを作成</summary>'+taskForm({member_account_id:filter},a.results,m.results)+'</details><h2>絞り込み</h2><p>進捗：'+filters+'</p><p>関連メンバー：'+memberFilters+'</p><p>表示中：'+esc(status)+" / "+esc(m.results.find(x=>x.id===filter)?.member_id||"全員")+'</p><h2>タスク一覧</h2>'+(r.results.length>100?'<p>先頭100件を表示しています。条件を絞ってください。</p>':"")+(list||"<p>該当タスクはありません。</p>"));
+}
+async function saveTask(env,session,form){
+ const v=taskValues(form),id=form.get("id")||"",version=form.get("version");
+ if(!v||(id&&!safeId(id))||typeof version!=="string"||!/^\d{1,9}$/.test(version)||(id?Number(version)<1:Number(version)!==0))return json({error:"Invalid task"},400);
+ const db=env.DB,gate="EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active') AND (? IS NULL OR EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='admin' AND status='active')) AND (? IS NULL OR EXISTS(SELECT 1 FROM accounts WHERE id=? AND role='member'))";
+ const fields=[v.title,v.body,v.priority,v.status,v.due,v.member,v.assignee,session.id],checks=[session.id,v.assignee,v.assignee,v.member,v.member];
+ const r=id?await db.prepare("UPDATE operations_tasks SET title=?,body=?,priority=?,status=?,due_date=?,member_account_id=?,assignee_id=?,actor_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND version=? AND "+gate+" RETURNING 1 AS affected").bind(...fields,id,Number(version),...checks).all():await db.prepare("INSERT INTO operations_tasks(id,title,body,priority,status,due_date,member_account_id,assignee_id,actor_id) SELECT ?,?,?,?,?,?,?,?,? WHERE "+gate+" RETURNING 1 AS affected").bind(crypto.randomUUID(),...fields,...checks).all();
+ if(!oneAffected(r))return json({error:"Task changed or invalid assignee/member; reopen tasks"},409);
+ return redirect("/admin/tasks");
+}
+async function memberDossier(env,url){
+ const db=env.DB,id=url.searchParams.get("member")||"";
+ let publicMembers=null;try{publicMembers=await publishedMembers();}catch{}
+ if(!id){
+ const accounts=(await db.prepare("SELECT id,member_id,status FROM accounts WHERE role='member' ORDER BY member_id").all()).results;
+ const list=accounts.map(a=>'<article><strong>'+esc(publicMembers?.find(m=>m.id===a.member_id)?.name||a.member_id)+'</strong><p>'+esc(a.member_id)+' / '+esc(accountLabels[a.status])+'</p><a href="/admin/dossier?member='+encodeURIComponent(a.id)+'">カルテを表示</a></article>').join("");
+ const unregistered=(publicMembers||[]).filter(m=>!accounts.some(a=>a.member_id===m.id)).map(m=>'<p>'+esc(m.name)+' / '+esc(m.id)+' / 未発行　<a href="https://rinseishirasu.github.io/poppoo-official/talent.html?id='+encodeURIComponent(m.id)+'">公開プロフィール</a></p>').join("");
+ return page("dossier","",200,adminBack+'<p>運営専用のメンバー情報・申請・連絡・関連タスクの集約画面です。</p>'+(!publicMembers?'<p>公式HP情報は取得できません。</p>':"")+'<h2>登録済みメンバー</h2>'+(list||"<p>登録なし</p>")+'<h2>アカウント未発行の公開メンバー</h2>'+(unregistered||"<p>該当なし・または取得不可</p>"));
+ }
+ if(!safeId(id))return json({error:"Not found"},404);
+ const account=await db.prepare("SELECT id,member_id,status,created_at FROM accounts WHERE id=? AND role='member'").bind(id).first();
+ if(!account)return json({error:"Not found"},404);
+ const queries=[
+ "SELECT id,status,updated_at FROM profile_requests WHERE account_id=? ORDER BY updated_at DESC LIMIT 20",
+ "SELECT id,slot,created_at FROM avatar_requests WHERE account_id=? ORDER BY created_at DESC LIMIT 20",
+ "SELECT id,kind,body,status,updated_at FROM member_applications WHERE account_id=? ORDER BY updated_at DESC LIMIT 20",
+ "SELECT sender_role,created_at,read_at FROM direct_messages WHERE member_account_id=? ORDER BY seq DESC LIMIT 20",
+ "SELECT id,title,status,priority,due_date FROM operations_tasks WHERE member_account_id=? ORDER BY updated_at DESC LIMIT 20",
+ "SELECT kind,COUNT(*) AS n FROM member_activity WHERE account_id=? GROUP BY kind"
+ ];
+ const [profiles,images,apps,messages,tasks,activities]=await Promise.all(queries.map(q=>db.prepare(q).bind(id).all().then(r=>r.results)));
+ const last=await db.prepare("SELECT MAX(created_at) AS last_login FROM audit_log WHERE actor_id=? AND action='login'").bind(id).first();
+ const m=publicMembers?.find(m=>m.id===account.member_id);
+ const line=(label,value)=>'<p><strong>'+esc(label)+'：</strong>'+esc(value)+'</p>';
+ const history=(title,items)=>'<h2>'+esc(title)+'</h2>'+(items.length?items.join(""):"<p>記録なし</p>");
+ const publicList=Array.isArray(m?.achievements)&&!(Array.isArray(m.hiddenSections)&&m.hiddenSections.includes("achievements"))?m.achievements.slice(0,20).map(r=>'<p>'+esc(r?.date||"")+' '+esc(r?.title||"")+'</p>').join(""):"";
+ const body='<p><a href="/admin/dossier">メンバー一覧へ</a></p><h2>'+esc(m?.name||account.member_id)+'</h2>'+line("メンバーID",account.member_id)+line("アカウント",accountLabels[account.status])+line("活動状況",publicMembers?(m?.activityStatus||"未設定・対象外"):"取得不可")+line("期生",Array.isArray(m?.cohort)?m.cohort.join("、"):m?.cohort||"未設定")+line("最終ログイン",last?.last_login?displayJst(last.last_login):"記録なし")+'<p><a href="https://rinseishirasu.github.io/poppoo-official/talent.html?id='+encodeURIComponent(account.member_id)+'">公式プロフィール</a>　<a href="/admin/messages?member='+encodeURIComponent(id)+'">個別メッセージを開く</a>　<a href="/admin/tasks?member='+encodeURIComponent(id)+'">関連タスクを開く</a></p><h2>活動記録</h2>'+line("本人登録の活動記録件数",activities.find(x=>x.kind==="activity")?.n||0)+line("本人登録の記念日件数",activities.find(x=>x.kind==="anniversary")?.n||0)+'<p>非公開の活動メモ本文はカルテに表示しません。</p><h3>公式HP掲載の活動実績（最大20件）</h3>'+(publicList||"<p>掲載情報なし・または取得不可</p>")+history("プロフィール申請（最新20件）",profiles.map(r=>line(profileStatus[r.status]||r.status,displayJst(r.updated_at))))+history("画像審査待ち",images.map(r=>line(r.slot,displayJst(r.created_at))))+history("各種申請（最新20件）",apps.map(r=>line(applicationLabel(r),String(applicationStatuses[r.status]||r.status)+" / "+displayJst(r.updated_at))))+'<p><a href="/admin/reviews">審査画面</a>　<a href="/admin/operations">申請管理</a></p>'+history("個別メッセージ履歴（最新20件・本文は会話画面）",messages.map(r=>line(r.sender_role==="admin"?"運営":"メンバー",displayJst(r.created_at)+" / "+(r.read_at?"既読":"未読"))))+history("関連タスク（最新20件）",tasks.map(r=>line(r.title,taskStatuses[r.status]+" / "+(r.due_date||"期限なし"))));
+ return page("dossier","",200,body);
 }
 
 async function adminPage(db,message="",status=200,testEnabled=false,issued=""){
@@ -1017,7 +1100,7 @@ async function githubConnectionDiagnostic(env){
  const anonymous=await probe("anonymous-read",githubBaseHeaders(),false);
  const authenticated=format?await probe("authenticated-read",githubHeaders(env),false):{ok:false,githubReason:configured?"token-format":"token-missing"};
  const noStore=authenticated.ok?await probe("authenticated-no-store",githubHeaders(env),true):{ok:false,githubReason:"skipped"};
- return json({revision:"release-1.0-rc8",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
+ return json({revision:"release-1.0-rc9",tokenConfigured:configured,tokenFormatValid:format,anonymous,authenticated,noStore});
 }
 async function reviewRegistry(env){
  const configured=publicationReady(env);
@@ -1215,17 +1298,17 @@ async function handleRequest(request,env){
  let step="request";
  try{
  if(request.method==="GET"&&path==="/health"){
- const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs","collab_publication_jobs","review_notifications","direct_messages"];
- const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application","notify_profile_insert","notify_profile_submit","notify_avatar_insert","notify_avatar_replace","notify_application_insert","audit_direct_message"];
+ const tables=["accounts","sessions","activation_tokens","profile_requests","audit_log","login_limits","avatar_requests","member_activity","portal_notices","notice_reads","member_applications","publication_jobs","collab_publication_jobs","review_notifications","direct_messages","message_notifications","operations_tasks"];
+ const triggers=["audit_account_create","audit_account_status","audit_password_change","audit_profile_submit","audit_profile_status","audit_notice_create","audit_notice_status","audit_application_create","audit_application_status","audit_publication_start","audit_publication_status","audit_collab_start","audit_collab_status","collab_finish_application","notify_profile_insert","notify_profile_submit","notify_avatar_insert","notify_avatar_replace","notify_application_insert","audit_direct_message","notify_direct_message","audit_task_create","audit_task_update"];
  const found=(await db.prepare("SELECT name,type FROM sqlite_master WHERE type IN ('table','trigger')").all()).results;
  const schemaReady=tables.every(t=>found.some(x=>x.name===t&&x.type==="table"))&&triggers.every(t=>found.some(x=>x.name===t&&x.type==="trigger"));
- return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc8",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env),discordEnabled:notificationEnabled(env),discordWebhookConfigured:discordWebhookValid(env.DISCORD_WEBHOOK_URL),directMessagesEnabled:schemaReady&&memberModeEnabled(env),activityReportEnabled:schemaReady},schemaReady?200:503);
+ return json({ok:schemaReady,stage:productionReady(env)?"production":"release-validation",authenticationEnabled:true,revision:"release-1.0-rc9",schemaReady,passwordPepperConfigured:pepperReady(env),passwordKdfIterations:configuredIterations(env),passwordKdfConfigValid:kdfConfigValid(env),passwordKdfProductionReady:false,csrfPolicy:"stable-browser-token-v1",adminSessionMaxSeconds:ADMIN_SESSION_SECONDS,memberSessionMaxSeconds:MEMBER_SESSION_SECONDS,authIpLimitPer15Minutes:AUTH_IP_LIMIT,authEmailLimitPer15Minutes:AUTH_EMAIL_LIMIT,productionEnabled:schemaReady&&productionReady(env),memberModeEnabled:schemaReady&&memberModeEnabled(env),testModeEnabled:env.PORTAL_TEST_MODE==="true",maintenanceEnabled:env.PORTAL_MAINTENANCE==="true",reconciliationEnabled:reconciliationReady(env),publicationEnabled:publicationReady(env),discordEnabled:notificationEnabled(env),discordWebhookConfigured:discordWebhookValid(env.DISCORD_WEBHOOK_URL),directMessagesEnabled:schemaReady&&memberModeEnabled(env),activityReportEnabled:schemaReady,messageDiscordEnabled:schemaReady&&notificationEnabled(env),operationsTasksEnabled:schemaReady,memberDossierEnabled:schemaReady},schemaReady?200:503);
  }
  if(env.PORTAL_MAINTENANCE==="true"&&!(request.method==="GET"&&["/","/admin","/admin/reviews","/admin/operations","/admin/audit","/account"].includes(path))&&!(request.method==="POST"&&["/login","/logout","/admin/reconcile","/admin/collab-reconcile"].includes(path)))return json({error:"Maintenance mode"},503);
  if(request.method==="GET"&&path==="/account"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin"&&(!memberModeEnabled(env)||env.PORTAL_MAINTENANCE==="true"))return json({error:"Forbidden"},403);return await accountPage(env,session);}
- if(request.method==="GET"&&["/messages","/admin/messages","/admin/activity-report"].includes(path)){
+ if(request.method==="GET"&&["/messages","/admin/messages","/admin/activity-report","/messages/updates","/admin/messages/updates","/admin/tasks","/admin/dossier"].includes(path)){
  const session=await readSession(db,cookie(request));const admin=path.startsWith("/admin/");if(!session||session.role!==(admin?"admin":"member")||(!admin&&!memberModeEnabled(env)))return json({error:"Forbidden"},403);
- return path==="/admin/activity-report"?await activityReport(env,url):await messagesPage(env,session,url);
+ return path==="/admin/activity-report"?await activityReport(env,url):path==="/admin/tasks"?await tasksPage(env,url):path==="/admin/dossier"?await memberDossier(env,url):path.endsWith("/updates")?await messageUpdates(env,session,url):await messagesPage(env,session,url);
  }
  if(request.method==="GET"&&path==="/admin/notifications"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await notificationPage(env);}
  if(request.method==="GET"&&path==="/admin/audit"){const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);return await auditPage(db);}
@@ -1257,7 +1340,7 @@ async function handleRequest(request,env){
  }
  if(request.method==="GET"&&path==="/activate"){if(!memberModeEnabled(env))return json({error:"Activation disabled"},404);return activationPage();}
  if(request.method==="GET"&&path==="/admin"){const session=await readSession(db,cookie(request));if(!session)return redirect("/");if(session.role!=="admin")return json({error:"Forbidden"},403);return await adminPage(db,"",200,memberModeEnabled(env)); }
- if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/schedule/collab","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/collab-publish","/admin/collab-reconcile","/admin/review","/admin/reconcile","/account/password","/admin/reset-account","/admin/notification-retry","/messages/send","/messages/read","/admin/messages/send","/admin/messages/read"].includes(path))return json({error:"Not found"},404);
+ if(request.method!=="POST"||!["/setup","/login","/logout","/admin/accounts","/admin/suspend","/admin/invite","/activate","/profile/save","/profile/withdraw","/avatars/upload","/avatars/withdraw","/schedule/save","/schedule/delete","/schedule/collab","/activity/save","/activity/delete","/activity/publish","/notices/read","/applications/submit","/applications/withdraw","/admin/notice-create","/admin/notice-toggle","/admin/application-review","/admin/collab-publish","/admin/collab-reconcile","/admin/review","/admin/reconcile","/account/password","/admin/reset-account","/admin/notification-retry","/messages/send","/messages/read","/admin/messages/send","/admin/messages/read","/messages/read-all","/admin/messages/read-all","/admin/tasks/save"].includes(path))return json({error:"Not found"},404);
  const origin=request.headers.get("Origin");
  if(origin!==url.origin||["cross-site","same-site"].includes(request.headers.get("Sec-Fetch-Site")))return json({error:"Cross-origin request rejected"},403);
 
@@ -1272,7 +1355,7 @@ async function handleRequest(request,env){
  const form=upload?await new Request(request.url,{method:"POST",headers:{"Content-Type":contentType},body:bytes}).formData():new URLSearchParams(new TextDecoder().decode(bytes)),email=typeof form.get("email")==="string"?form.get("email").trim().toLowerCase():"",password=typeof form.get("password")==="string"?form.get("password"):"";
  const csrfCookie=csrfCookieValue(request),submitted=form.get("csrf");
  if(!csrfCookie||typeof submitted!=="string"||!/^[a-f0-9]{64}$/.test(submitted)||!await equalSecret(submitted,csrfCookie))return page("csrf","安全確認の有効期限切れ、または画面とCookieの不一致により操作を中断しました。送信内容は保存されていません。",403,'<p><a href="/">ポータルを開き直す</a></p><p>入力し直してから再送信してください。</p>');
- if(["/messages/send","/messages/read","/admin/messages/send","/admin/messages/read"].includes(path)){
+ if(["/messages/send","/messages/read","/admin/messages/send","/admin/messages/read","/messages/read-all","/admin/messages/read-all"].includes(path)){
  const session=await readSession(db,cookie(request)),admin=path.startsWith("/admin/");if(!session||session.role!==(admin?"admin":"member")||(!admin&&!memberModeEnabled(env)))return json({error:"Forbidden"},403);
  step="message-mutation";return await mutateMessages(env,session,form,path);
  }
@@ -1331,6 +1414,7 @@ async function handleRequest(request,env){
  if(path.startsWith("/admin/")){
  step="admin-session";
  const session=await readSession(db,cookie(request));if(session?.role!=="admin")return json({error:"Forbidden"},403);
+ if(path==="/admin/tasks/save")return await saveTask(env,session,form);
  if(path==="/admin/notification-retry")return await retryNotification(env,session,form);
  if(path==="/admin/reset-account")return await resetMemberAccount(env,session,form);
  if(path==="/admin/review"){step="review-submit";return await reviewSubmission(env,session,form);}
@@ -1397,12 +1481,12 @@ async function handleRequest(request,env){
  const session=await createSession(db,account.id,account.password_hash);
  try{await audit(db,account.id,"login",account.id);}catch{}
  return redirect("/",sessionCookie(session.token,account.role));
- }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc8",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
+ }catch(error){const diagnostic=safeGitDiagnostic(error);console.error("Portal operation failed",step,error?.name||"Error",diagnostic);return json({error:"Service unavailable",step,revision:"release-1.0-rc9",...(["schedule-read","schedule-publication","review-read","review-submit"].includes(step)?diagnostic:{})},503);}
 }
 export default {
  async fetch(request,env,ctx){
  const response=await handleRequest(request,env);
- if(ctx&&request.method==="POST"&&response.status===303&&["/profile/save","/avatars/upload","/activity/publish","/applications/submit","/schedule/collab"].includes(new URL(request.url).pathname)&&notificationEnabled(env)){
+ if(ctx&&request.method==="POST"&&response.status===303&&["/profile/save","/avatars/upload","/activity/publish","/applications/submit","/schedule/collab","/messages/send"].includes(new URL(request.url).pathname)&&notificationEnabled(env)){
  ctx.waitUntil(deliverNotifications(env).catch(()=>{}));
  }
  return preserveCsrf(request,response);
