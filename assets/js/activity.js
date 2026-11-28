@@ -5,7 +5,7 @@ if(!home&&!timeline)return;
 const talents=await loadPublicData("data/talents.json"),records=publicActivityRecords(talents);
 const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el};
 const empty=(el,msg)=>el.replaceChildren(make("p","empty-state",msg));
-const dateText=r=>r.date||publicText("日付未登録");
+const dateText=r=>r.date?publicDateLabel(r.date):publicText("日付未登録");
 function card(r){
  const item=make("article","activity-record"),date=make("div","activity-record-date",dateText(r)),body=make("div","activity-record-body");
  const label=make("span","activity-member-label",r.name),title=make("h3","",r.title),link=make("a","text-link",publicText("プロフィールを見る →"));link.href=r.href;
