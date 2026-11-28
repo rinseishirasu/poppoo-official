@@ -243,3 +243,37 @@ main:not(.admin-page main) .pop-page-share-wrap{padding-bottom:24px}
 
 /* M6: keep Thai line height and long native language names legible. */
 [lang="th"]{line-height:1.65}#site-header .pop-language-control select{max-width:142px}@media(max-width:420px){#site-header .pop-language-control select{max-width:82px}}
+
+/* M7-3: multilingual public layout. Scope to the selected public locale. */
+#site-header .pop-language-control select{min-width:0;max-width:100%;width:auto}
+#site-header .pop-language-control{box-sizing:border-box;max-width:100%}
+#site-header .pop-header .nav a{overflow-wrap:anywhere}
+#site-header .pop-header .nav a.pop-member-portal-link span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:1600px){
+ #site-header[lang]:not([lang="ja"]) .pop-header{gap:10px}
+ #site-header[lang]:not([lang="ja"]) .menu-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #e6e6e6;border-radius:10px;background:#fff;color:#282828;font-size:1.3rem;cursor:pointer}
+ #site-header[lang]:not([lang="ja"]) .nav{display:none;position:absolute;top:100%;left:0;right:0;width:auto;max-height:calc(100dvh - var(--public-header-height,76px) - 12px);overflow:auto;padding:8px 16px;background:white;border:1px solid #e6e6e6;border-radius:0 0 14px 14px;box-shadow:0 12px 24px #2828281a}
+ #site-header[lang]:not([lang="ja"]) .nav.open{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0}
+ #site-header[lang]:not([lang="ja"]) .nav a{white-space:normal;min-height:48px;padding:12px 14px;border-bottom:1px solid #f2f2f2}
+ #site-header[lang]:not([lang="ja"]) .nav a[aria-current=page]:after{display:none}
+ #site-header[lang]:not([lang="ja"]) .nav a.pop-member-portal-link{justify-content:flex-start;white-space:normal;margin:8px 0 4px}
+}
+@media(max-width:420px){
+ #site-header .pop-header:has(.pop-language-control){display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:6px 8px;padding-block:8px}
+ #site-header .pop-header:has(.pop-language-control) .brand{grid-column:1;grid-row:1;margin:0}
+ #site-header .pop-header:has(.pop-language-control) .pop-search-link{grid-column:2;grid-row:1}
+ #site-header .pop-header:has(.pop-language-control) .menu-toggle{grid-column:3;grid-row:1}
+ #site-header .pop-header .pop-language-control{grid-column:1/-1;grid-row:2;width:100%;padding-inline:10px}
+ #site-header .pop-header .pop-language-control svg{display:block;flex:none}
+ #site-header .pop-header .pop-language-control select{width:100%;max-width:none;font-size:16px;min-height:44px}
+}
+main[data-public-language]:not([data-public-language="ja"]) :is(h1,h2,h3,h4,p,label,summary,button,.btn,.pop-link,.text-link,.home-section-link,.schedule-collab-label){min-width:0;overflow-wrap:anywhere;white-space:normal}
+main[data-public-language]:not([data-public-language="ja"]) :is(input,select,textarea){min-width:0;max-width:100%;box-sizing:border-box}
+main[data-public-language]:not([data-public-language="ja"]) :is(.pop-heading,.pop-hero-actions,.schedule-period,.pop-search-filters){min-width:0;flex-wrap:wrap}
+main[data-public-language]:not([data-public-language="ja"]) :is(.pop-heading,.pop-filters,.pop-info-filters,.pop-search-input-row)>*{min-width:0}
+main[data-public-language="th"] :is(h1,h2,h3,h4,button,label,summary){line-height:1.65}
+@media(max-width:760px){
+ main[data-public-language]:not([data-public-language="ja"]) .pop-heading{align-items:flex-start;flex-wrap:wrap}
+ main[data-public-language]:not([data-public-language="ja"]) .pop-heading .pop-link{max-width:100%;flex-shrink:1}
+ main[data-public-language]:not([data-public-language="ja"]) :is(.pop-filters,.pop-info-filters) button{white-space:normal}
+}
