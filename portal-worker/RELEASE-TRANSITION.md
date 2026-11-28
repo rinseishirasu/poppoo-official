@@ -15,3 +15,6 @@
 
 ## 正式運用開始記録（2026-11-28）
 利用者報告により、D1アカウント集計は admin active 1 のみ。続いてRC1のhealthで stage=production、productionEnabled=true、memberModeEnabled=true、testModeEnabled=false、maintenanceEnabled=false、publicationEnabled=true、reconciliationEnabled=false、schemaReady=true を確認。運営判断に基づき正式運用開始と記録する。稼働コードの識別子は release-1.0-rc1 のまま。認証仕様はv31を維持し、passwordKdfProductionReady=false（PBKDF2 100000回の制約は未解消）。公開連携の設定有効化は実書き込み成功を証明しない。公式HPでの導線表示、正式メンバー発行、公開書込および省略された個別試験は独立確認していない。障害時はPORTAL_PUBLICATION_ENABLED=false、必要ならPORTAL_MAINTENANCE=trueへ戻す。新規のコード・main・公開データ変更はこの記録では行わない。
+
+## RC7 Discord通知導入記録（2026-11-28）
+運営者報告により、0007追加マイグレーション、Discord Webhook作成、Secretと有効化変数設定、Workerデプロイ、Cron Triggers（5分間隔）設定が完了。healthはrevision=release-1.0-rc7、ok=true、schemaReady=true、productionEnabled=true、memberModeEnabled=true、publicationEnabled=true、discordEnabled=true、discordWebhookConfigured=true。模擬・静的回帰試験152/152、運営者による実環境通知試験6/6正常（Discord受信、申請区分・メンバーID、JST、未審査件数、送信済み履歴、審査画面リンク）。RC7を通知機能導入済みとして記録する。実環境での通知全種類、障害時再送・Cronによる補助送信・公開書き込みの試験は今回の報告範囲外。認証仕様およびKDFの残存課題は変更なし。コード・公開データには本記録による変更なし。
