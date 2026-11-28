@@ -94,8 +94,9 @@ function setupTranslationEditor(form,kind,item){
  const refresh=()=>{
   const lang=selector.value;
   for(const panel of panels)panel.hidden=panel.dataset.translationPanel!==lang;
-  const active=inputs.filter(el=>el.dataset.translationLang===lang),filled=active.filter(el=>el.value.trim()).length;
-  box.querySelector("[data-translation-progress]").textContent="入力済み "+filled+" / "+active.length+" 項目（空欄は原文）";
+  const sourceValue=key=>{const field=form.elements.namedItem(key);return typeof field?.value==="string"?field.value:typeof item[key]==="string"?item[key]:""};
+  const active=inputs.filter(el=>el.dataset.translationLang===lang&&sourceValue(el.dataset.translationKey).trim()),filled=active.filter(el=>el.value.trim()).length;
+  box.querySelector("[data-translation-progress]").textContent="入力済み "+filled+" / "+active.length+" 項目（原文登録済みの項目のみ集計）";
   for(const source of box.querySelectorAll("[data-translation-source]")){const key=source.dataset.translationSource,field=form.elements.namedItem(key),value=typeof field?.value==="string"?field.value:typeof item[key]==="string"?item[key]:"";source.textContent=value.trim()?"原文："+value.trim():"原文：未入力";}
  };
  selector.addEventListener("input",e=>e.stopPropagation());selector.addEventListener("change",refresh);
@@ -292,7 +293,41 @@ function summary(item){
  return [item.date,item.title].filter(Boolean).join("　");
 }
 
+// M7-6: count only existing source fields, not unused optional inputs.
+function translationCoverage(kind,item,lang){
+ const fields=(TRANSLATION_FIELDS[kind]||[]).filter(([key])=>typeof item?.[key]==="string"&&item[key].trim());
+ const missing=fields.filter(([key])=>typeof item.translations?.[lang]?.[key]!=="string"||!item.translations[lang][key].trim());
+ return {total:fields.length,filled:fields.length-missing.length,missing:missing.map(([,label])=>label)};
+}
+function translationReport(dataset,lang){
+ const rows=[];
+ for(const kind of Object.keys(TRANSLATION_FIELDS))for(const item of dataset[kind]||[]){
+  if(!item||item.published!==true)continue;
+  const coverage=translationCoverage(kind,item,lang);
+  if(coverage.total)rows.push({kind,name:item.name||item.title||LABELS[kind],...coverage});
+ }
+ return {rows,total:rows.reduce((n,r)=>n+r.total,0),filled:rows.reduce((n,r)=>n+r.filled,0)};
+}
+function renderTranslationDashboard(){
+ const target=$("cms-translation-report");if(!target)return;
+ const selected=target.querySelector("select")?.value||"en";
+ const open=target.querySelector("details")?.open||false;
+ const report=translationReport(data,selected);
+ const pct=r=>r.total?Math.round(100*r.filled/r.total)+"%":"対象なし";
+ const summary=TRANSLATION_LANGUAGES.map(([lang,label])=>{
+  const draft=translationReport(data,lang),live=translationReport(baseline,lang);
+  return '<tr><th scope="row">'+esc(label)+'</th><td>'+esc(pct(live))+' ('+live.filled+'/'+live.total+')</td><td>'+esc(pct(draft))+' ('+draft.filled+'/'+draft.total+')</td></tr>';
+ }).join("");
+ const groups=Object.keys(TRANSLATION_FIELDS).map(kind=>{
+  const rows=report.rows.filter(r=>r.kind===kind),total=rows.reduce((n,r)=>n+r.total,0),filled=rows.reduce((n,r)=>n+r.filled,0);
+  return '<tr><th scope="row">'+esc(LABELS[kind])+'</th><td>'+esc(pct({total,filled}))+'</td><td>'+filled+'/'+total+'</td></tr>';
+ }).join("");
+ const missing=report.rows.filter(r=>r.missing.length);
+ target.innerHTML='<p class="small">公開設定のデータのみ集計します。公開済みは最後に読み込んだ公開データです。非公開項目や固有名詞も、原文があれば集計に含まれます。</p><div class="cms-translation-table"><table><caption>言語別登録率</caption><thead><tr><th>言語</th><th>公開済み</th><th>編集中</th></tr></thead><tbody>'+summary+'</tbody></table></div><label class="admin-translation-language">詳細を表示する言語<select>'+TRANSLATION_LANGUAGES.map(([lang,label])=>'<option value="'+lang+'" '+(lang===selected?'selected':'')+'>'+esc(label)+'</option>').join("")+'</select></label><div class="cms-translation-table"><table><caption>コンテンツ別登録率（編集中）</caption><thead><tr><th>分類</th><th>登録率</th><th>登録済み／対象</th></tr></thead><tbody>'+groups+'</tbody></table></div><details '+(open?'open':'')+'><summary>未翻訳項目の詳細（'+missing.length+'件のデータ）</summary>'+ (missing.length?missing.map(row=>'<div class="cms-translation-missing"><strong>'+esc(LABELS[row.kind]+"｜"+row.name)+'</strong><small>'+row.filled+'/'+row.total+' 項目</small><p>'+esc(row.missing.join("・"))+'</p><button type="button" class="btn secondary" data-cms-jump="'+row.kind+'">編集カテゴリへ →</button></div>').join(""):'<p>未翻訳項目はありません（対象データがない場合を含む）。</p>')+'</details>';
+ target.querySelector("select").addEventListener("change",renderTranslationDashboard);
+}
 function renderDashboard(){
+ renderTranslationDashboard();
  const metrics=$("cms-metrics");if(!metrics)return;
  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
  const members=data.talents.filter(Boolean),cohorts=new Map();
