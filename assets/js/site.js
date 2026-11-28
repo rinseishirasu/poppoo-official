@@ -28,13 +28,14 @@ const memberPortalLink=(placement)=>placement==="nav"
  ?'<a class="pop-member-portal-link" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>'+ui("memberLogin")+'</span></a>'
  :'<a class="pop-footer-member-portal" href="'+MEMBER_PORTAL_URL+'" referrerpolicy="no-referrer">'+ui("footerLogin")+'</a>';
 const pageFile=location.pathname.split("/").pop()||"index.html";
+const localeHome=pageFile.match(/^lang-(en|ko|zh-Hant|zh-Hans|id|th)\.html$/)?.[1];
 const shareRoute=pageFile.match(/^share-(member|news)-([A-Za-z0-9_-]+)\.html$/);
-const current=shareRoute?(shareRoute[1]==="member"?"talent.html":"news-detail.html"):pageFile;
+const current=shareRoute?(shareRoute[1]==="member"?"talent.html":"news-detail.html"):localeHome?"index.html":pageFile;
 const publicDetailId=()=>shareRoute?shareRoute[2]:new URLSearchParams(location.search).get("id");
 const publicLanguageEnabled=current!=="admin.html"&&window.parent===window&&!new URLSearchParams(location.search).has("cmsPreview");
 let publicLanguageStorage=null;try{if(publicLanguageEnabled)publicLanguageStorage=window.localStorage}catch{}
 const verifiedLanguagePreview=(()=>{try{return window.parent!==window&&new URLSearchParams(location.search).has("cmsPreview")&&window.frameElement?.id==="cms-preview-frame"&&window.parent.location.pathname.endsWith("/admin.html")}catch{return false}})();
-const publicLanguage=verifiedLanguagePreview?resolvePublicLanguage(new URLSearchParams(location.search).get("lang"),null,true):readPublicLanguage(new URL(location.href),publicLanguageStorage,publicLanguageEnabled);
+const publicLanguage=verifiedLanguagePreview?resolvePublicLanguage(new URLSearchParams(location.search).get("lang"),null,true):localeHome||readPublicLanguage(new URL(location.href),publicLanguageStorage,publicLanguageEnabled);
 const ui=key=>publicUiText(key,publicLanguage);
 // M2: translate authored interface text only, before CMS content is loaded.
 const PUBLIC_EN_TEXT={
@@ -381,7 +382,7 @@ if (header) {
   header.innerHTML = `<div class="container header-inner pop-header"><a class="brand" href="index.html" aria-label="${ui("home")}"><img class="brand-logo" src="assets/image/poppoo-icon.png" alt=""><span class="pop-brand-name" lang="ja">ぽっぽー<small>CREATOR COMMUNITY</small></span></a><a class="pop-search-link" href="search.html" aria-label="${ui("siteSearch")}" title="${ui("siteSearch")}" ${current==="search.html"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>${ui("search")}</span></a>${publicLanguagePicker()}<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="${ui("menuOpen")}">☰</button><nav class="nav" id="main-navigation" aria-label="${ui("navigation")}">${navItems.map(([n,u])=>`<a href="${u}" ${navCurrent===u?'aria-current="page"':u==="talents.html"&&["anniversary.html","activity.html","favorites.html"].includes(current)?'aria-current="location"':""}>${ui(n)}</a>`).join("")}${memberPortalLink("nav")}</nav></div>`;
   header.lang=publicLanguage;
   const languageSelect=header.querySelector("#pop-language-select");
-  languageSelect?.addEventListener("change",()=>{const lang=languageSelect.value;if(!supportedPublicLanguage(lang)||lang===publicLanguage)return;try{publicLanguageStorage?.setItem(PUBLIC_LANGUAGE_KEY,lang)}catch{}location.assign(publicLanguageUrl(new URL(location.href),lang).href)});
+  languageSelect?.addEventListener("change",()=>{const lang=languageSelect.value;if(!supportedPublicLanguage(lang)||lang===publicLanguage)return;try{publicLanguageStorage?.setItem(PUBLIC_LANGUAGE_KEY,lang)}catch{}location.assign(publicLanguageUrl(localeHome?new URL("index.html",location.href):new URL(location.href),lang).href)});
   const btn = header.querySelector(".menu-toggle"), nav = header.querySelector(".nav");
   const setMenu=(open)=>{nav.classList.toggle("open",open);btn.setAttribute("aria-expanded",String(open));btn.textContent=open?"✕":"☰";btn.setAttribute("aria-label",ui(open?"menuClose":"menuOpen"));};
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
