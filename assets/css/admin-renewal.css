@@ -285,3 +285,15 @@
 .admin-page .admin-translation-panel textarea{width:100%;min-width:0;resize:vertical}
 .admin-page .admin-translation-source{white-space:pre-wrap;overflow-wrap:anywhere;max-height:130px;overflow:auto;background:#f6f6f6;border-radius:6px;padding:6px 8px;color:#444;display:block}
 .admin-page [data-translation-progress]{font-size:.85rem;font-weight:700;color:#444}
+
+/* M7-6 translation progress dashboard */
+.admin-page .cms-translation-dashboard{margin-block:16px;min-width:0}
+.admin-page .cms-translation-table{max-width:100%;overflow-x:auto;margin-block:12px}
+.admin-page .cms-translation-table table{width:100%;border-collapse:collapse;font-size:.85rem}
+.admin-page .cms-translation-table caption{text-align:left;font-weight:750;padding:8px 0}
+.admin-page .cms-translation-table :is(th,td){padding:10px 8px;border-bottom:1px solid #e5e5e5;text-align:left;overflow-wrap:anywhere}
+.admin-page .cms-translation-table thead th{background:#f5f5f5}
+.admin-page .cms-translation-missing{display:grid;gap:6px;padding:12px 0;border-bottom:1px solid #e5e5e5;overflow-wrap:anywhere}
+.admin-page .cms-translation-missing p{margin:0;color:#555;font-size:.85rem}
+.admin-page .cms-translation-missing button{justify-self:start;white-space:normal}
+@media(max-width:600px){.admin-page .cms-translation-table :is(th,td){padding:8px 5px;font-size:.78rem}}
