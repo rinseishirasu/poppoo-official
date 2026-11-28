@@ -240,3 +240,6 @@ main:not(.admin-page main) .pop-page-share-wrap{padding-bottom:24px}
 [lang=en] .pop-link,[lang=en] .btn,.pop-language-notice{overflow-wrap:anywhere}.pop-profile .profile-section h2,.pop-directory .member-favorite-button{overflow-wrap:anywhere}
 
 #site-header .pop-language-control select{max-width:108px}@media(max-width:420px){#site-header .pop-language-control select{max-width:82px}}
+
+/* M6: keep Thai line height and long native language names legible. */
+[lang="th"]{line-height:1.65}#site-header .pop-language-control select{max-width:142px}@media(max-width:420px){#site-header .pop-language-control select{max-width:82px}}
