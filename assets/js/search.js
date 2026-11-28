@@ -22,17 +22,17 @@ function buildIndex(sets,today){
  if(visible(t,"achievements"))for(const a of Array.isArray(t.achievements)?t.achievements:[])if(a)keywords.push(text(a.title),text(a.description));
 
  const detail=[...cohorts,...roles,text(t.catchphrase),visible(t,"bio")?text(t.bio).slice(0,140):""].filter(Boolean).join(" ・ ");
- add("member",t.name,detail||"参加メンバーのプロフィール",href,keywords);
+ add("member",t.name,detail||publicText("参加メンバーのプロフィール"),href,keywords);
 
  }
  for(const n of published(sets.news).filter(x=>validId(x.id)&&text(x.title)).map(n=>displayPublicRecord("news",n))){
  const linked=(Array.isArray(n.memberIds)?n.memberIds:[]).map(id=>names.get(id)).filter(Boolean);
- add("news",n.title,[text(n.date),newsCategory(n.category),newsExcerpt(n)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...originalContentText(n,["title","summary","body"]),...linked],text(n.date));
+ add("news",n.title,[text(n.date),publicText(newsCategory(n.category)),newsExcerpt(n)].filter(Boolean).join(" ・ "),"news-detail.html?id="+encodeURIComponent(n.id),[text(n.body),...originalContentText(n,["title","summary","body"]),...linked],text(n.date));
  }
  for(const s of published(sets.schedule).filter(x=>scheduleIsPublic(x,sets.talents)&&validDate(x.date)&&x.date>=today).map(s=>displayPublicRecord("schedule",s))){
- const people=scheduleParticipants(s,members),name=people.map(p=>p.name).join("・")||"参加メンバー",platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";
+ const people=scheduleParticipants(s,members),name=people.map(p=>p.name).join("・")||publicText("参加メンバー"),platform=text(s.platform)||"REALITY",format=scheduleFormat(s)==="collab"?"コラボ配信":"ソロ配信";
  const first=people.find(p=>p.id),href="schedule.html?day="+encodeURIComponent(s.date)+(first?"&member="+encodeURIComponent(first.id):"")+"&q="+encodeURIComponent(text(originalPublicRecord(s).title));
- add("schedule",text(s.title)||"配信",[s.date,text(s.time)||"時間未定",name,platform,format].join(" ・ "),href,[...people.map(p=>p.name),...people.filter(p=>p.id).map(p=>originalPublicRecord(members.find(t=>t.id===p.id))?.name||""),...originalContentText(s,["title"]),platform,format],s.date);
+ add("schedule",text(s.title)||publicText("配信"),[s.date,text(s.time)||publicText("時間未定"),name,platform,publicText(format)].join(" ・ "),href,[...people.map(p=>p.name),...people.filter(p=>p.id).map(p=>originalPublicRecord(members.find(t=>t.id===p.id))?.name||""),...originalContentText(s,["title"]),platform,format],s.date);
  }
  for(const r of publicActivityRecords(members))add("activity",r.title,[r.name,r.date,r.description].filter(Boolean).join(" ・ "),"activity.html?member="+encodeURIComponent(r.memberId)+"&q="+encodeURIComponent(r.title),[r.name,r.description],r.dateKey);
  const settings=displayPublicRecord("settings",published(sets.settings)[0])||{};
@@ -53,7 +53,7 @@ function buildIndex(sets,today){
  for(const e of nextAnniversaryEvents(anniversaryRecords(members,sets.settings),today)){
  const title=publicAnniversaryTitle(e);
  const url="anniversary.html?month="+e.date.slice(0,7)+(e.id?"&member="+encodeURIComponent(e.id):"");
- add("anniversary",title,e.month+"月"+e.day+"日 ・ 次回 "+e.date,url,[e.title,originalPublicRecord(members.find(t=>t.id===e.id))?.name||"","記念日 周年"],e.date);
+ add("anniversary",title,publicDateLabel(e.date,true)+" · "+publicText("次回")+" "+publicDateLabel(e.date),url,[e.title,originalPublicRecord(members.find(t=>t.id===e.id))?.name||"","記念日 周年"],e.date);
  }
 
  return rows;
