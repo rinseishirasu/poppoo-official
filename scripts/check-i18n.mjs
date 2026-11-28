@@ -26,3 +26,26 @@ function check(label, dictionaries, expected) {
 check('Navigation', ui, Object.keys(languages));
 check('Public text', texts, Object.keys(languages).filter(lang => lang !== 'ja'));
 if (failures) process.exitCode = 1;
+
+const nav = vm.runInContext('publicNavigationUrl', context);
+const resolve = vm.runInContext('resolvePublicLanguage', context);
+const read = vm.runInContext('readPublicLanguage', context);
+const base = new URL('https://example.invalid/poppoo/index.html?lang=en');
+for (const lang of Object.keys(languages)) {
+  const url = nav('talent.html?id=test#profile', base, lang);
+  assert.equal(url.searchParams.get('lang'), lang);
+  assert.equal(url.searchParams.get('id'), 'test');
+  assert.equal(url.hash, '#profile');
+  assert.equal(resolve(null, lang), lang);
+  assert.equal(resolve(lang, 'ja', false), 'ja');
+}
+for (const href of ['#main', 'admin.html', 'talents.html?cmsPreview=1', 'talents.html?lang=th', 'https://other.invalid/index.html', '/outside/index.html', 'mailto:test@example.invalid']) {
+  assert.equal(nav(href, base, 'en'), null, href);
+}
+const storage = {value: 'th', getItem(){return this.value}, setItem(key,value){this.value=value}};
+assert.equal(read(base, storage, true), 'en');
+assert.equal(storage.value, 'en');
+assert.equal(read(new URL('https://example.invalid/poppoo/news.html'), storage, true), 'en');
+assert.equal(read(base, {getItem(){throw Error()},setItem(){throw Error()}}, true), 'en');
+assert.equal(read(new URL('https://example.invalid/poppoo/news.html?lang=invalid'), storage, true), 'en');
+console.log('Language navigation checks passed');
