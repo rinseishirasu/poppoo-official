@@ -72,7 +72,7 @@ async function start(){
  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10),index=buildIndex(sets,today);
  const warning=failures.length?" 一部の情報を取得できませんでした。":"";
  const render=()=>{
- const list=findResults(index,query,kind);status.textContent=publicEnglish?(query?list.length+" results for “"+query+"”":kind==="all"?"Enter a keyword or select a category.":publicText(labels[kind])+": "+list.length+" results")+(failures.length?" Some data could not be loaded.":""):query?"「"+query+"」の検索結果 "+list.length+"件"+warning:(kind==="all"?publicText("キーワードを入力するか、検索対象を選んでください。"):"検索対象："+labels[kind]+" "+list.length+"件")+warning;
+ const list=findResults(index,query,kind);status.textContent=publicLanguage!=="ja"&&!publicEnglish?((query?publicFormat("search",query,list.length):kind==="all"?publicText("キーワードを入力するか、検索対象を選んでください。"):publicFormat("searchKind",publicText(labels[kind]),list.length))+(failures.length?" "+publicFormat("partial"):"")):publicEnglish?(query?list.length+" results for “"+query+"”":kind==="all"?"Enter a keyword or select a category.":publicText(labels[kind])+": "+list.length+" results")+(failures.length?" Some data could not be loaded.":""):query?"「"+query+"」の検索結果 "+list.length+"件"+warning:(kind==="all"?publicText("キーワードを入力するか、検索対象を選んでください。"):"検索対象："+labels[kind]+" "+list.length+"件")+warning;
  buttons.forEach(b=>{const k=b.dataset.searchKind;const n=findResults(index,query,k).length;b.textContent=(k==="all"?publicText("すべて"):publicText(labels[k]))+" ("+n+")";b.setAttribute("aria-pressed",String(k===kind))});
  result.replaceChildren();wrap.hidden=true;
  if(!query&&kind==="all"){const p=document.createElement("p");p.className="empty-state";p.textContent=publicText("メンバー名、ニュース、配信タイトル、誕生日などを入力して検索してください。");result.append(p);return}
