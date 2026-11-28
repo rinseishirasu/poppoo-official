@@ -360,7 +360,7 @@ const publicLanguagePicker=()=>publicLanguageEnabled?`<label class="pop-language
 const navCurrent = ({ "talent.html":"talents.html", "news-detail.html":"news.html" })[current] || current;
 const sharedStyle=document.createElement("link");sharedStyle.rel="stylesheet";sharedStyle.href="assets/css/shared-renewal.css";document.head.append(sharedStyle);
 const mainContent=document.querySelector("main");
-if(publicLanguageEnabled||verifiedLanguagePreview)translateStaticPublic(mainContent);
+if(publicLanguageEnabled||verifiedLanguagePreview){if(mainContent)mainContent.dataset.publicLanguage=publicLanguage;translateStaticPublic(mainContent)}
 if(current!=="admin.html"){const theme=document.querySelector('meta[name="theme-color"]');if(theme)theme.content="#f6f6f6";}
 if(mainContent){
  if(!mainContent.id)mainContent.id="main-content";
@@ -379,7 +379,7 @@ if (header) {
   btn.addEventListener("click",()=>setMenu(!nav.classList.contains("open")));
   nav.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("open")){setMenu(false);btn.focus()}});
-  const desktop=matchMedia("(min-width:1281px)");
+  const desktop=matchMedia(publicLanguage==="ja"?"(min-width:1281px)":"(min-width:1601px)");
   desktop.addEventListener("change",()=>setMenu(false));
   const syncHeaderHeight=()=>document.documentElement.style.setProperty("--public-header-height",Math.ceil(header.getBoundingClientRect().height)+"px");
   syncHeaderHeight();if(typeof ResizeObserver==="function"){const observer=new ResizeObserver(syncHeaderHeight);observer.observe(header)}else window.addEventListener("resize",syncHeaderHeight,{passive:true});
