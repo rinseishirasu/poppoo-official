@@ -12,6 +12,13 @@ function resolvePublicLanguage(requested,saved,enabled=true){return !enabled?"ja
 function publicUiText(key,lang){return PUBLIC_UI[lang]?.[key]??PUBLIC_UI.ja[key]??key}
 function readPublicLanguage(url,storage,enabled){if(!enabled)return "ja";let saved=null;try{saved=storage?.getItem(PUBLIC_LANGUAGE_KEY)}catch{}const lang=resolvePublicLanguage(url.searchParams.get("lang"),saved,true);if(supportedPublicLanguage(url.searchParams.get("lang")))try{storage?.setItem(PUBLIC_LANGUAGE_KEY,lang)}catch{}return lang}
 function publicLanguageUrl(url,lang){const result=new URL(url.href);if(supportedPublicLanguage(lang))result.searchParams.set("lang",lang);return result}
+function publicNavigationUrl(href,here,lang){
+ if(typeof href!=="string"||!href.trim()||href.trim().startsWith("#")||!supportedPublicLanguage(lang))return null;
+ try{const url=new URL(href,here);const directory=here.pathname.slice(0,here.pathname.lastIndexOf("/")+1);
+ if(url.origin!==here.origin||url.pathname.slice(0,url.pathname.lastIndexOf("/")+1)!==directory||!url.pathname.endsWith(".html")||url.pathname.endsWith("/admin.html")||url.searchParams.has("cmsPreview")||url.searchParams.has("lang"))return null;
+ return publicLanguageUrl(url,lang);
+ }catch{return null}
+}
 const navItems = [
  ["members","talents.html"],["schedule","schedule.html"],["news","news.html"],["about","about.html"],["join","audition.html"]
 ];
@@ -388,8 +395,14 @@ if(footer){footer.lang=publicLanguage;footer.querySelector(".pop-back-top")?.add
 
 // Keep mixed-language content honest until the page translations are complete.
 if(publicLanguageEnabled&&publicLanguage!=="ja"&&mainContent){const note=document.createElement("p");note.className="pop-language-notice";note.lang=publicLanguage;note.textContent=({en:"Content without a registered translation is shown in Japanese.",ko:"번역이 등록되지 않은 콘텐츠 및 일부 안내는 일본어로 표시됩니다.","zh-Hant":"尚未登錄翻譯的內容及部分說明將以日文顯示。","zh-Hans":"尚未登记翻译的内容及部分说明将以日语显示。",id:"Konten tanpa terjemahan dan sebagian petunjuk ditampilkan dalam bahasa Jepang.",th:"เนื้อหาที่ยังไม่มีคำแปลและคำแนะนำบางส่วนจะแสดงเป็นภาษาญี่ปุ่น"})[publicLanguage];mainContent.prepend(note)}
-// When storage is unavailable, keep explicit language selection on ordinary internal navigation.
-if(publicLanguageEnabled){document.addEventListener("click",e=>{if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;const a=e.target.closest?.("a[href]");if(!a||a.target&&a.target!=="_self"||a.hasAttribute("download"))return;const href=a.getAttribute("href");if(!href||href.startsWith("#"))return;try{const url=new URL(href,location.href),here=new URL(location.href);if(url.origin!==here.origin||url.pathname.slice(0,url.pathname.lastIndexOf("/")+1)!==here.pathname.slice(0,here.pathname.lastIndexOf("/")+1)||!url.pathname.endsWith(".html")||url.pathname.endsWith("/admin.html")||url.searchParams.has("cmsPreview")||url.searchParams.has("lang"))return;let saved=null;try{saved=publicLanguageStorage?.getItem(PUBLIC_LANGUAGE_KEY)}catch{}if(saved!==publicLanguage){e.preventDefault();location.assign(publicLanguageUrl(url,publicLanguage).href)}}catch{}})}
+// Carry language on public internal links, including dynamically rendered links and new tabs.
+if(publicLanguageEnabled){
+ const here=new URL(location.href);
+ const syncLink=a=>{if(a.hasAttribute("download"))return;const url=publicNavigationUrl(a.getAttribute("href"),here,publicLanguage);if(url)a.setAttribute("href",url.href)};
+ const scan=root=>{if(root.nodeType!==1)return;if(root.matches("a[href]"))syncLink(root);root.querySelectorAll("a[href]").forEach(syncLink)};
+ scan(document.body);
+ if(window.MutationObserver)new MutationObserver(records=>{for(const record of records){if(record.type==="attributes")syncLink(record.target);else for(const node of record.addedNodes)scan(node)}}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["href"]});
+}
 const previewData=(()=>{try{if(window.parent===window||!new URLSearchParams(location.search).has("cmsPreview"))return null;const frame=window.frameElement;if(!frame||frame.id!=="cms-preview-frame"||!window.parent.location.pathname.endsWith("/admin.html"))return null;const snapshot=JSON.parse(sessionStorage.getItem("poppoo-cms-preview")||"null");return snapshot&&typeof snapshot==="object"?snapshot:null}catch{return null}})();
 if(previewData){const note=document.createElement("div");note.textContent="公開前プレビュー（ブラウザー内の編集データ）";note.style.cssText="padding:10px;background:#282828;color:white;text-align:center;font-size:13px";document.body.prepend(note);document.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&!a.getAttribute("href")?.startsWith("#"))e.preventDefault()},true)}
 // Static Open Graph detail pages. The CMS uses the same generator at publication.
