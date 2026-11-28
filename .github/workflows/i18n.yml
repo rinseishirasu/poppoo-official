@@ -1,0 +1,25 @@
+name: Translation quality
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/js/site.js'
+      - 'scripts/check-i18n.mjs'
+      - '.github/workflows/i18n.yml'
+  pull_request:
+    paths:
+      - 'assets/js/site.js'
+      - 'scripts/check-i18n.mjs'
+      - '.github/workflows/i18n.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dictionary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-i18n.mjs
