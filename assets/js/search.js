@@ -9,7 +9,7 @@ const published=items=>(Array.isArray(items)?items:[]).filter(x=>x&&x.published=
 const validId=id=>typeof id==="string"&&/^[A-Za-z0-9_-]+$/.test(id);
 const validDate=d=>typeof d==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
 function buildIndex(sets,today){
- const rows=[],add=(kind,title,detail,href,keywords=[],date="")=>{if(!title)return;rows.push({kind,title,detail,href,date,hay:normalize([title,detail,labels[kind],...keywords].join(" ")),titleKey:normalize(title)})};
+ const rows=[],add=(kind,title,detail,href,keywords=[],date="")=>{if(!title)return;rows.push({kind,title,detail,href,date,hay:normalize([title,detail,labels[kind],publicText(labels[kind]),...keywords].join(" ")),titleKey:normalize(title)})};
  const members=published(sets.talents).filter(t=>validId(t.id)&&text(t.name)).map(normalizedMemberProfile);
  const names=new Map(members.map(t=>[t.id,t.name]));
  for(const t of members){
@@ -49,7 +49,7 @@ function buildIndex(sets,today){
  ["プライバシー・サイトポリシー","個人情報・著作権・利用について","policy.html",["アクセス情報 外部サービス 禁止事項 免責"]],
  ["公開プロフィール・掲載情報","掲載データと非表示設定の取り扱い","policy.html#publication",["公開リポジトリ 訂正 削除 プロフィール コラボ 個人情報"]]
  ];
- for(const [title,detail,href,keywords] of basic)add("info",title,detail,href,keywords);
+ for(const [title,detail,href,keywords] of basic)add("info",publicText(title),publicText(detail),href,[title,detail,...keywords]);
  for(const e of nextAnniversaryEvents(anniversaryRecords(sets.talents,sets.settings),today)){
  const title=e.name+"の"+e.label;
  const url="anniversary.html?month="+e.date.slice(0,7)+(e.id?"&member="+encodeURIComponent(e.id):"");
@@ -72,14 +72,14 @@ async function start(){
  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10),index=buildIndex(sets,today);
  const warning=failures.length?" 一部の情報を取得できませんでした。":"";
  const render=()=>{
- const list=findResults(index,query,kind);status.textContent=query?"「"+query+"」の検索結果 "+list.length+"件"+warning:(kind==="all"?"キーワードを入力するか、検索対象を選んでください。":"検索対象："+labels[kind]+" "+list.length+"件")+warning;
- buttons.forEach(b=>{const k=b.dataset.searchKind;const n=findResults(index,query,k).length;b.textContent=(k==="all"?"すべて":labels[k])+" ("+n+")";b.setAttribute("aria-pressed",String(k===kind))});
+ const list=findResults(index,query,kind);status.textContent=publicEnglish?(query?list.length+" results for “"+query+"”":kind==="all"?"Enter a keyword or select a category.":publicText(labels[kind])+": "+list.length+" results")+(failures.length?" Some data could not be loaded.":""):query?"「"+query+"」の検索結果 "+list.length+"件"+warning:(kind==="all"?publicText("キーワードを入力するか、検索対象を選んでください。"):"検索対象："+labels[kind]+" "+list.length+"件")+warning;
+ buttons.forEach(b=>{const k=b.dataset.searchKind;const n=findResults(index,query,k).length;b.textContent=(k==="all"?publicText("すべて"):publicText(labels[k]))+" ("+n+")";b.setAttribute("aria-pressed",String(k===kind))});
  result.replaceChildren();wrap.hidden=true;
- if(!query&&kind==="all"){const p=document.createElement("p");p.className="empty-state";p.textContent="メンバー名、ニュース、配信タイトル、誕生日などを入力して検索してください。";result.append(p);return}
- if(!list.length){const p=document.createElement("p");p.className="empty-state";p.textContent="条件に一致する情報がありません。別のキーワードをお試しください。";result.append(p);return}
+ if(!query&&kind==="all"){const p=document.createElement("p");p.className="empty-state";p.textContent=publicText("メンバー名、ニュース、配信タイトル、誕生日などを入力して検索してください。");result.append(p);return}
+ if(!list.length){const p=document.createElement("p");p.className="empty-state";p.textContent=publicText("条件に一致する情報がありません。別のキーワードをお試しください。");result.append(p);return}
  for(const item of list.slice(0,limit)){
  const a=document.createElement("a");a.className="pop-search-result";a.href=item.href;
- const badge=document.createElement("span");badge.className="pop-search-kind";badge.textContent=labels[item.kind];
+ const badge=document.createElement("span");badge.className="pop-search-kind";badge.textContent=publicText(labels[item.kind]);
  const h=document.createElement("h2");h.textContent=item.title;
  const p=document.createElement("p");p.textContent=item.detail;
  a.append(badge,h,p);result.append(a);
@@ -90,5 +90,5 @@ async function start(){
  buttons.forEach(b=>b.addEventListener("click",()=>{kind=b.dataset.searchKind;limit=15;render()}));
  more.addEventListener("click",()=>{limit+=15;render()});render();
 }
-start().catch(()=>{const status=document.getElementById("site-search-status");if(status)status.textContent="検索を初期化できませんでした。ページを再読み込みしてください。"});
+start().catch(()=>{const status=document.getElementById("site-search-status");if(status)status.textContent=publicText("検索を初期化できませんでした。ページを再読み込みしてください。")});
 })();
